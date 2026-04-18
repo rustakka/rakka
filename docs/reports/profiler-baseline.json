@@ -1,0 +1,110 @@
+{
+  "rust": {
+    "runtime": "rust",
+    "version": "0.1.0",
+    "host": "linux/aarch64 cpus=20",
+    "measurements": [
+      {
+        "runtime": "rust",
+        "scenario": "tell",
+        "config": "default-dispatcher",
+        "messages": 100000,
+        "elapsed_ns": 17298122,
+        "throughput_msgs_per_sec": 5780974.373981176,
+        "rss_delta_bytes": 1634304,
+        "peak_rss_bytes": 4534272,
+        "cpu_delta_ns": 30000000
+      },
+      {
+        "runtime": "rust",
+        "scenario": "ask",
+        "config": "default-dispatcher",
+        "messages": 5000,
+        "elapsed_ns": 54224708,
+        "throughput_msgs_per_sec": 92208.88750567361,
+        "p50_ns": 9760,
+        "p95_ns": 15664,
+        "p99_ns": 19888,
+        "rss_delta_bytes": 0,
+        "peak_rss_bytes": 4534272,
+        "cpu_delta_ns": 80000000
+      },
+      {
+        "runtime": "rust",
+        "scenario": "fanout",
+        "config": "default-dispatcher",
+        "messages": 2000,
+        "elapsed_ns": 11682706,
+        "throughput_msgs_per_sec": 171193.21499659412,
+        "rss_delta_bytes": 16973824,
+        "peak_rss_bytes": 21512192,
+        "cpu_delta_ns": 20000000
+      },
+      {
+        "runtime": "rust",
+        "scenario": "cpu",
+        "config": "cpu-bound-handler",
+        "messages": 10000,
+        "elapsed_ns": 53944836,
+        "throughput_msgs_per_sec": 185374.55559230916,
+        "rss_delta_bytes": 245760,
+        "peak_rss_bytes": 21757952,
+        "cpu_delta_ns": 110000000
+      }
+    ]
+  },
+  "python": {
+    "runtime": "python",
+    "version": "0.1.0",
+    "host": "linux/aarch64 cpus=20 py=3.12.3",
+    "measurements": [
+      {
+        "runtime": "python",
+        "scenario": "tell",
+        "config": "python-pinned",
+        "messages": 20000,
+        "elapsed_ns": 805462783,
+        "throughput_msgs_per_sec": 24830.44582830837,
+        "rss_delta_bytes": 7323648,
+        "peak_rss_bytes": 34430976,
+        "cpu_delta_ns": 940000000
+      },
+      {
+        "runtime": "python",
+        "scenario": "ask",
+        "config": "python-pinned",
+        "messages": 2000,
+        "elapsed_ns": 143485614,
+        "throughput_msgs_per_sec": 13938.679594736235,
+        "p50_ns": 47152,
+        "p95_ns": 260849,
+        "p99_ns": 379729,
+        "rss_delta_bytes": 24576,
+        "peak_rss_bytes": 34455552,
+        "cpu_delta_ns": 150000000
+      },
+      {
+        "runtime": "python",
+        "scenario": "fanout",
+        "config": "python-pinned",
+        "messages": 500,
+        "elapsed_ns": 83707841,
+        "throughput_msgs_per_sec": 5973.156087014597,
+        "rss_delta_bytes": 4464640,
+        "peak_rss_bytes": 38924288,
+        "cpu_delta_ns": 130000000
+      },
+      {
+        "runtime": "python",
+        "scenario": "cpu",
+        "config": "python-subinterpreter-pool pool=8",
+        "messages": 2000,
+        "elapsed_ns": 1292051521,
+        "throughput_msgs_per_sec": 1547.9258895590124,
+        "rss_delta_bytes": 86016,
+        "peak_rss_bytes": 39120896,
+        "cpu_delta_ns": 1200000000
+      }
+    ]
+  }
+}

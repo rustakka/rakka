@@ -1,0 +1,74 @@
+//! PyO3 bindings for rustakka-core. Exposes the native extension module
+//! `rustakka._native` whose submodules mirror the Rust crate layout.
+//!
+//! Public Python API surface lives in `python/rustakka/`; this crate only
+//! provides compiled types.
+
+// PyO3 macros emit code that trips a handful of clippy false positives.
+#![allow(
+    clippy::useless_conversion,
+    clippy::too_many_arguments,
+    clippy::needless_lifetimes,
+    clippy::new_without_default,
+    clippy::type_complexity,
+    dead_code,
+    unexpected_cfgs,
+)]
+
+use pyo3::prelude::*;
+
+mod actor_ref;
+mod actor_system;
+mod compat;
+mod config;
+mod context;
+mod dispatcher;
+mod errors;
+mod interpreter;
+mod metrics;
+mod props;
+mod py_actor;
+mod runtime;
+
+mod ext_cluster;
+mod ext_cluster_sharding;
+mod ext_cluster_tools;
+mod ext_coordination;
+mod ext_ddata;
+mod ext_di;
+mod ext_discovery;
+mod ext_hosting;
+mod ext_persistence;
+mod ext_streams;
+mod ext_testkit;
+
+/// Entry point registered with `#[pymodule]` — exposes `rustakka._native`.
+#[pymodule]
+fn _native(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
+
+    actor_system::register(py, m)?;
+    actor_ref::register(py, m)?;
+    config::register(py, m)?;
+    context::register(py, m)?;
+    dispatcher::register(py, m)?;
+    errors::register(py, m)?;
+    interpreter::register(py, m)?;
+    metrics::register(py, m)?;
+    props::register(py, m)?;
+    compat::register(py, m)?;
+
+    ext_testkit::register(py, m)?;
+    ext_cluster::register(py, m)?;
+    ext_cluster_tools::register(py, m)?;
+    ext_cluster_sharding::register(py, m)?;
+    ext_ddata::register(py, m)?;
+    ext_persistence::register(py, m)?;
+    ext_streams::register(py, m)?;
+    ext_coordination::register(py, m)?;
+    ext_discovery::register(py, m)?;
+    ext_di::register(py, m)?;
+    ext_hosting::register(py, m)?;
+
+    Ok(())
+}

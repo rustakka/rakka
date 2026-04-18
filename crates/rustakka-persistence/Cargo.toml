@@ -1,0 +1,16 @@
+[package]
+name = "rustakka-persistence"
+description = "Event sourcing and AtLeastOnceDelivery for rustakka (akka.net `Akka.Persistence`)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rustakka-core = { workspace = true }
+serde = { workspace = true }
+parking_lot = { workspace = true }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }

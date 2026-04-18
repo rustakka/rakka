@@ -1,0 +1,14 @@
+[package]
+name = "rustakka-discovery"
+description = "Service discovery API for rustakka (akka.net Akka.Discovery)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rustakka-core = { workspace = true }
+parking_lot = { workspace = true }
+async-trait = { workspace = true }
+tokio = { workspace = true }

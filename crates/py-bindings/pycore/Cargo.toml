@@ -1,0 +1,45 @@
+[package]
+name = "rustakka-pycore"
+description = "Python bindings for rustakka-core via PyO3."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+name = "_native"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["extension-module"]
+extension-module = ["pyo3/extension-module"]
+
+[dependencies]
+rustakka-core = { workspace = true }
+rustakka-config = { workspace = true }
+rustakka-testkit = { workspace = true }
+rustakka-remote = { workspace = true }
+rustakka-cluster = { workspace = true }
+rustakka-cluster-tools = { workspace = true }
+rustakka-cluster-sharding = { workspace = true }
+rustakka-distributed-data = { workspace = true }
+rustakka-persistence = { workspace = true }
+rustakka-streams = { workspace = true }
+rustakka-coordination = { workspace = true }
+rustakka-discovery = { workspace = true }
+rustakka-di = { workspace = true }
+rustakka-hosting = { workspace = true }
+
+pyo3 = { workspace = true, features = ["abi3-py310", "macros"] }
+pyo3-async-runtimes = { workspace = true }
+tokio = { workspace = true }
+parking_lot = { workspace = true }
+dashmap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+async-trait = { workspace = true }
+tracing = { workspace = true }
+once_cell = { workspace = true }
+thiserror = { workspace = true }
+futures = { workspace = true }

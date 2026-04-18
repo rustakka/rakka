@@ -1,0 +1,17 @@
+[package]
+name = "rustakka"
+description = "Idiomatic Rust port of Akka.NET — umbrella re-export crate."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rustakka-core = { workspace = true }
+rustakka-config = { workspace = true }
+rustakka-macros = { workspace = true, optional = true }
+
+[features]
+default = ["macros"]
+macros = ["dep:rustakka-macros"]

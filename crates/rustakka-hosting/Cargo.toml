@@ -1,0 +1,14 @@
+[package]
+name = "rustakka-hosting"
+description = "Application-host wiring for rustakka (akka.net Akka.Hosting)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rustakka-core = { workspace = true }
+rustakka-config = { workspace = true }
+rustakka-di = { workspace = true }
+tokio = { workspace = true }

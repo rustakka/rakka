@@ -1,0 +1,48 @@
+# --- Rust -------------------------------------------------------------------
+/target
+/Cargo.lock
+**/*.rs.bk
+
+# --- OS ---------------------------------------------------------------------
+.DS_Store
+/tmp
+
+# --- Upstream akka.net clone (developer-local, created by script) ----------
+# We track changes in upstream by cloning akkadotnet/akka.net into ./akka.net
+# with `scripts/sync-upstream.py`. That checkout is large and evolves on its
+# own schedule, so it's never committed. CI + devs regenerate it on demand.
+/akka.net/
+
+# --- Python virtualenvs (developer-local) ----------------------------------
+# Users create their own with `python -m venv .venv && maturin develop --release`.
+.venv/
+.venv-build/
+venv/
+env/
+
+# --- Python build / install artefacts --------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+build/
+dist/
+wheels/
+*.so
+*.pyd
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# --- PyO3 / maturin local overrides ----------------------------------------
+# The committed .cargo/config.toml relies on PyO3's auto-detection. When
+# auto-detection fails (e.g. no python3-dev installed), devs can drop a
+# machine-specific pyo3-config.txt in .cargo/ and export PYO3_CONFIG_FILE.
+# That file is intentionally NOT committed.
+.cargo/pyo3-config.txt
+.cargo/config.local.toml
+
+# --- Profiler output -------------------------------------------------------
+# Ad-hoc profiler runs land in this folder; only the committed baseline stays.
+docs/reports/*.json
+!docs/reports/profiler-baseline.json

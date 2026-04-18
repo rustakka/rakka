@@ -1,0 +1,19 @@
+# Example PyO3 config file. Copy to `.cargo/pyo3-config.txt` (gitignored)
+# and edit the paths for your host. Then export:
+#
+#   export PYO3_CONFIG_FILE="$PWD/.cargo/pyo3-config.txt"
+#
+# Only needed when PyO3 can't auto-detect Python (e.g. no python3-dev
+# installed and you lack sudo to install it). Normal users should leave
+# this alone and let `maturin develop` + auto-detection do their thing.
+
+implementation=CPython
+version=3.10
+shared=true
+abi3=true
+lib_name=python3
+lib_dir=/usr/lib/aarch64-linux-gnu
+executable=/usr/bin/python3
+pointer_width=64
+build_flags=
+suppress_build_script_link_lines=false

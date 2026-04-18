@@ -1,0 +1,18 @@
+[alias]
+# `cargo xtask <subcommand>` — see xtask/src/main.rs for subcommands.
+xtask = "run --package xtask --"
+
+# --- Optional: custom Python for PyO3 --------------------------------------
+#
+# By default PyO3 auto-detects Python from PATH, which is what you want if
+# you've followed the README and run `python -m venv .venv && source
+# .venv/bin/activate && maturin develop --release`.
+#
+# If your system has no Python dev headers and you can't `sudo apt install
+# python3-dev` (sandboxed machines, CI without root, etc.), drop a machine-
+# specific `.cargo/pyo3-config.txt` (gitignored) and export:
+#
+#   export PYO3_CONFIG_FILE="$PWD/.cargo/pyo3-config.txt"
+#
+# …or `source scripts/dev-env.sh` which handles both that and sourcing the
+# virtualenv.

@@ -1,0 +1,70 @@
+# rustakka reference configuration.
+# Keys mirror akka.net/src/core/Akka/Configuration/Pigeon.conf.
+# Keep in sync with upstream via `cargo xtask sync-upstream`.
+
+[akka]
+loglevel = "INFO"
+stdout-loglevel = "INFO"
+log-config-on-start = false
+log-dead-letters = 10
+log-dead-letters-during-shutdown = false
+
+[akka.actor]
+provider = "local"
+default-dispatcher-id = "akka.actor.default-dispatcher"
+default-mailbox-id = "akka.actor.default-mailbox"
+guardian-supervisor-strategy = "one-for-one"
+debug = false
+serialize-messages = false
+
+[akka.actor.default-dispatcher]
+type = "Dispatcher"
+throughput = 10
+throughput-deadline-time = "0s"
+mailbox-requirement = ""
+
+[akka.actor.default-mailbox]
+mailbox-type = "unbounded"
+mailbox-capacity = 1000
+mailbox-push-timeout-time = "10s"
+
+[akka.scheduler]
+implementation = "hashed-wheel-timer"
+tick-duration = "10ms"
+ticks-per-wheel = 512
+
+[akka.remote]
+enabled-transports = ["akka.remote.tcp"]
+startup-timeout = "10s"
+shutdown-timeout = "10s"
+flush-wait-on-shutdown = "2s"
+
+[akka.remote.tcp]
+hostname = "127.0.0.1"
+port = 2552
+send-buffer-size = "256000b"
+receive-buffer-size = "256000b"
+maximum-frame-size = "128000b"
+
+[akka.cluster]
+seed-nodes = []
+roles = []
+min-nr-of-members = 1
+auto-down-unreachable-after = "off"
+gossip-interval = "1s"
+heartbeat-interval = "1s"
+failure-detector-threshold = 8.0
+
+[akka.persistence]
+journal-plugin = "akka.persistence.journal.inmem"
+snapshot-store-plugin = "akka.persistence.snapshot-store.inmem"
+
+[akka.persistence.journal.inmem]
+class = "rustakka_persistence::inmem::InMemoryJournal"
+
+[akka.persistence.snapshot-store.inmem]
+class = "rustakka_persistence::inmem::InMemorySnapshotStore"
+
+[akka.stream]
+materializer-dispatcher = "akka.actor.default-dispatcher"
+max-fixed-buffer-size = 1000000

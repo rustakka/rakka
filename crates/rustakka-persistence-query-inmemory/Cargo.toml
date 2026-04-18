@@ -1,0 +1,14 @@
+[package]
+name = "rustakka-persistence-query-inmemory"
+description = "In-memory implementation of rustakka persistence-query."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rustakka-persistence = { workspace = true }
+rustakka-persistence-query = { workspace = true }
+async-trait = { workspace = true }
+tokio = { workspace = true }

@@ -1,0 +1,17 @@
+[package]
+name = "bench-ping-throughput"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+rustakka = { path = "../../crates/rustakka" }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+
+[dev-dependencies]
+criterion = { workspace = true }
+
+[[bench]]
+name = "ping_throughput"
+harness = false

@@ -1,0 +1,19 @@
+site_name: rustakka
+site_description: Akka.NET port in idiomatic Rust with Python bindings.
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+nav:
+  - Home: index.md
+  - Parity: parity.md
+  - Python bindings: python.md
+  - Profiler: profiler.md
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true
+  - tables

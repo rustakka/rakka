@@ -1,0 +1,10 @@
+[package]
+name = "rustakka-serialization-hyperion"
+description = "rustakka: rustakka-serialization-hyperion (placeholder stub)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
