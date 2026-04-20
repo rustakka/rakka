@@ -10,6 +10,7 @@ nav:
   - Home: index.md
   - Parity: parity.md
   - Python bindings: python.md
+  - Persistence providers: persistence-providers.md
   - Profiler: profiler.md
 markdown_extensions:
   - admonition

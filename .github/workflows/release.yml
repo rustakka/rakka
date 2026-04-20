@@ -1,0 +1,87 @@
+name: Publish Crates
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run cargo publish with --dry-run"
+        required: false
+        default: "true"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Verify workspace builds
+        run: cargo test --workspace
+
+      - name: Determine dry-run flag
+        id: dry
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            echo "flag=--dry-run" >> "$GITHUB_OUTPUT"
+          else
+            echo "flag=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish rustakka-persistence (core)
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        run: cargo publish -p rustakka-persistence ${{ steps.dry.outputs.flag }}
+
+      - name: Publish rustakka-persistence-tck
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        run: cargo publish -p rustakka-persistence-tck ${{ steps.dry.outputs.flag }}
+
+      - name: Publish rustakka-persistence-query
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        run: cargo publish -p rustakka-persistence-query ${{ steps.dry.outputs.flag }}
+
+      - name: Publish rustakka-persistence-sql
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        run: cargo publish -p rustakka-persistence-sql ${{ steps.dry.outputs.flag }}
+
+      - name: Publish rustakka-persistence-redis
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        run: cargo publish -p rustakka-persistence-redis ${{ steps.dry.outputs.flag }}
+
+      - name: Publish rustakka-persistence-mongodb
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        run: cargo publish -p rustakka-persistence-mongodb ${{ steps.dry.outputs.flag }}
+
+      - name: Publish rustakka-persistence-cassandra
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        run: cargo publish -p rustakka-persistence-cassandra ${{ steps.dry.outputs.flag }}
+
+      - name: Publish rustakka-persistence-aws
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        run: cargo publish -p rustakka-persistence-aws ${{ steps.dry.outputs.flag }}
+
+      - name: Publish rustakka-persistence-azure
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        run: cargo publish -p rustakka-persistence-azure ${{ steps.dry.outputs.flag }}

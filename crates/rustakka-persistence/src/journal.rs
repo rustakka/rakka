@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use parking_lot::RwLock;
 use thiserror::Error;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct PersistentRepr {
     pub persistence_id: String,
     pub sequence_nr: u64,
@@ -16,6 +16,7 @@ pub struct PersistentRepr {
     pub manifest: String,
     pub writer_uuid: String,
     pub deleted: bool,
+    pub tags: Vec<String>,
 }
 
 #[derive(Debug, Error)]
@@ -24,6 +25,14 @@ pub enum JournalError {
     SequenceOutOfOrder { expected: u64, got: u64 },
     #[error("persistence id not found: {0}")]
     NotFound(String),
+    #[error("backend error: {0}")]
+    Backend(String),
+}
+
+impl JournalError {
+    pub fn backend(err: impl std::fmt::Display) -> Self {
+        Self::Backend(err.to_string())
+    }
 }
 
 #[async_trait]
@@ -49,6 +58,15 @@ pub trait Journal: Send + Sync + 'static {
         persistence_id: &str,
         from_sequence_nr: u64,
     ) -> Result<u64, JournalError>;
+
+    async fn events_by_tag(
+        &self,
+        _tag: &str,
+        _from_offset: u64,
+        _max: u64,
+    ) -> Result<Vec<PersistentRepr>, JournalError> {
+        Ok(Vec::new())
+    }
 }
 
 #[derive(Default)]
@@ -133,6 +151,7 @@ mod tests {
             manifest: "m".into(),
             writer_uuid: "w".into(),
             deleted: false,
+            tags: Vec::new(),
         }
     }
 

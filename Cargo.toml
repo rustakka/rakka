@@ -16,6 +16,12 @@ members = [
     "crates/rustakka-persistence-query",
     "crates/rustakka-persistence-tck",
     "crates/rustakka-persistence-query-inmemory",
+    "crates/rustakka-persistence-sql",
+    "crates/rustakka-persistence-redis",
+    "crates/rustakka-persistence-mongodb",
+    "crates/rustakka-persistence-cassandra",
+    "crates/rustakka-persistence-aws",
+    "crates/rustakka-persistence-azure",
     "crates/rustakka-streams",
     "crates/rustakka-coordination",
     "crates/rustakka-discovery",
@@ -108,6 +114,19 @@ pyo3-async-runtimes = { version = "0.22", default-features = false, features = [
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 
+# Persistence drivers (used by provider crates; kept here so versions stay in sync)
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "macros", "any", "chrono", "uuid"] }
+fred = { version = "10", default-features = false, features = ["i-std", "transactions"] }
+mongodb = { version = "3" }
+scylla = { version = "1" }
+aws-config = { version = "1" }
+aws-sdk-dynamodb = { version = "1" }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+hmac = "0.12"
+sha2 = "0.10"
+base64 = "0.22"
+url = "2"
+
 # Internal
 rustakka-core = { path = "crates/rustakka-core", version = "0.1.0" }
 rustakka-config = { path = "crates/rustakka-config", version = "0.1.0" }
@@ -123,6 +142,12 @@ rustakka-persistence = { path = "crates/rustakka-persistence", version = "0.1.0"
 rustakka-persistence-query = { path = "crates/rustakka-persistence-query", version = "0.1.0" }
 rustakka-persistence-query-inmemory = { path = "crates/rustakka-persistence-query-inmemory", version = "0.1.0" }
 rustakka-persistence-tck = { path = "crates/rustakka-persistence-tck", version = "0.1.0" }
+rustakka-persistence-sql = { path = "crates/rustakka-persistence-sql", version = "0.1.0" }
+rustakka-persistence-redis = { path = "crates/rustakka-persistence-redis", version = "0.1.0" }
+rustakka-persistence-mongodb = { path = "crates/rustakka-persistence-mongodb", version = "0.1.0" }
+rustakka-persistence-cassandra = { path = "crates/rustakka-persistence-cassandra", version = "0.1.0" }
+rustakka-persistence-aws = { path = "crates/rustakka-persistence-aws", version = "0.1.0" }
+rustakka-persistence-azure = { path = "crates/rustakka-persistence-azure", version = "0.1.0" }
 rustakka-streams = { path = "crates/rustakka-streams", version = "0.1.0" }
 rustakka-coordination = { path = "crates/rustakka-coordination", version = "0.1.0" }
 rustakka-discovery = { path = "crates/rustakka-discovery", version = "0.1.0" }

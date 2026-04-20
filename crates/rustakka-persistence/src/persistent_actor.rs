@@ -58,6 +58,7 @@ pub trait PersistentActor: Send + 'static {
                 manifest: "evt".into(),
                 writer_uuid: writer_uuid.into(),
                 deleted: false,
+                tags: Vec::new(),
             });
         }
         journal.write_messages(reprs).await?;

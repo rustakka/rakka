@@ -50,6 +50,9 @@ python python/examples/ml_inference.py
 
 - [Python bindings](python.md) — install, actor API, GIL tuning guide,
   interpreter quotas, metrics, C-extension compatibility registry.
+- [Persistence providers](persistence-providers.md) — SQL, Redis,
+  MongoDB, Cassandra, DynamoDB, and Azure Table Storage crates plus the
+  shared TCK.
 - [Profiler](profiler.md) — cross-runtime actor memory + CPU profiler,
   shared JSON schema, baseline numbers.
 - [Parity](parity.md) — generated crate-by-crate presence report.

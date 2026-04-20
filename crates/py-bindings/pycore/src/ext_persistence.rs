@@ -32,6 +32,7 @@ impl PyInMemoryJournal {
                 deleted: false,
                 manifest: "bytes".into(),
                 writer_uuid: "pybindings".into(),
+                tags: Vec::new(),
             };
             inner.write_messages(vec![repr]).await.map_err(errors::map)
         }))

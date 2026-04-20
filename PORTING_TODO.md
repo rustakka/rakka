@@ -25,6 +25,26 @@ Phase progress against the plan. Update as each phase lands.
 - [x] Phase 10 - `rustakka-streams`
 - [x] Phase 11 - `rustakka-cluster-metrics`, `-coordination`, `-discovery`, `-di`, `-hosting`
 - [x] Phase 12 - Examples + benchmarks (`examples/pingpong`, `examples/chat`, `examples/fault-tolerance`, `benches/ping_throughput`)
+- [x] Phase 13 - Persistence provider crates (`resources/Rustakka Persistence Plan.md`)
+  - [x] 13.0 Core extensions: `JournalError::Backend`, `PersistentRepr.tags`,
+    TCK split into `journal_suite` / `journal_tag_suite` / `snapshot_suite`
+  - [x] 13.a `rustakka-persistence-sql` (`sqlx`; SQLite default,
+    Postgres/MySQL/MSSQL features; journal + snapshot + `ReadJournal`
+    with tag queries)
+  - [x] 13.b `rustakka-persistence-redis` (`fred`; sorted-set journal,
+    hash snapshot store, `MULTI`/`EXEC` batches)
+  - [x] 13.c `rustakka-persistence-mongodb` (indexed collections,
+    atomic `insert_many`, BSON payloads)
+  - [x] 13.d `rustakka-persistence-cassandra` (`scylla`; partitioned
+    journal tables, prepared-statement replay)
+  - [x] 13.e `rustakka-persistence-aws` (DynamoDB single-table design
+    with `E#`/`S#` sort keys, conditional writes)
+  - [x] 13.f `rustakka-persistence-azure` (Azure Table Storage via
+    a SharedKeyLite `reqwest` client; Cosmos feature placeholder)
+  - [x] 13.g `persistence-integration` CI job with Postgres/MySQL/
+    Redis/Mongo/Cassandra/DynamoDB Local/Azurite service containers
+  - [x] 13.h `release.yml` publishing core → TCK → query → provider
+    crates in dependency order on `release: published`
 - [x] Ongoing - xtask sync-upstream, docs/parity.md, CI quarterly diff
 
 ## Python bindings

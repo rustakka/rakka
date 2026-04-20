@@ -1,0 +1,161 @@
+name: Persistence Integration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "crates/rustakka-persistence/**"
+      - "crates/rustakka-persistence-tck/**"
+      - "crates/rustakka-persistence-sql/**"
+      - "crates/rustakka-persistence-redis/**"
+      - "crates/rustakka-persistence-mongodb/**"
+      - "crates/rustakka-persistence-cassandra/**"
+      - "crates/rustakka-persistence-aws/**"
+      - "crates/rustakka-persistence-azure/**"
+      - ".github/workflows/persistence-integration.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+  pull_request:
+    paths:
+      - "crates/rustakka-persistence/**"
+      - "crates/rustakka-persistence-tck/**"
+      - "crates/rustakka-persistence-sql/**"
+      - "crates/rustakka-persistence-redis/**"
+      - "crates/rustakka-persistence-mongodb/**"
+      - "crates/rustakka-persistence-cassandra/**"
+      - "crates/rustakka-persistence-aws/**"
+      - "crates/rustakka-persistence-azure/**"
+      - ".github/workflows/persistence-integration.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+  workflow_dispatch:
+
+concurrency:
+  group: persistence-integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sql:
+    name: SQL (sqlite / postgres / mysql feature builds)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Test with SQLite feature
+        run: cargo test -p rustakka-persistence-sql --no-default-features --features sqlite
+      - name: Compile-check Postgres feature
+        run: cargo check -p rustakka-persistence-sql --no-default-features --features postgres --tests
+      - name: Compile-check MySQL feature
+        run: cargo check -p rustakka-persistence-sql --no-default-features --features mysql --tests
+      - name: Compile-check MSSQL feature
+        run: cargo check -p rustakka-persistence-sql --no-default-features --features mssql --tests
+
+  redis:
+    name: Redis
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - env:
+          RUSTAKKA_IT_REDIS_URL: redis://127.0.0.1:6379/0
+        run: cargo test -p rustakka-persistence-redis
+
+  mongodb:
+    name: MongoDB
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - env:
+          RUSTAKKA_IT_MONGO_URL: mongodb://127.0.0.1:27017
+        run: cargo test -p rustakka-persistence-mongodb
+
+  cassandra:
+    name: Cassandra
+    runs-on: ubuntu-latest
+    services:
+      cassandra:
+        image: cassandra:4.1
+        ports:
+          - 9042:9042
+        options: >-
+          --health-cmd "cqlsh -e 'describe cluster'"
+          --health-interval 15s
+          --health-timeout 10s
+          --health-retries 20
+          --health-start-period 60s
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Wait for Cassandra CQL port
+        run: |
+          for i in {1..60}; do
+            (echo > /dev/tcp/127.0.0.1/9042) 2>/dev/null && exit 0
+            sleep 5
+          done
+          echo "Cassandra did not become ready" >&2
+          exit 1
+      - env:
+          RUSTAKKA_IT_CASSANDRA_NODES: 127.0.0.1:9042
+        run: cargo test -p rustakka-persistence-cassandra
+
+  dynamodb:
+    name: AWS DynamoDB (local)
+    runs-on: ubuntu-latest
+    services:
+      dynamodb:
+        image: amazon/dynamodb-local:latest
+        ports:
+          - 8000:8000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - env:
+          RUSTAKKA_IT_DYNAMO_ENDPOINT: http://127.0.0.1:8000
+          AWS_ACCESS_KEY_ID: local
+          AWS_SECRET_ACCESS_KEY: local
+          AWS_REGION: us-east-1
+        run: cargo test -p rustakka-persistence-aws
+
+  azure:
+    name: Azure Table Storage (Azurite)
+    runs-on: ubuntu-latest
+    services:
+      azurite:
+        image: mcr.microsoft.com/azure-storage/azurite:latest
+        ports:
+          - 10000:10000
+          - 10001:10001
+          - 10002:10002
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - env:
+          RUSTAKKA_IT_AZURE_CONNECTION_STRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;"
+        run: cargo test -p rustakka-persistence-azure
