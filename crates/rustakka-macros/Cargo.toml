@@ -14,3 +14,8 @@ proc-macro = true
 proc-macro2 = { workspace = true }
 quote = { workspace = true }
 syn = { workspace = true }
+
+[dev-dependencies]
+rustakka-core = { workspace = true }
+rustakka-config = { workspace = true }
+tokio = { workspace = true }

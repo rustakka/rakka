@@ -29,12 +29,16 @@ pub(crate) fn mysql_migration() -> &'static str {
     include_str!("../migrations/mysql/001_init.sql")
 }
 
+pub(crate) fn mssql_migration() -> &'static str {
+    include_str!("../migrations/mssql/001_init.sql")
+}
+
 pub(crate) fn migration_for(dialect: SqlDialect) -> &'static str {
     match dialect {
         SqlDialect::Sqlite => sqlite_migration(),
         SqlDialect::Postgres => postgres_migration(),
         SqlDialect::MySql => mysql_migration(),
-        SqlDialect::MsSql => "-- MSSQL migration not yet implemented",
+        SqlDialect::MsSql => mssql_migration(),
     }
 }
 
