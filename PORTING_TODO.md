@@ -23,6 +23,19 @@ Phase progress against the plan. Update as each phase lands.
 - [x] Phase 8 - `rustakka-cluster-sharding`
 - [x] Phase 9 - `rustakka-persistence` (+ query, query-inmemory, tck)
 - [x] Phase 10 - `rustakka-streams`
+  - [x] 10.1 Source/Flow/Sink linear operators (map/filter/take/skip/scan/
+    grouped/concat/prepend/delay/throttle/map_async/map_async_unordered/
+    intersperse/buffer/wire_tap/tick/unfold/repeat/cycle/from_future/
+    from_receiver)
+  - [x] 10.2 Fan-in / fan-out junctions (`merge`, `merge_all`, `concat`,
+    `zip`, `zip_with`, `zip_with_index`, `broadcast`)
+  - [x] 10.3 Byte framing (`Framing::delimiter`, `Framing::length_field`)
+  - [x] 10.4 IO adapters (`FileIO::from_path`/`to_path`/`pipe_to_path`,
+    `Tcp::bind`/`Tcp::outgoing_connection`)
+  - [x] 10.5 External control (`KillSwitch`, `RestartSource` + `RestartSettings`)
+  - [x] 10.6 Explicit backpressure (`SourceQueue`, `Sink::queue`,
+    `OverflowStrategy` with Backpressure/Drop{Head,New,Tail,Buffer}/Fail)
+  - [x] 10.7 `RunnableGraph` + richer `ActorMaterializer` (`run`, `run_with`)
 - [x] Phase 11 - `rustakka-cluster-metrics`, `-coordination`, `-discovery`, `-di`, `-hosting`
 - [x] Phase 12 - Examples + benchmarks (`examples/pingpong`, `examples/chat`, `examples/fault-tolerance`, `benches/ping_throughput`)
 - [x] Phase 13 - Persistence provider crates (`resources/Rustakka Persistence Plan.md`)
@@ -81,9 +94,23 @@ Phase progress against the plan. Update as each phase lands.
 - [x] Baseline captured to `docs/reports/profiler-baseline.md`
   (`docs/profiler.md` for the guide).
 
-Test suite: 90 Rust tests + 29 Python tests passing. Phase P3 (remote +
-pluggable codecs) is deferred until the native remoting story crosses a
-process boundary.
+## Parity pass (2026-04)
+
+- [x] Expanded `rustakka-streams` surface (see Phase 10.x above).
+- [x] `rustakka-macros` `#[derive(Actor)]` now emits a real
+      `impl Actor` (was a no-op returning empty TokenStream).
+- [x] `rustakka-serialization-hyperion` replaced its empty crate body with
+      a Serde/bincode `HyperionSerializer<T>` that plugs into
+      `rustakka_core::serialization::Serializer`.
+- [x] `rustakka-persistence-sql` gained a MSSQL migration
+      (`migrations/mssql/001_init.sql`); `dialect::migration_for` no
+      longer returns a placeholder comment for MSSQL.
+- [x] `crates/py-bindings/pycore/src/ext_streams.rs` now drives the
+      native `rustakka-streams` materializer (`run_collect`, `run_fold`)
+      in addition to the legacy Python-only `map_reduce`.
+
+Phase P3 (pyremote pluggable codecs) remains deferred until the native
+remoting story crosses a process boundary.
 
 All in-scope phases are landed with passing unit tests. See `PORTING.md`
 for per-crate upstream tracking, deferred items, and the maintenance loop.
