@@ -63,6 +63,11 @@ impl<E: MessageExtractor> ShardRegion<E> {
     pub fn shard_count(&self) -> usize {
         self.shards.read().len()
     }
+
+    /// Names of the shards currently owned by this region.
+    pub fn shard_ids(&self) -> Vec<String> {
+        self.shards.read().keys().cloned().collect()
+    }
 }
 
 #[cfg(test)]

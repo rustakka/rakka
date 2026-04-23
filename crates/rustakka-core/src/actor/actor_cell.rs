@@ -53,7 +53,7 @@ pub(crate) fn spawn_cell<A: Actor>(
 ) -> Result<ActorRef<A::Msg>, super::context::SpawnError> {
     let (user_tx, user_rx) = mpsc::unbounded_channel::<MessageEnvelope<A::Msg>>();
     let (sys_tx, sys_rx) = mpsc::unbounded_channel::<SystemMsg>();
-    let actor_ref = ActorRef::new(path.clone(), user_tx, sys_tx);
+    let actor_ref = ActorRef::new(path.clone(), user_tx, sys_tx, Arc::downgrade(&system));
 
     let cell_ref = actor_ref.clone();
     let cell_system = Arc::downgrade(&system);
@@ -214,5 +214,10 @@ async fn finalize<A: Actor>(actor: &mut A, ctx: &mut Context<A>) {
     }
     for (_, child) in std::mem::take(&mut ctx.children) {
         let _ = child.system_tx.send(SystemMsg::Stop);
+    }
+    if let Some(system) = ctx.system.upgrade() {
+        if let Some(obs) = system.spawn_observer.read().as_ref() {
+            obs.on_stop(&ctx.path);
+        }
     }
 }

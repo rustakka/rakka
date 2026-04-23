@@ -30,6 +30,8 @@ rustakka-coordination = { workspace = true }
 rustakka-discovery = { workspace = true }
 rustakka-di = { workspace = true }
 rustakka-hosting = { workspace = true }
+rustakka-telemetry = { workspace = true }
+rustakka-dashboard = { workspace = true, features = ["aggregator"] }
 
 pyo3 = { workspace = true, features = ["abi3-py310", "macros"] }
 pyo3-async-runtimes = { workspace = true }

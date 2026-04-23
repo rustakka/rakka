@@ -1,6 +1,7 @@
 //! Inbox — a receive-from-the-outside handle into a synthetic actor.
 //! akka.net: `Actor/Inbox.cs`.
 
+use std::sync::Weak;
 use std::time::Duration;
 
 use tokio::sync::mpsc;
@@ -21,7 +22,7 @@ impl<M: Send + 'static> Inbox<M> {
         let (user_tx, rx) = mpsc::unbounded_channel::<MessageEnvelope<M>>();
         let (sys_tx, _sys_rx) = mpsc::unbounded_channel();
         let path = ActorPath::root(Address::local("Inbox")).child(name);
-        let actor_ref = ActorRef::new(path, user_tx, sys_tx);
+        let actor_ref = ActorRef::new(path, user_tx, sys_tx, Weak::new());
         Self { rx, actor_ref }
     }
 

@@ -34,6 +34,7 @@ mod ext_cluster;
 mod ext_cluster_sharding;
 mod ext_cluster_tools;
 mod ext_coordination;
+mod ext_dashboard;
 mod ext_ddata;
 mod ext_di;
 mod ext_discovery;
@@ -69,6 +70,7 @@ fn _native(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     ext_discovery::register(py, m)?;
     ext_di::register(py, m)?;
     ext_hosting::register(py, m)?;
+    ext_dashboard::register(py, m)?;
 
     Ok(())
 }

@@ -12,6 +12,7 @@ use super::actor_cell::{spawn_cell, ChildEntry, SystemMsg};
 use super::actor_ref::ActorRef;
 use super::address::Address;
 use super::extensions::Extensions;
+use super::observer::{DeadLetterObserver, SpawnObserver};
 use super::path::ActorPath;
 use super::props::Props;
 use super::scheduler::{Scheduler, TokioScheduler};
@@ -24,6 +25,8 @@ pub(crate) struct ActorSystemInner {
     pub scheduler: Arc<dyn Scheduler>,
     pub extensions: Extensions,
     pub user_guardian: Mutex<HashMap<String, ChildEntry>>,
+    pub(crate) spawn_observer: parking_lot::RwLock<Option<Arc<dyn SpawnObserver>>>,
+    pub(crate) dead_letter_observer: parking_lot::RwLock<Option<Arc<dyn DeadLetterObserver>>>,
     terminated: Notify,
     terminated_flag: std::sync::atomic::AtomicBool,
 }
@@ -46,6 +49,8 @@ impl ActorSystem {
             scheduler: Arc::new(TokioScheduler::new()),
             extensions: Extensions::default(),
             user_guardian: Mutex::new(HashMap::new()),
+            spawn_observer: parking_lot::RwLock::new(None),
+            dead_letter_observer: parking_lot::RwLock::new(None),
             terminated: Notify::new(),
             terminated_flag: std::sync::atomic::AtomicBool::new(false),
         });
@@ -72,6 +77,19 @@ impl ActorSystem {
         &self.inner.extensions
     }
 
+    /// Install a [`SpawnObserver`]. Only one observer may be installed;
+    /// subsequent calls replace the previous one. This is the hook used by
+    /// `rustakka-telemetry` to populate its actor registry.
+    pub fn set_spawn_observer(&self, obs: Arc<dyn SpawnObserver>) {
+        *self.inner.spawn_observer.write() = Some(obs);
+    }
+
+    /// Install a [`DeadLetterObserver`] that is notified when a `tell`
+    /// fails because the target has stopped.
+    pub fn set_dead_letter_observer(&self, obs: Arc<dyn DeadLetterObserver>) {
+        *self.inner.dead_letter_observer.write() = Some(obs);
+    }
+
     /// Spawn a top-level actor under `/user`. akka.net: `ActorOf`.
     pub fn actor_of<A: Actor>(
         &self,
@@ -79,13 +97,17 @@ impl ActorSystem {
         name: &str,
     ) -> Result<ActorRef<A::Msg>, ActorSystemError> {
         let root = ActorPath::root(self.inner.address.clone());
-        let path = root.child("user").child(name);
+        let parent = root.child("user");
+        let path = parent.child(name);
         let mut guardian = self.inner.user_guardian.lock();
         if guardian.contains_key(name) {
             return Err(ActorSystemError::NameTaken(name.into()));
         }
         let r = spawn_cell::<A>(self.inner.clone(), props, path.clone())
             .map_err(|e| ActorSystemError::Spawn(e.to_string()))?;
+        if let Some(obs) = self.inner.spawn_observer.read().as_ref() {
+            obs.on_spawn(&path, Some(&parent), std::any::type_name::<A>());
+        }
         guardian.insert(
             name.to_string(),
             ChildEntry { path, untyped: r.as_untyped(), system_tx: r.system_sender() },

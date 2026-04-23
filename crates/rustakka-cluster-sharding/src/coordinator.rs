@@ -33,4 +33,10 @@ impl ShardCoordinator {
     pub fn shard_count(&self) -> usize {
         self.allocation.read().len()
     }
+
+    /// Snapshot of the full shard → region allocation table. Useful for
+    /// telemetry / dashboards.
+    pub fn allocations(&self) -> Vec<(String, String)> {
+        self.allocation.read().iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+    }
 }

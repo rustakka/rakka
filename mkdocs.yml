@@ -8,10 +8,13 @@ theme:
     - content.code.copy
 nav:
   - Home: index.md
+  - "Actors & agentic systems": actors-and-agentic-computing.md
   - Parity: parity.md
   - Python bindings: python.md
   - Persistence providers: persistence-providers.md
   - Profiler: profiler.md
+  - Dashboard: dashboard.md
+  - Observability exporters: observability.md
 markdown_extensions:
   - admonition
   - codehilite

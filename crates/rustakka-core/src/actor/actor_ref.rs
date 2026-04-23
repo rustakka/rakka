@@ -2,13 +2,14 @@
 
 use std::any::Any;
 use std::fmt;
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 use std::time::Duration;
 
 use thiserror::Error;
 use tokio::sync::{mpsc, oneshot};
 
 use super::actor_cell::SystemMsg;
+use super::actor_system::ActorSystemInner;
 use super::path::ActorPath;
 use super::traits::MessageEnvelope;
 
@@ -24,6 +25,7 @@ struct ActorRefInner<M: Send + 'static> {
     path: ActorPath,
     user: mpsc::UnboundedSender<MessageEnvelope<M>>,
     system: mpsc::UnboundedSender<SystemMsg>,
+    system_ref: Weak<ActorSystemInner>,
 }
 
 impl<M: Send + 'static> Clone for ActorRef<M> {
@@ -43,8 +45,9 @@ impl<M: Send + 'static> ActorRef<M> {
         path: ActorPath,
         user: mpsc::UnboundedSender<MessageEnvelope<M>>,
         system: mpsc::UnboundedSender<SystemMsg>,
+        system_ref: Weak<ActorSystemInner>,
     ) -> Self {
-        Self { inner: Arc::new(ActorRefInner { path, user, system }) }
+        Self { inner: Arc::new(ActorRefInner { path, user, system, system_ref }) }
     }
 
     pub fn path(&self) -> &ActorPath {
@@ -53,11 +56,23 @@ impl<M: Send + 'static> ActorRef<M> {
 
     /// Fire-and-forget send. akka.net: `Tell`.
     pub fn tell(&self, msg: M) {
-        let _ = self.inner.user.send(MessageEnvelope::new(msg));
+        if self.inner.user.send(MessageEnvelope::new(msg)).is_err() {
+            self.notify_dead_letter();
+        }
     }
 
     pub fn tell_with_sender<S: Any + Send>(&self, msg: M, sender: S) {
-        let _ = self.inner.user.send(MessageEnvelope::with_sender(msg, sender));
+        if self.inner.user.send(MessageEnvelope::with_sender(msg, sender)).is_err() {
+            self.notify_dead_letter();
+        }
+    }
+
+    fn notify_dead_letter(&self) {
+        if let Some(system) = self.inner.system_ref.upgrade() {
+            if let Some(obs) = system.dead_letter_observer.read().as_ref() {
+                obs.on_dead_letter(&self.inner.path, None, std::any::type_name::<M>());
+            }
+        }
     }
 
     /// Stop the actor. akka.net: `Stop(ActorRef)`.

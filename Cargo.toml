@@ -23,6 +23,8 @@ members = [
     "crates/rustakka-persistence-aws",
     "crates/rustakka-persistence-azure",
     "crates/rustakka-streams",
+    "crates/rustakka-telemetry",
+    "crates/rustakka-dashboard",
     "crates/rustakka-coordination",
     "crates/rustakka-discovery",
     "crates/rustakka-di",
@@ -127,6 +129,13 @@ sha2 = "0.10"
 base64 = "0.22"
 url = "2"
 
+# HTTP / web (rustakka-dashboard)
+axum = { version = "0.7", default-features = false, features = ["json", "ws", "http1", "tokio", "query", "matched-path"] }
+tower = { version = "0.5", default-features = false, features = ["util"] }
+tower-http = { version = "0.5", default-features = false, features = ["cors", "trace", "fs"] }
+rust-embed = { version = "8" }
+clap = { version = "4", features = ["derive"] }
+
 # Internal
 rustakka-core = { path = "crates/rustakka-core", version = "0.1.0" }
 rustakka-config = { path = "crates/rustakka-config", version = "0.1.0" }
@@ -149,6 +158,8 @@ rustakka-persistence-cassandra = { path = "crates/rustakka-persistence-cassandra
 rustakka-persistence-aws = { path = "crates/rustakka-persistence-aws", version = "0.1.0" }
 rustakka-persistence-azure = { path = "crates/rustakka-persistence-azure", version = "0.1.0" }
 rustakka-streams = { path = "crates/rustakka-streams", version = "0.1.0" }
+rustakka-telemetry = { path = "crates/rustakka-telemetry", version = "0.1.0" }
+rustakka-dashboard = { path = "crates/rustakka-dashboard", version = "0.1.0" }
 rustakka-coordination = { path = "crates/rustakka-coordination", version = "0.1.0" }
 rustakka-discovery = { path = "crates/rustakka-discovery", version = "0.1.0" }
 rustakka-di = { path = "crates/rustakka-di", version = "0.1.0" }
