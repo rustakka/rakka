@@ -139,6 +139,23 @@ impl Journal for InMemoryJournal {
     }
 }
 
+impl InMemoryJournal {
+    /// List all persistence ids currently stored. Used by the telemetry
+    /// `JournalAdmin` impl.
+    pub fn list_persistence_ids(&self) -> Vec<String> {
+        self.streams.read().keys().cloned().collect()
+    }
+
+    /// Number of non-deleted events stored for `persistence_id`.
+    pub fn event_count(&self, persistence_id: &str) -> u64 {
+        self.streams
+            .read()
+            .get(persistence_id)
+            .map(|v| v.iter().filter(|r| !r.deleted).count() as u64)
+            .unwrap_or(0)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

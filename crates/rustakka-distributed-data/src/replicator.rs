@@ -72,6 +72,14 @@ impl Replicator {
     pub fn delete(&self, key: &str) {
         self.store.write().remove(key);
     }
+
+    /// Snapshot of all keys currently held by this replicator. Useful for
+    /// telemetry / dashboards.
+    pub fn keys(&self) -> Vec<String> {
+        let mut ks: Vec<String> = self.store.read().keys().cloned().collect();
+        ks.sort();
+        ks
+    }
 }
 
 #[cfg(test)]

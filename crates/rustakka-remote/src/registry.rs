@@ -37,4 +37,9 @@ impl EndpointRegistry {
     pub fn is_empty(&self) -> bool {
         self.eps.is_empty()
     }
+
+    /// Snapshot of all remote addresses currently associated.
+    pub fn addresses(&self) -> Vec<String> {
+        self.eps.iter().map(|e| e.key().clone()).collect()
+    }
 }

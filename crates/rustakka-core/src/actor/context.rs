@@ -63,7 +63,10 @@ impl<A: Actor> Context<A> {
         }
         let system = self.system.upgrade().ok_or(SpawnError::SystemTerminated)?;
         let child_path = self.path.child(name);
-        let r = super::actor_cell::spawn_cell::<B>(system, props, child_path.clone())?;
+        let r = super::actor_cell::spawn_cell::<B>(system.clone(), props, child_path.clone())?;
+        if let Some(obs) = system.spawn_observer.read().as_ref() {
+            obs.on_spawn(&child_path, Some(&self.path), std::any::type_name::<B>());
+        }
         self.children.insert(
             name.to_string(),
             ChildEntry { path: child_path, untyped: r.as_untyped(), system_tx: r.system_sender() },

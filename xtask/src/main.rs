@@ -17,6 +17,7 @@ fn main() -> Result<()> {
         "sync-upstream" => sync_upstream(args.collect()),
         "parity" => parity(),
         "profile" => profile(args.collect()),
+        "dashboard" => dashboard(args.collect()),
         "help" | "-h" | "--help" => {
             print_help();
             Ok(())
@@ -35,7 +36,35 @@ fn print_help() {
     println!("  sync-upstream [--since <sha>]  diff akka.net since last synced commit");
     println!("  parity                          regenerate docs/parity.md");
     println!("  profile [extra args...]         run the actor perf profiler (rust only)");
+    println!(
+        "  dashboard [extra args...]       run rustakka-dashboard with embed-ui + common features"
+    );
     println!("  help                            print this help");
+}
+
+fn dashboard(mut extra: Vec<String>) -> Result<()> {
+    if extra.first().map(|s| s.as_str()) == Some("--") {
+        extra.remove(0);
+    }
+    let features = std::env::var("RUSTAKKA_DASHBOARD_FEATURES")
+        .unwrap_or_else(|_| "bin,embed-ui,aggregator,metrics-prometheus".into());
+    let status = Command::new(env!("CARGO"))
+        .args([
+            "run",
+            "-q",
+            "-p",
+            "rustakka-dashboard",
+            "--features",
+            &features,
+            "--",
+        ])
+        .args(&extra)
+        .status()
+        .context("spawning cargo run for rustakka-dashboard")?;
+    if !status.success() {
+        return Err(anyhow!("rustakka-dashboard exited with {status}"));
+    }
+    Ok(())
 }
 
 fn sync_upstream(args: Vec<String>) -> Result<()> {

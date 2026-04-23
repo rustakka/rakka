@@ -59,6 +59,30 @@ Phase progress against the plan. Update as each phase lands.
   - [x] 13.h `release.yml` publishing core → TCK → query → provider
     crates in dependency order on `release: published`
 - [x] Ongoing - xtask sync-upstream, docs/parity.md, CI quarterly diff
+- [x] Phase 14 - Observability dashboard
+  - [x] 14.1 `rustakka-telemetry` probe crate (actors, dead letters, cluster,
+    sharding, persistence, remote, streams, distributed-data)
+  - [x] 14.2 `rustakka-dashboard` axum service (REST `/api/*` + `/ws`
+    multiplexer with topic filters and heartbeats)
+  - [x] 14.3 Cluster-mode aggregator (peer fan-out + merged
+    `/api/cluster-wide/*` routes, gated by the `aggregator` feature)
+  - [x] 14.4 React + Vite + TS + Tailwind + shadcn/ui SPA with React Flow
+    + Recharts visualizations (Overview, Actors, DeadLetters, Cluster,
+    Sharding, Persistence, Remote, Streams, DData, Events)
+  - [x] 14.5 `rust-embed` the built UI into the dashboard binary
+    (`embed-ui` feature)
+  - [x] 14.6 Prometheus exporter (`metrics-prometheus`) serving
+    `GET /metrics` with actor/cluster/sharding/persistence/remote/
+    streams/ddata metrics
+  - [x] 14.7 OpenTelemetry exporter (`metrics-otel` + `otel-otlp-grpc`,
+    `otel-otlp-http`, `otel-stdout` sub-features) pushing the same
+    semantic metrics as OTLP
+  - [x] 14.8 CLI (`rustakka-dashboard --prometheus --otlp-endpoint …`),
+    Python `rustakka.dashboard.serve(...)`, and `cargo xtask dashboard`
+    convenience task
+  - [x] 14.9 `docs/dashboard.md`, `docs/observability.md`, mkdocs nav
+    entries, Vitest component tests + Playwright smoke tests, Rust
+    handler tests + WebSocket + exporter integration tests
 
 ## Python bindings
 

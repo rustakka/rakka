@@ -7,6 +7,28 @@ solutions for configuration (TOML), transport (Tokio + Prost), and
 serialization (Serde). Python users get the same actor model with
 GIL-isolated interpreter pools for CPU-bound workloads.
 
+**Why it matters:** The actor model is the same programming idea whether it
+runs on the JVM, on .NET, or here as **native code** in Rust. You get a
+**small, addressable unit of state plus behavior** (an actor) that
+communicates by **asynchronous message passing**, which maps cleanly onto
+**autonomous, collaborative processes** in agentic and distributed
+systems. On one machine, actors spread work across **cores** without
+shared-memory soup; across machines, the **same abstraction** (location
+transparent addresses, cluster, sharding) extends that idea to a fleet.
+**Deterministic** designs are possible per actor (ordered mailbox, local
+state machine); **non-determinism** from concurrency, the network, and
+failure is **explicit and supervised** rather than an accident of raw
+threads. For a full argument, see
+[`docs/actors-and-agentic-computing.md`](docs/actors-and-agentic-computing.md).
+
+**Agentic stack (ecosystem):** [LangGraph](https://github.com/langchain-ai/langgraph)-style
+**agent state graphs** map naturally onto supervised actors. Companion
+crates in the same family—**`rustakka-langgraph`** (embed LangGraph agent
+state graphs in the runtime) and **`rustakka-agents`** (patterns, tooling,
+and practices *above* the graph layer: orchestration, tools, and
+operational playbooks)—sit on top of the core in-tree crates. The doc above
+goes into depth.
+
 ## Status
 
 All in-scope porting phases are landed with passing unit tests:
@@ -169,7 +191,8 @@ python/examples/      Python examples (pingpong, ml_inference, ...)
 examples/             Rust examples (pingpong, chat, fault-tolerance)
 benches/              Criterion benches
 scripts/              Cross-runtime tooling (e.g. profile.py orchestrator)
-docs/                 mkdocs-material source (index, parity, python, profiler)
+docs/                 mkdocs-material source (index, actors-and-agentic-computing,
+                      parity, python, profiler, dashboard, observability)
 docs/reports/         profiler baselines (markdown + json)
 xtask/                Cargo xtask (upstream sync, parity report, profile)
 akka.net/             Upstream clone — gitignored, created on demand by
@@ -178,6 +201,9 @@ akka.net/             Upstream clone — gitignored, created on demand by
 
 ## Learn more
 
+- [`docs/actors-and-agentic-computing.md`](docs/actors-and-agentic-computing.md)
+  — why native Akka-style actors align with agentic systems and
+  distributed execution.
 - [`docs/index.md`](docs/index.md) — project overview.
 - [`docs/python.md`](docs/python.md) — Python bindings + GIL tuning.
 - [`docs/parity.md`](docs/parity.md) — generated crate-by-crate status.
