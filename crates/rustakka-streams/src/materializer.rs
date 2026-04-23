@@ -1,5 +1,8 @@
-//! ActorMaterializer — runs graphs on a Tokio runtime. akka.net: `ActorMaterializer`.
+//! ActorMaterializer — runs graphs on a Tokio runtime. akka.net: `ActorMaterializer.cs`.
 
+use std::future::Future;
+
+use crate::runnable::RunnableGraph;
 use crate::sink::Sink;
 use crate::source::Source;
 
@@ -14,6 +17,21 @@ impl ActorMaterializer {
     /// Convenience: run a source into a collecting sink and return the result.
     pub async fn run_collect<T: Send + 'static>(&self, source: Source<T>) -> Vec<T> {
         Sink::collect(source).await
+    }
+
+    /// Run an arbitrary `RunnableGraph`.
+    pub async fn run<M: Send + 'static>(&self, graph: RunnableGraph<M>) -> M {
+        graph.run().await
+    }
+
+    /// Run a source against an arbitrary async terminator.
+    pub async fn run_with<T, F, Fut, Out>(&self, source: Source<T>, terminator: F) -> Out
+    where
+        T: Send + 'static,
+        F: FnOnce(Source<T>) -> Fut,
+        Fut: Future<Output = Out>,
+    {
+        terminator(source).await
     }
 }
 
@@ -36,5 +54,12 @@ mod tests {
         let source = Source::from_iter(1..=5i32);
         let sum = Sink::fold(source, 0, |acc, x| acc + x).await;
         assert_eq!(sum, 15);
+    }
+
+    #[tokio::test]
+    async fn runnable_graph_to_seq() {
+        let mat = ActorMaterializer::new();
+        let graph = RunnableGraph::to_seq(Source::from_iter(vec![10, 20, 30]));
+        assert_eq!(mat.run(graph).await, vec![10, 20, 30]);
     }
 }

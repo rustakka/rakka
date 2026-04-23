@@ -1,7 +1,8 @@
 //! GraphDsl — minimal builder mirroring `Akka.Streams.Dsl.GraphDsl`.
 //!
-//! This port exposes only the linear composition primitives needed by the
-//! Source/Flow/Sink DSL; fan-in / fan-out junctions remain a follow-up.
+//! Linear composition lives on `Source::via`; this module collects the
+//! fan-in / fan-out junctions so callers can assemble a linear-plus-junction
+//! graph without needing the full upstream graph-DSL runtime.
 
 use crate::flow::Flow;
 use crate::sink::Sink;
@@ -10,11 +11,10 @@ use crate::source::Source;
 pub struct GraphDsl;
 
 impl GraphDsl {
-    pub fn linear<A, B, C>(source: Source<A>, flow: Flow<A, B>) -> Source<B>
+    pub fn linear<A, B>(source: Source<A>, flow: Flow<A, B>) -> Source<B>
     where
         A: Send + 'static,
         B: Send + 'static,
-        C: Send + 'static,
     {
         source.via(flow)
     }

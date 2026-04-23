@@ -14,3 +14,9 @@ futures = { workspace = true }
 futures-util = { workspace = true }
 async-trait = { workspace = true }
 pin-project-lite = { workspace = true }
+parking_lot = { workspace = true }
+bytes = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
