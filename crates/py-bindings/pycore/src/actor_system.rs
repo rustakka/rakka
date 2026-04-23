@@ -1,7 +1,6 @@
 //! `ActorSystem` Python binding.
 
 use std::hash::{Hash, Hasher};
-use std::sync::Arc;
 
 use once_cell::sync::Lazy;
 use pyo3::prelude::*;
@@ -13,7 +12,7 @@ use crate::actor_ref::PyActorRef;
 use crate::config::PyConfig;
 use crate::dispatcher;
 use crate::errors;
-use crate::interpreter::{InterpreterInstance, InterpreterQuota, InterpreterRegistry};
+use crate::interpreter::{InterpreterQuota, InterpreterRegistry};
 use crate::props::PyProps;
 use crate::py_actor::PyActor;
 use crate::runtime::runtime;

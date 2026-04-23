@@ -36,7 +36,10 @@ pub enum SystemMsg {
 /// Bookkeeping entry for a child on the parent's side.
 #[derive(Debug)]
 pub struct ChildEntry {
+    /// Reserved for future child introspection APIs.
+    #[allow(dead_code)]
     pub path: ActorPath,
+    #[allow(dead_code)]
     pub untyped: UntypedActorRef,
     pub system_tx: mpsc::UnboundedSender<SystemMsg>,
 }

@@ -77,7 +77,7 @@ impl HashedWheelTimerScheduler {
         let slots_len = (self.inner.mask + 1) as u64;
         let rounds = ticks / slots_len;
         let offset = (ticks % slots_len) as usize;
-        let mut cursor = self.inner.cursor.lock();
+        let cursor = self.inner.cursor.lock();
         let idx = (*cursor + offset) & self.inner.mask;
         drop(cursor);
         let mut slots = self.inner.slots.lock();

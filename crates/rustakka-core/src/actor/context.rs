@@ -6,8 +6,6 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Weak;
 use std::time::Duration;
 
-use tokio::sync::mpsc;
-
 use super::actor_cell::{ChildEntry, SystemMsg};
 use super::actor_ref::{ActorRef, UntypedActorRef};
 use super::path::ActorPath;

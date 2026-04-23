@@ -132,6 +132,10 @@ Phase progress against the plan. Update as each phase lands.
 - [x] `crates/py-bindings/pycore/src/ext_streams.rs` now drives the
       native `rustakka-streams` materializer (`run_collect`, `run_fold`)
       in addition to the legacy Python-only `map_reduce`.
+- [x] Workspace warning cleanup: unused imports/`mut`, `ChildEntry` and
+      test-only dead-code attributes, FSM `M::Stop` coverage, chat
+      example sends `ChatMsg::Post`, pycore import trim (`cargo build
+      --workspace` is warning-free).
 
 Phase P3 (pyremote pluggable codecs) remains deferred until the native
 remoting story crosses a process boundary.

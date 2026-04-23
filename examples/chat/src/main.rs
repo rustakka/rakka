@@ -39,7 +39,7 @@ async fn main() -> anyhow::Result<()> {
     let sys = ActorSystem::create("chat", Config::empty()).await?;
     let bus = DistributedPubSub::new();
 
-    let _alice = sys.actor_of(
+    let alice = sys.actor_of(
         Props::create({
             let bus = bus.clone();
             move || Participant {
@@ -63,6 +63,8 @@ async fn main() -> anyhow::Result<()> {
         "bob",
     )?;
 
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    alice.tell(ChatMsg::Post("hello room".into()));
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     println!("subscribers in room1: {}", bus.publish("room1").len());
     sys.terminate().await;

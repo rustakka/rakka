@@ -71,4 +71,12 @@ mod tests {
         assert_eq!(t.next, S::Running);
         assert_eq!(t.data, 1);
     }
+
+    #[test]
+    fn transitions_running_to_idle_on_stop() {
+        let mut fsm = TrafficLight;
+        let t = fsm.transition(&S::Running, &5, M::Stop).unwrap();
+        assert_eq!(t.next, S::Idle);
+        assert_eq!(t.data, 5);
+    }
 }

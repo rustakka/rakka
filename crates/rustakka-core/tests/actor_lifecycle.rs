@@ -51,6 +51,8 @@ async fn watched_actor_notifies_on_stop() {
 
     enum WMsg {
         WatchIt(rustakka_core::actor::ActorRef<CounterMsg>),
+        /// Would be used if termination were surfaced as a user message in this test harness.
+        #[allow(dead_code)]
         Terminated(String),
     }
 
