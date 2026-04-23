@@ -1,6 +1,6 @@
 [package]
 name = "rustakka-serialization-hyperion"
-description = "rustakka: rustakka-serialization-hyperion (placeholder stub)"
+description = "rustakka: Hyperion-compat name slot; exposes a Serde/bincode serializer in lieu of CLR-specific Hyperion."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,3 +8,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+rustakka-core = { workspace = true }
+serde = { workspace = true }
+bincode = { workspace = true }
+thiserror = { workspace = true }
