@@ -1,0 +1,27 @@
+[package]
+name = "rakka-profiler"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Actor memory + CPU performance profiler for rakka (Rust + Python)."
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "rakka-profiler"
+path = "src/bin/rakka_profiler.rs"
+
+[dependencies]
+rakka = { path = "../rakka" }
+rakka-core = { workspace = true }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }

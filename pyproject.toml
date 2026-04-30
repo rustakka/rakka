@@ -3,13 +3,13 @@ requires = ["maturin>=1.5,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "rustakka"
+name = "rakka"
 version = "0.1.0"
-description = "Python bindings for the rustakka actor framework (Akka.NET port in Rust)."
+description = "Python bindings for the rakka actor framework (Akka.NET port in Rust)."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
-authors = [{ name = "rustakka contributors" }]
+authors = [{ name = "rakka contributors" }]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Programming Language :: Python :: 3",
@@ -29,7 +29,7 @@ msgpack = ["msgpack>=1.0"]
 
 [tool.maturin]
 manifest-path = "crates/py-bindings/pycore/Cargo.toml"
-module-name = "rustakka._native"
+module-name = "rakka._native"
 python-source = "python"
 features = ["pyo3/extension-module"]
 strip = true

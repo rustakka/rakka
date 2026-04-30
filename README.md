@@ -1,9 +1,9 @@
-# rustakka
+# rakka
 
 An idiomatic Rust port of [Akka.NET](https://github.com/akkadotnet/akka.net)
 with first-class Python bindings. The Rust crates mirror the Akka.NET
 module layout so upstream changes can be tracked, while using native Rust
-solutions for configuration (TOML), transport (Tokio + Prost), and
+solutions for configuration (TOML), transport (Tokio + bincode), and
 serialization (Serde). Python users get the same actor model with
 GIL-isolated interpreter pools for CPU-bound workloads.
 
@@ -23,17 +23,23 @@ threads. For a full argument, see
 
 **Agentic stack (ecosystem):** [LangGraph](https://github.com/langchain-ai/langgraph)-style
 **agent state graphs** map naturally onto supervised actors. Companion
-crates in the same family—**`rustakka-langgraph`** (embed LangGraph agent
-state graphs in the runtime) and **`rustakka-agents`** (patterns, tooling,
+crates in the same family—**`rakka-langgraph`** (embed LangGraph agent
+state graphs in the runtime) and **`rakka-agents`** (patterns, tooling,
 and practices *above* the graph layer: orchestration, tools, and
 operational playbooks)—sit on top of the core in-tree crates. The doc above
 goes into depth.
 
 ## Status
 
-All in-scope porting phases are landed with passing unit tests:
-**84 Rust tests** and **23 Python tests**. See
-[`PORTING_TODO.md`](PORTING_TODO.md) for per-phase checkboxes and
+All in-scope porting phases are landed with passing unit tests
+(**174+ Rust tests**, **23 Python tests**). The 2026-04 remoting
+parity pass closed the largest remaining Akka.NET gap — `rakka-remote`
+now ships the full Akka.Remote module (TCP transport, handshake, ack'd
+delivery, EndpointManager state machine, RemoteActorRefProvider,
+RemoteWatcher, daemon, transport adapters) with two-process
+integration tests proving cross-process `tell` works end-to-end. See
+[`docs/remoting.md`](docs/remoting.md),
+[`PORTING_TODO.md`](PORTING_TODO.md) for per-phase checkboxes, and
 [`PORTING.md`](PORTING.md) for upstream Akka.NET tracking.
 
 ## Workspace layout
@@ -42,53 +48,53 @@ All in-scope porting phases are landed with passing unit tests:
 
 | Crate | Mirrors |
 |-------|---------|
-| `rustakka` | `Akka` facade |
-| `rustakka-core` | `src/core/Akka` |
-| `rustakka-config` | `src/core/Akka/Configuration` |
-| `rustakka-macros` | n/a (ergonomics) |
-| `rustakka-testkit` | `src/core/Akka.TestKit` |
-| `rustakka-remote` | `src/core/Akka.Remote` |
-| `rustakka-cluster` | `src/core/Akka.Cluster` |
-| `rustakka-cluster-tools` | `src/contrib/cluster/Akka.Cluster.Tools` |
-| `rustakka-cluster-sharding` | `src/contrib/cluster/Akka.Cluster.Sharding` |
-| `rustakka-cluster-metrics` | `src/contrib/cluster/Akka.Cluster.Metrics` |
-| `rustakka-distributed-data` | `src/contrib/cluster/Akka.DistributedData` |
-| `rustakka-persistence` | `src/core/Akka.Persistence` |
-| `rustakka-persistence-query` | `src/core/Akka.Persistence.Query` |
-| `rustakka-persistence-query-inmemory` | in-memory read journal |
-| `rustakka-persistence-tck` | `src/core/Akka.Persistence.TCK` |
-| `rustakka-streams` | `src/core/Akka.Streams` |
-| `rustakka-coordination` | `src/core/Akka.Coordination` |
-| `rustakka-discovery` | `src/core/Akka.Discovery` |
-| `rustakka-di` | `src/contrib/dependencyinjection/Akka.DependencyInjection` |
-| `rustakka-hosting` | `Akka.Hosting` (external) |
+| `rakka` | `Akka` facade |
+| `rakka-core` | `src/core/Akka` |
+| `rakka-config` | `src/core/Akka/Configuration` |
+| `rakka-macros` | n/a (ergonomics) |
+| `rakka-testkit` | `src/core/Akka.TestKit` |
+| `rakka-remote` | `src/core/Akka.Remote` |
+| `rakka-cluster` | `src/core/Akka.Cluster` |
+| `rakka-cluster-tools` | `src/contrib/cluster/Akka.Cluster.Tools` |
+| `rakka-cluster-sharding` | `src/contrib/cluster/Akka.Cluster.Sharding` |
+| `rakka-cluster-metrics` | `src/contrib/cluster/Akka.Cluster.Metrics` |
+| `rakka-distributed-data` | `src/contrib/cluster/Akka.DistributedData` |
+| `rakka-persistence` | `src/core/Akka.Persistence` |
+| `rakka-persistence-query` | `src/core/Akka.Persistence.Query` |
+| `rakka-persistence-query-inmemory` | in-memory read journal |
+| `rakka-persistence-tck` | `src/core/Akka.Persistence.TCK` |
+| `rakka-streams` | `src/core/Akka.Streams` |
+| `rakka-coordination` | `src/core/Akka.Coordination` |
+| `rakka-discovery` | `src/core/Akka.Discovery` |
+| `rakka-di` | `src/contrib/dependencyinjection/Akka.DependencyInjection` |
+| `rakka-hosting` | `Akka.Hosting` (external) |
 
 ### Python bindings
 
 | Rust sub-crate | Python module |
 |----------------|---------------|
-| `crates/py-bindings/pycore` | `rustakka` + `rustakka._native` |
-| `crates/py-bindings/pytestkit` | `rustakka.testkit` |
-| `crates/py-bindings/pycluster` | `rustakka.cluster` |
-| `crates/py-bindings/pycluster-tools` | `rustakka.cluster_tools` |
-| `crates/py-bindings/pycluster-sharding` | `rustakka.cluster_sharding` |
-| `crates/py-bindings/pyddata` | `rustakka.ddata` |
-| `crates/py-bindings/pypersistence` | `rustakka.persistence` |
-| `crates/py-bindings/pystreams` | `rustakka.streams` |
-| `crates/py-bindings/pycoordination` | `rustakka.coordination` |
-| `crates/py-bindings/pydiscovery` | `rustakka.discovery` |
-| `crates/py-bindings/pydi` | `rustakka.di` |
-| `crates/py-bindings/pyhosting` | `rustakka.hosting` |
+| `crates/py-bindings/pycore` | `rakka` + `rakka._native` |
+| `crates/py-bindings/pytestkit` | `rakka.testkit` |
+| `crates/py-bindings/pycluster` | `rakka.cluster` |
+| `crates/py-bindings/pycluster-tools` | `rakka.cluster_tools` |
+| `crates/py-bindings/pycluster-sharding` | `rakka.cluster_sharding` |
+| `crates/py-bindings/pyddata` | `rakka.ddata` |
+| `crates/py-bindings/pypersistence` | `rakka.persistence` |
+| `crates/py-bindings/pystreams` | `rakka.streams` |
+| `crates/py-bindings/pycoordination` | `rakka.coordination` |
+| `crates/py-bindings/pydiscovery` | `rakka.discovery` |
+| `crates/py-bindings/pydi` | `rakka.di` |
+| `crates/py-bindings/pyhosting` | `rakka.hosting` |
 
 The sub-crates are aggregation placeholders — Python bindings for every
-subsystem are compiled into the single `rustakka._native` cdylib by
+subsystem are compiled into the single `rakka._native` cdylib by
 `pycore`. Individual wheels can be carved out later without renaming the
 Python facade.
 
 ## Quick start (Rust)
 
 ```rust
-use rustakka::prelude::*;
+use rakka::prelude::*;
 
 #[derive(Default)]
 struct Greeter;
@@ -124,7 +130,7 @@ maturin develop --release
 > `source scripts/dev-env.sh` automates the whole venv + env-var setup.
 
 ```python
-from rustakka import Actor, ActorSystem, props
+from rakka import Actor, ActorSystem, props
 
 class Greeter(Actor):
     async def handle(self, ctx, msg):
@@ -150,11 +156,11 @@ emits a shared JSON schema so the two stacks can be compared directly.
 
 ```bash
 # Rust only
-cargo run --release -p rustakka-profiler -- --scenario all --format md
+cargo run --release -p rakka-profiler -- --scenario all --format md
 cargo xtask profile -- --scenario cpu --messages 5000
 
 # Python only (after maturin develop --release)
-python -m rustakka.profiler --scenario all --format md
+python -m rakka.profiler --scenario all --format md
 
 # Both side-by-side, with a merged JSON artifact
 python scripts/profile.py --output docs/reports/profiler.md \
@@ -185,14 +191,15 @@ mkdocs serve
 ```
 crates/           Rust crates (one per Akka.NET subsystem)
 crates/py-bindings/   PyO3 bridge crates + sub-crate placeholders
-python/rustakka/      Python facade package (pure Python)
+python/rakka/      Python facade package (pure Python)
 python/tests/         pytest suite for the native extension
 python/examples/      Python examples (pingpong, ml_inference, ...)
 examples/             Rust examples (pingpong, chat, fault-tolerance)
 benches/              Criterion benches
 scripts/              Cross-runtime tooling (e.g. profile.py orchestrator)
 docs/                 mkdocs-material source (index, actors-and-agentic-computing,
-                      parity, python, profiler, dashboard, observability)
+                      parity, python, persistence-providers, remoting,
+                      profiler, dashboard, observability)
 docs/reports/         profiler baselines (markdown + json)
 xtask/                Cargo xtask (upstream sync, parity report, profile)
 akka.net/             Upstream clone — gitignored, created on demand by
@@ -206,6 +213,8 @@ akka.net/             Upstream clone — gitignored, created on demand by
   distributed execution.
 - [`docs/index.md`](docs/index.md) — project overview.
 - [`docs/python.md`](docs/python.md) — Python bindings + GIL tuning.
+- [`docs/remoting.md`](docs/remoting.md) — cross-process actor remoting
+  (transports, handshake, EndpointManager, RemoteWatcher).
 - [`docs/parity.md`](docs/parity.md) — generated crate-by-crate status.
 - [`PORTING.md`](PORTING.md) — upstream Akka.NET tracking commits.
 - [`PORTING_TODO.md`](PORTING_TODO.md) — phase progress checklist.

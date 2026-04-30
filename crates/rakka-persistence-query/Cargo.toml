@@ -1,0 +1,14 @@
+[package]
+name = "rakka-persistence-query"
+description = "Read-side query API for rakka-persistence."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rakka-persistence = { workspace = true }
+rakka-core = { workspace = true }
+async-trait = { workspace = true }
+tokio = { workspace = true }

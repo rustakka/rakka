@@ -1,0 +1,14 @@
+[package]
+name = "rakka-persistence-query-inmemory"
+description = "In-memory implementation of rakka persistence-query."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rakka-persistence = { workspace = true }
+rakka-persistence-query = { workspace = true }
+async-trait = { workspace = true }
+tokio = { workspace = true }

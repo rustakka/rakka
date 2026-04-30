@@ -1,4 +1,4 @@
-"""Smoke test for rustakka.dashboard.
+"""Smoke test for rakka.dashboard.
 
 Starts the service bound to an ephemeral port, hits a handful of REST
 endpoints with the stdlib HTTP client, and shuts down.
@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import urllib.request
 
-from rustakka import dashboard
+from rakka import dashboard
 
 
 def _fetch_json(url: str) -> dict:

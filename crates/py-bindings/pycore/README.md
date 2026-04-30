@@ -1,7 +1,7 @@
-# rustakka-pycore
+# rakka-pycore
 
-PyO3 bindings for the `rustakka` workspace. Compiles to
-`rustakka._native`, a single cdylib that hosts every subsystem as a
+PyO3 bindings for the `rakka` workspace. Compiles to
+`rakka._native`, a single cdylib that hosts every subsystem as a
 Python submodule.
 
 See [`../README.md`](../README.md) for the broader py-bindings layout
@@ -23,7 +23,7 @@ that exceed `max_handler_ms`.
 ```bash
 maturin develop --release       # editable install into venv
 maturin build   --release       # produce a wheel
-cargo check -p rustakka-pycore  # type-check only (no Python needed at link time thanks to abi3)
+cargo check -p rakka-pycore  # type-check only (no Python needed at link time thanks to abi3)
 ```
 
 ## Feature flags

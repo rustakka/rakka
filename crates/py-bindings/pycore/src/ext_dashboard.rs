@@ -1,4 +1,4 @@
-//! Python bindings for `rustakka-dashboard`.
+//! Python bindings for `rakka-dashboard`.
 //!
 //! Exposes a single factory — `start(...)` — that stands up the axum
 //! dashboard server on a background tokio runtime and returns a
@@ -10,17 +10,17 @@ use std::collections::HashMap;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
-use rustakka_dashboard::{DashboardConfig, DashboardMode, DashboardServer};
-use rustakka_telemetry::exporters::config::{ExportersConfig, OtlpConfig, PrometheusConfig};
-use rustakka_telemetry::TelemetryExtension;
+use rakka_dashboard::{DashboardConfig, DashboardMode, DashboardServer};
+use rakka_telemetry::exporters::config::{ExportersConfig, OtlpConfig, PrometheusConfig};
+use rakka_telemetry::TelemetryExtension;
 
 use crate::errors;
 use crate::runtime::runtime;
 
-#[pyclass(name = "DashboardHandle", module = "rustakka._native.dashboard")]
+#[pyclass(name = "DashboardHandle", module = "rakka._native.dashboard")]
 pub struct PyDashboardHandle {
     bound_addr: String,
-    inner: Option<rustakka_dashboard::DashboardHandle>,
+    inner: Option<rakka_dashboard::DashboardHandle>,
 }
 
 #[pymethods]

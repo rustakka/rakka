@@ -1,6 +1,6 @@
 [package]
-name = "rustakka-pycore"
-description = "Python bindings for rustakka-core via PyO3."
+name = "rakka-pycore"
+description = "Python bindings for rakka-core via PyO3."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -16,22 +16,22 @@ default = ["extension-module"]
 extension-module = ["pyo3/extension-module"]
 
 [dependencies]
-rustakka-core = { workspace = true }
-rustakka-config = { workspace = true }
-rustakka-testkit = { workspace = true }
-rustakka-remote = { workspace = true }
-rustakka-cluster = { workspace = true }
-rustakka-cluster-tools = { workspace = true }
-rustakka-cluster-sharding = { workspace = true }
-rustakka-distributed-data = { workspace = true }
-rustakka-persistence = { workspace = true }
-rustakka-streams = { workspace = true }
-rustakka-coordination = { workspace = true }
-rustakka-discovery = { workspace = true }
-rustakka-di = { workspace = true }
-rustakka-hosting = { workspace = true }
-rustakka-telemetry = { workspace = true }
-rustakka-dashboard = { workspace = true, features = ["aggregator"] }
+rakka-core = { workspace = true }
+rakka-config = { workspace = true }
+rakka-testkit = { workspace = true }
+rakka-remote = { workspace = true }
+rakka-cluster = { workspace = true }
+rakka-cluster-tools = { workspace = true }
+rakka-cluster-sharding = { workspace = true }
+rakka-distributed-data = { workspace = true }
+rakka-persistence = { workspace = true }
+rakka-streams = { workspace = true }
+rakka-coordination = { workspace = true }
+rakka-discovery = { workspace = true }
+rakka-di = { workspace = true }
+rakka-hosting = { workspace = true }
+rakka-telemetry = { workspace = true }
+rakka-dashboard = { workspace = true, features = ["aggregator"] }
 
 pyo3 = { workspace = true, features = ["abi3-py310", "macros"] }
 pyo3-async-runtimes = { workspace = true }

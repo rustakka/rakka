@@ -1,6 +1,6 @@
 [package]
-name = "rustakka-pytestkit"
-description = "Placeholder sub-crate (bindings aggregated in rustakka-pycore)."
+name = "rakka-pytestkit"
+description = "Placeholder sub-crate (bindings aggregated in rakka-pycore)."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

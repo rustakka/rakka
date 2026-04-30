@@ -1,21 +1,21 @@
 # Telemetry Dashboard
 
-The **rustakka-dashboard** is an optional, self-contained HTTP +
-WebSocket service that visualizes a live rustakka node. It ships with a
+The **rakka-dashboard** is an optional, self-contained HTTP +
+WebSocket service that visualizes a live rakka node. It ships with a
 React single-page application (Vite + Tailwind + shadcn/ui + React Flow
 + Recharts) that is embedded directly into the Rust binary when built
 with `--features embed-ui`.
 
-The dashboard is strictly opt-in: nothing in `rustakka-core` starts it
+The dashboard is strictly opt-in: nothing in `rakka-core` starts it
 by default. Enable it explicitly from Rust (`DashboardServer::start`),
-from Python (`rustakka.dashboard.serve`), or with the standalone
-`rustakka-dashboard` binary.
+from Python (`rakka.dashboard.serve`), or with the standalone
+`rakka-dashboard` binary.
 
 ## Architecture
 
 ```
 ┌───────────────────────────┐
-│        rustakka node      │
+│        rakka node      │
 │ ┌────────────┬──────────┐ │   WebSocket   /ws (filtered events)
 │ │  probes    │ telemetry│ │──────────────────────────────────▶
 │ │ (actors,   │   bus    │ │     REST     /api/* (snapshots)
@@ -27,14 +27,14 @@ from Python (`rustakka.dashboard.serve`), or with the standalone
 └───────────────────────────┘
 ```
 
-The **telemetry probes** live in the `rustakka-telemetry` crate. They
+The **telemetry probes** live in the `rakka-telemetry` crate. They
 hook every subsystem — actors, dead letters, cluster, sharding,
 persistence, remote, streams, distributed-data — and publish
 `TelemetryEvent`s onto a `tokio::sync::broadcast` bus. Anything that
 subscribes (WebSocket clients, Prometheus exporter, OpenTelemetry
 exporter, external aggregators) receives copies.
 
-The **dashboard service** in `rustakka-dashboard` layers an axum
+The **dashboard service** in `rakka-dashboard` layers an axum
 `Router` over the telemetry bus:
 
 - `GET /api/overview` — rollup vitals
@@ -51,10 +51,10 @@ The **dashboard service** in `rustakka-dashboard` layers an axum
   (behind the `aggregator` feature)
 - `GET /` — the embedded SPA (behind `embed-ui`)
 
-## Viewing behavior across rustakka crates
+## Viewing behavior across rakka crates
 
 The dashboard is the **public face** of **telemetry hooks** in
-`rustakka-telemetry`, which is wired into the rest of the workspace so
+`rakka-telemetry`, which is wired into the rest of the workspace so
 you can see **one node’s** behavior as it spans multiple subsystems. You
 are not looking at a single crate in isolation: the same
 `TelemetryExtension` drives REST snapshots, the WebSocket event stream, and
@@ -62,14 +62,14 @@ optional cluster-wide fan-out.
 
 | Area | What you see | Where it is instrumented |
 |------|----------------|---------------------------|
-| **Actors** | Tree, flat list, mailbox depth, spawn/stop | `rustakka-core` + actor registry probe |
+| **Actors** | Tree, flat list, mailbox depth, spawn/stop | `rakka-core` + actor registry probe |
 | **Dead letters** | Ring buffer of failed delivers | `ActorRef` / `DeadLetterFeed` |
-| **Cluster** | Members, reachability, gossip | `rustakka-cluster` state probe |
-| **Sharding** | Regions, shard allocations | `rustakka-cluster-sharding` |
-| **Persistence** | Journals, persistence IDs, recent writes | `rustakka-persistence` + `JournalAdmin` |
-| **Remote** | Associations, byte counters | `rustakka-remote` |
-| **Streams** | Running/finished materialized graphs | `rustakka-streams` |
-| **Distributed data** | Keys, update counts | `rustakka-distributed-data` replicator snapshot |
+| **Cluster** | Members, reachability, gossip | `rakka-cluster` state probe |
+| **Sharding** | Regions, shard allocations | `rakka-cluster-sharding` |
+| **Persistence** | Journals, persistence IDs, recent writes | `rakka-persistence` + `JournalAdmin` |
+| **Remote** | Associations, byte counters | `rakka-remote` |
+| **Streams** | Running/finished materialized graphs | `rakka-streams` |
+| **Distributed data** | Keys, update counts | `rakka-distributed-data` replicator snapshot |
 
 **How to use it:** after `TelemetryExtension` is installed, start
 `DashboardServer` (or the standalone binary) and open the UI or call
@@ -99,8 +99,8 @@ same activity. For exporter setup, see [Observability](observability.md).
 ### From Rust
 
 ```rust
-use rustakka_dashboard::{DashboardConfig, DashboardMode, DashboardServer};
-use rustakka_telemetry::TelemetryExtension;
+use rakka_dashboard::{DashboardConfig, DashboardMode, DashboardServer};
+use rakka_telemetry::TelemetryExtension;
 
 let telemetry = TelemetryExtension::new("worker-1", 1024).install(&system);
 let server = DashboardServer::new(
@@ -119,7 +119,7 @@ handle.shutdown().await;
 ### From Python
 
 ```python
-from rustakka import dashboard
+from rakka import dashboard
 
 handle = dashboard.serve(
     bind="127.0.0.1:9100",
@@ -141,7 +141,7 @@ with dashboard.serve(bind="127.0.0.1:0", node="dev") as h:
 ### Standalone binary
 
 ```bash
-cargo run -p rustakka-dashboard --features bin,embed-ui,aggregator,metrics-prometheus -- \
+cargo run -p rakka-dashboard --features bin,embed-ui,aggregator,metrics-prometheus -- \
     --bind 127.0.0.1:9100 \
     --node worker-1 \
     --prometheus \
@@ -173,22 +173,22 @@ cargo feature and (b) a runtime opt-in.
 When enabled, the dashboard mounts `GET /metrics` serving the standard
 text exposition. Metric names:
 
-- `rustakka_actors_spawned_total`, `rustakka_actors_stopped_total`,
-  `rustakka_actors_live`
-- `rustakka_mailbox_depth{actor_path="…"}`
-- `rustakka_dead_letters_total`
-- `rustakka_cluster_members_up`, `rustakka_cluster_unreachable`,
-  `rustakka_cluster_member_events_total{kind="…"}`
-- `rustakka_sharding_events_total{region,event}`,
-  `rustakka_sharding_allocations{region}`
-- `rustakka_persistence_events_written_total{journal}`,
-  `rustakka_persistence_last_sequence_nr{journal}`
-- `rustakka_remote_endpoints`,
-  `rustakka_remote_association_events_total{state}`,
-  `rustakka_remote_bytes{remote,direction}`
-- `rustakka_streams_running`, `rustakka_streams_started_total`,
-  `rustakka_streams_finished_total`
-- `rustakka_ddata_updates_total{key}`
+- `rakka_actors_spawned_total`, `rakka_actors_stopped_total`,
+  `rakka_actors_live`
+- `rakka_mailbox_depth{actor_path="…"}`
+- `rakka_dead_letters_total`
+- `rakka_cluster_members_up`, `rakka_cluster_unreachable`,
+  `rakka_cluster_member_events_total{kind="…"}`
+- `rakka_sharding_events_total{region,event}`,
+  `rakka_sharding_allocations{region}`
+- `rakka_persistence_events_written_total{journal}`,
+  `rakka_persistence_last_sequence_nr{journal}`
+- `rakka_remote_endpoints`,
+  `rakka_remote_association_events_total{state}`,
+  `rakka_remote_bytes{remote,direction}`
+- `rakka_streams_running`, `rakka_streams_started_total`,
+  `rakka_streams_finished_total`
+- `rakka_ddata_updates_total{key}`
 
 All metrics carry a constant `node="…"` label.
 
@@ -196,7 +196,7 @@ Example Prometheus scrape config:
 
 ```yaml
 scrape_configs:
-  - job_name: rustakka
+  - job_name: rakka
     metrics_path: /metrics
     static_configs:
       - targets: ["worker-1.internal:9100", "worker-2.internal:9100"]
@@ -205,14 +205,14 @@ scrape_configs:
 ### OpenTelemetry
 
 Pushes the same semantic metrics under OTel naming
-(`rustakka.actors.spawned`, `rustakka.dead_letters`, etc.) to an OTLP
+(`rakka.actors.spawned`, `rakka.dead_letters`, etc.) to an OTLP
 collector. Pick a transport at compile time and set a runtime config:
 
 ```toml
 [exporters.otlp]
 endpoint = "http://otel-collector:4317"
 protocol = "grpc"              # or "http"
-service_name = "rustakka-app"
+service_name = "rakka-app"
 interval_secs = 15
 traces = true                  # emit message-handle spans
 [exporters.otlp.headers]

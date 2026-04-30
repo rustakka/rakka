@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import time
 
-from rustakka import Actor, ActorSystem, props
+from rakka import Actor, ActorSystem, props
 
 
 class Ping(Actor):

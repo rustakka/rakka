@@ -4,27 +4,27 @@ on:
   push:
     branches: [main]
     paths:
-      - "crates/rustakka-persistence/**"
-      - "crates/rustakka-persistence-tck/**"
-      - "crates/rustakka-persistence-sql/**"
-      - "crates/rustakka-persistence-redis/**"
-      - "crates/rustakka-persistence-mongodb/**"
-      - "crates/rustakka-persistence-cassandra/**"
-      - "crates/rustakka-persistence-aws/**"
-      - "crates/rustakka-persistence-azure/**"
+      - "crates/rakka-persistence/**"
+      - "crates/rakka-persistence-tck/**"
+      - "crates/rakka-persistence-sql/**"
+      - "crates/rakka-persistence-redis/**"
+      - "crates/rakka-persistence-mongodb/**"
+      - "crates/rakka-persistence-cassandra/**"
+      - "crates/rakka-persistence-aws/**"
+      - "crates/rakka-persistence-azure/**"
       - ".github/workflows/persistence-integration.yml"
       - "Cargo.toml"
       - "Cargo.lock"
   pull_request:
     paths:
-      - "crates/rustakka-persistence/**"
-      - "crates/rustakka-persistence-tck/**"
-      - "crates/rustakka-persistence-sql/**"
-      - "crates/rustakka-persistence-redis/**"
-      - "crates/rustakka-persistence-mongodb/**"
-      - "crates/rustakka-persistence-cassandra/**"
-      - "crates/rustakka-persistence-aws/**"
-      - "crates/rustakka-persistence-azure/**"
+      - "crates/rakka-persistence/**"
+      - "crates/rakka-persistence-tck/**"
+      - "crates/rakka-persistence-sql/**"
+      - "crates/rakka-persistence-redis/**"
+      - "crates/rakka-persistence-mongodb/**"
+      - "crates/rakka-persistence-cassandra/**"
+      - "crates/rakka-persistence-aws/**"
+      - "crates/rakka-persistence-azure/**"
       - ".github/workflows/persistence-integration.yml"
       - "Cargo.toml"
       - "Cargo.lock"
@@ -43,13 +43,13 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Test with SQLite feature
-        run: cargo test -p rustakka-persistence-sql --no-default-features --features sqlite
+        run: cargo test -p rakka-persistence-sql --no-default-features --features sqlite
       - name: Compile-check Postgres feature
-        run: cargo check -p rustakka-persistence-sql --no-default-features --features postgres --tests
+        run: cargo check -p rakka-persistence-sql --no-default-features --features postgres --tests
       - name: Compile-check MySQL feature
-        run: cargo check -p rustakka-persistence-sql --no-default-features --features mysql --tests
+        run: cargo check -p rakka-persistence-sql --no-default-features --features mysql --tests
       - name: Compile-check MSSQL feature
-        run: cargo check -p rustakka-persistence-sql --no-default-features --features mssql --tests
+        run: cargo check -p rakka-persistence-sql --no-default-features --features mssql --tests
 
   redis:
     name: Redis
@@ -69,8 +69,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - env:
-          RUSTAKKA_IT_REDIS_URL: redis://127.0.0.1:6379/0
-        run: cargo test -p rustakka-persistence-redis
+          RAKKA_IT_REDIS_URL: redis://127.0.0.1:6379/0
+        run: cargo test -p rakka-persistence-redis
 
   mongodb:
     name: MongoDB
@@ -90,8 +90,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - env:
-          RUSTAKKA_IT_MONGO_URL: mongodb://127.0.0.1:27017
-        run: cargo test -p rustakka-persistence-mongodb
+          RAKKA_IT_MONGO_URL: mongodb://127.0.0.1:27017
+        run: cargo test -p rakka-persistence-mongodb
 
   cassandra:
     name: Cassandra
@@ -120,8 +120,8 @@ jobs:
           echo "Cassandra did not become ready" >&2
           exit 1
       - env:
-          RUSTAKKA_IT_CASSANDRA_NODES: 127.0.0.1:9042
-        run: cargo test -p rustakka-persistence-cassandra
+          RAKKA_IT_CASSANDRA_NODES: 127.0.0.1:9042
+        run: cargo test -p rakka-persistence-cassandra
 
   dynamodb:
     name: AWS DynamoDB (local)
@@ -136,11 +136,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - env:
-          RUSTAKKA_IT_DYNAMO_ENDPOINT: http://127.0.0.1:8000
+          RAKKA_IT_DYNAMO_ENDPOINT: http://127.0.0.1:8000
           AWS_ACCESS_KEY_ID: local
           AWS_SECRET_ACCESS_KEY: local
           AWS_REGION: us-east-1
-        run: cargo test -p rustakka-persistence-aws
+        run: cargo test -p rakka-persistence-aws
 
   azure:
     name: Azure Table Storage (Azurite)
@@ -157,5 +157,5 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - env:
-          RUSTAKKA_IT_AZURE_CONNECTION_STRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;"
-        run: cargo test -p rustakka-persistence-azure
+          RAKKA_IT_AZURE_CONNECTION_STRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;"
+        run: cargo test -p rakka-persistence-azure

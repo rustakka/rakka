@@ -1,19 +1,19 @@
-# rustakka
+# rakka
 
-`rustakka` is an idiomatic Rust port of [Akka.NET][akkanet] with
+`rakka` is an idiomatic Rust port of [Akka.NET][akkanet] with
 first-class Python bindings. It mirrors the Akka.NET module structure so
 upstream changes can be tracked, while using native Rust patterns for
-configuration (TOML), transport (Tokio + Prost), and serialization
+configuration (TOML), transport (Tokio + bincode), and serialization
 (Serde). No wire compatibility with JVM/CLR Akka.
 
 For a concise **why**—native execution, the same actor idea from cores to
 cluster, and how that lines up with **agentic** and **distributed**
 design—read [Actors and agentic computing](actors-and-agentic-computing.md).
-For **LLM agent workflows**, companion layers **`rustakka-langgraph`**
-(LangGraph-style **state graphs** on actors) and **`rustakka-agents`**
+For **LLM agent workflows**, companion layers **`rakka-langgraph`**
+(LangGraph-style **state graphs** on actors) and **`rakka-agents`**
 (**patterns and practices** above the graph) compose with the core
 crates. **Telemetry and dashboard** (see [Dashboard](dashboard.md)) add
-**visualization hooks** so behavior across `rustakka-core`, cluster,
+**visualization hooks** so behavior across `rakka-core`, cluster,
 persistence, remote, streams, and more is visible in one service.
 
 ## At a glance
@@ -23,6 +23,9 @@ persistence, remote, streams, and more is visible in one service.
 - Full Akka.NET surface: supervision, FSM, stash, watch/death-watch,
   ask/pipe-to, dispatchers, mailboxes, schedulers, event stream,
   coordinated shutdown, extensions.
+- Cross-process remoting: TCP transport, Akka-protocol handshake,
+  ack'd delivery, EndpointManager state machine, RemoteActorRefProvider,
+  RemoteWatcher, throttle / failure-injector / test transport adapters.
 - Cluster stack: gossip, membership, reachability, heartbeat, SBR (5
   strategies), cluster-tools, cluster-sharding, distributed data,
   cluster-metrics.
@@ -60,7 +63,7 @@ python python/examples/ml_inference.py
 
 - [Actors and agentic computing](actors-and-agentic-computing.md) — value
   proposition: native efficiency, Akka-style clarity, agent-like systems,
-  **`rustakka-langgraph`** / **`rustakka-agents`**, determinism vs
+  **`rakka-langgraph`** / **`rakka-agents`**, determinism vs
   real-world non-determinism.
 - [Dashboard](dashboard.md) — telemetry **visualization**; behavior across
   crates in one API + Web UI + WebSocket; cluster-wide views.
@@ -69,6 +72,8 @@ python python/examples/ml_inference.py
 - [Persistence providers](persistence-providers.md) — SQL, Redis,
   MongoDB, Cassandra, DynamoDB, and Azure Table Storage crates plus the
   shared TCK.
+- [Remoting](remoting.md) — `RemoteSystem`, transports, handshake,
+  `actor_selection` across processes, cluster + sharding integration.
 - [Profiler](profiler.md) — cross-runtime actor memory + CPU profiler,
   shared JSON schema, baseline numbers.
 - [Parity](parity.md) — generated crate-by-crate presence report.
@@ -78,7 +83,10 @@ python python/examples/ml_inference.py
 
 ## Status
 
-All in-scope phases landed. 84 Rust tests and 23 Python tests pass in
-CI. See `PORTING_TODO.md` for per-phase detail.
+All in-scope phases landed. 174+ Rust tests and 23 Python tests pass
+in CI. The 2026-04 remoting parity pass closed the largest remaining
+Akka.NET gap — see [`remoting.md`](remoting.md) for the architecture
+and the "Remoting parity pass" section of `PORTING_TODO.md` for the
+checklist.
 
 [akkanet]: https://getakka.net/

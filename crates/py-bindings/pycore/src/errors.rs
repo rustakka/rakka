@@ -4,20 +4,20 @@ use pyo3::create_exception;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 
-create_exception!(rustakka, RustakkaError, PyException, "Base rustakka error.");
-create_exception!(rustakka, ActorSystemError, RustakkaError, "ActorSystem error.");
-create_exception!(rustakka, SpawnError, RustakkaError, "Spawn error.");
-create_exception!(rustakka, AskError, RustakkaError, "Ask timed out or target stopped.");
-create_exception!(rustakka, InterpreterOverloaded, RustakkaError, "Interpreter mailbox full.");
+create_exception!(rakka, RakkaError, PyException, "Base rakka error.");
+create_exception!(rakka, ActorSystemError, RakkaError, "ActorSystem error.");
+create_exception!(rakka, SpawnError, RakkaError, "Spawn error.");
+create_exception!(rakka, AskError, RakkaError, "Ask timed out or target stopped.");
+create_exception!(rakka, InterpreterOverloaded, RakkaError, "Interpreter mailbox full.");
 create_exception!(
-    rustakka,
+    rakka,
     InterpreterCompatError,
-    RustakkaError,
+    RakkaError,
     "C extension not safe for the selected dispatcher."
 );
 
 pub fn register(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add("RustakkaError", m.py().get_type_bound::<RustakkaError>())?;
+    m.add("RakkaError", m.py().get_type_bound::<RakkaError>())?;
     m.add("ActorSystemError", m.py().get_type_bound::<ActorSystemError>())?;
     m.add("SpawnError", m.py().get_type_bound::<SpawnError>())?;
     m.add("AskError", m.py().get_type_bound::<AskError>())?;
@@ -27,5 +27,5 @@ pub fn register(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
 }
 
 pub fn map<E: std::fmt::Display>(e: E) -> PyErr {
-    PyErr::new::<RustakkaError, _>(e.to_string())
+    PyErr::new::<RakkaError, _>(e.to_string())
 }

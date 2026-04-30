@@ -1,22 +1,22 @@
 # Persistence Providers
 
-`rustakka-persistence` defines the plugin traits (`Journal`,
+`rakka-persistence` defines the plugin traits (`Journal`,
 `SnapshotStore`, `ReadJournal`). Each backend lives in its own crate so
 applications only pull in the drivers they actually use. Every provider
 is validated against the shared conformance suite exposed by
-`rustakka-persistence-tck` (`journal_suite`, `journal_tag_suite`,
+`rakka-persistence-tck` (`journal_suite`, `journal_tag_suite`,
 `snapshot_suite`).
 
 ## Provider matrix
 
 | Crate | Backend | Default feature | Integration test env var |
 | ---- | ---- | ---- | ---- |
-| `rustakka-persistence-sql` | SQLite, Postgres, MySQL, MSSQL (via `sqlx`) | `sqlite` | none (`sqlite::memory:`) |
-| `rustakka-persistence-redis` | Redis / KeyDB (via `fred`) | — | `RUSTAKKA_IT_REDIS_URL` |
-| `rustakka-persistence-mongodb` | MongoDB (official driver) | — | `RUSTAKKA_IT_MONGO_URL` |
-| `rustakka-persistence-cassandra` | Cassandra / ScyllaDB (`scylla`) | — | `RUSTAKKA_IT_CASSANDRA_NODES` |
-| `rustakka-persistence-aws` | DynamoDB single-table | — | `RUSTAKKA_IT_DYNAMO_ENDPOINT` |
-| `rustakka-persistence-azure` | Azure Table Storage (SharedKeyLite) | — | `RUSTAKKA_IT_AZURE_CONNECTION_STRING` |
+| `rakka-persistence-sql` | SQLite, Postgres, MySQL, MSSQL (via `sqlx`) | `sqlite` | none (`sqlite::memory:`) |
+| `rakka-persistence-redis` | Redis / KeyDB (via `fred`) | — | `RAKKA_IT_REDIS_URL` |
+| `rakka-persistence-mongodb` | MongoDB (official driver) | — | `RAKKA_IT_MONGO_URL` |
+| `rakka-persistence-cassandra` | Cassandra / ScyllaDB (`scylla`) | — | `RAKKA_IT_CASSANDRA_NODES` |
+| `rakka-persistence-aws` | DynamoDB single-table | — | `RAKKA_IT_DYNAMO_ENDPOINT` |
+| `rakka-persistence-azure` | Azure Table Storage (SharedKeyLite) | — | `RAKKA_IT_AZURE_CONNECTION_STRING` |
 
 Integration tests short-circuit cleanly when the env var is absent, so
 `cargo test --workspace` remains hermetic.
@@ -25,15 +25,15 @@ Integration tests short-circuit cleanly when the env var is absent, so
 
 ```toml
 [dependencies]
-rustakka-persistence = "0.1"
+rakka-persistence = "0.1"
 # Pick ONE (or more) backend:
-rustakka-persistence-sql = { version = "0.1", default-features = false, features = ["postgres"] }
+rakka-persistence-sql = { version = "0.1", default-features = false, features = ["postgres"] }
 ```
 
 At runtime the provider crate exposes:
 
 - `*Config::from_env()` — loads connection settings from
-  `RUSTAKKA_PERSISTENCE_*` or provider-specific env vars.
+  `RAKKA_PERSISTENCE_*` or provider-specific env vars.
 - `*Journal::connect(cfg)` / `*SnapshotStore::connect(cfg)` — returns
   `Arc<impl Journal>` / `Arc<impl SnapshotStore>` that plugs directly
   into the core `PersistentActor` machinery.
@@ -42,7 +42,7 @@ At runtime the provider crate exposes:
 ### SQL (unified via `sqlx`)
 
 ```rust
-use rustakka_persistence_sql::{SqlConfig, SqlJournal, SqlSnapshotStore};
+use rakka_persistence_sql::{SqlConfig, SqlJournal, SqlSnapshotStore};
 
 let cfg = SqlConfig::new("postgres://app:app@db/app");
 let journal = SqlJournal::connect(cfg.clone()).await?;
@@ -93,7 +93,7 @@ Every provider crate includes a `tests/tck.rs` that wraps the shared
 suite:
 
 ```rust
-use rustakka_persistence_tck::{journal_suite, journal_tag_suite, snapshot_suite};
+use rakka_persistence_tck::{journal_suite, journal_tag_suite, snapshot_suite};
 
 #[tokio::test]
 async fn my_journal_is_conformant() {
@@ -118,6 +118,6 @@ cover the non-default SQL feature flags.
 ## Release
 
 `.github/workflows/release.yml` publishes crates in dependency order
-(`rustakka-persistence` → `-tck` → `-query` → each provider) when a
+(`rakka-persistence` → `-tck` → `-query` → each provider) when a
 GitHub Release is published. Use the `workflow_dispatch` with
 `dry_run=true` to rehearse publishing without touching crates.io.

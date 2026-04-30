@@ -5,8 +5,8 @@ use std::hash::{Hash, Hasher};
 use once_cell::sync::Lazy;
 use pyo3::prelude::*;
 
-use rustakka_core::actor::{ActorSystem as RustSystem, Props as RustProps};
-use rustakka_core::supervision::SupervisorStrategy;
+use rakka_core::actor::{ActorSystem as RustSystem, Props as RustProps};
+use rakka_core::supervision::SupervisorStrategy;
 
 use crate::actor_ref::PyActorRef;
 use crate::config::PyConfig;
@@ -23,7 +23,7 @@ pub fn registry() -> &'static InterpreterRegistry {
     &REGISTRY
 }
 
-#[pyclass(name = "ActorSystem", module = "rustakka._native")]
+#[pyclass(name = "ActorSystem", module = "rakka._native")]
 pub struct PyActorSystem {
     pub(crate) inner: RustSystem,
 }
@@ -35,7 +35,7 @@ impl PyActorSystem {
     fn create<'py>(py: Python<'py>, name: String, config: Option<Py<PyConfig>>) -> PyResult<Bound<'py, PyAny>> {
         let cfg = config.map(|c| {
             Python::with_gil(|py| c.borrow(py).inner.clone())
-        }).unwrap_or_else(rustakka_config::Config::empty);
+        }).unwrap_or_else(rakka_config::Config::empty);
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let inner = RustSystem::create(name, cfg).await.map_err(errors::map)?;
             Python::with_gil(|py| Py::new(py, PyActorSystem { inner }).map(|p| p.into_any()))
@@ -46,7 +46,7 @@ impl PyActorSystem {
     #[staticmethod]
     #[pyo3(signature = (name, config=None))]
     pub fn create_blocking(py: Python<'_>, name: String, config: Option<Py<PyConfig>>) -> PyResult<Py<Self>> {
-        let cfg = config.map(|c| c.borrow(py).inner.clone()).unwrap_or_else(rustakka_config::Config::empty);
+        let cfg = config.map(|c| c.borrow(py).inner.clone()).unwrap_or_else(rakka_config::Config::empty);
         let rt = runtime();
         let inner = py.allow_threads(|| rt.block_on(RustSystem::create(name, cfg)))
             .map_err(errors::map)?;

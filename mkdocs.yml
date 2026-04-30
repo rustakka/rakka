@@ -1,4 +1,4 @@
-site_name: rustakka
+site_name: rakka
 site_description: Akka.NET port in idiomatic Rust with Python bindings.
 theme:
   name: material
@@ -12,6 +12,7 @@ nav:
   - Parity: parity.md
   - Python bindings: python.md
   - Persistence providers: persistence-providers.md
+  - Remoting: remoting.md
   - Profiler: profiler.md
   - Dashboard: dashboard.md
   - Observability exporters: observability.md

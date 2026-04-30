@@ -1,0 +1,22 @@
+[package]
+name = "rakka-streams"
+description = "Akka Streams-inspired DSL over futures::Stream for rakka."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rakka-core = { workspace = true }
+tokio = { workspace = true }
+futures = { workspace = true }
+futures-util = { workspace = true }
+async-trait = { workspace = true }
+pin-project-lite = { workspace = true }
+parking_lot = { workspace = true }
+bytes = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"

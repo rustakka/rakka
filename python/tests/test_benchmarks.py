@@ -6,8 +6,8 @@ print a summary so regressions jump out in CI logs.
 
 import time
 
-import rustakka
-from rustakka import Actor, ActorSystem, InterpreterQuota, props
+import rakka
+from rakka import Actor, ActorSystem, InterpreterQuota, props
 
 
 class Null(Actor):
@@ -41,7 +41,7 @@ def test_pinned_benchmark(capsys):
 
 
 def test_subinterpreter_pool_benchmark(capsys):
-    if not rustakka.subinterpreters_supported():
+    if not rakka.subinterpreters_supported():
         return
     rate = _run_throughput("python-subinterpreter-pool", "workers", 4, 500)
     with capsys.disabled():

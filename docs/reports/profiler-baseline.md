@@ -1,4 +1,4 @@
-# rustakka profiler — cross-runtime comparison
+# rakka profiler — cross-runtime comparison
 
 - **rust** v0.1.0 host=`linux/aarch64 cpus=20`
 - **python** v0.1.0 host=`linux/aarch64 cpus=20 py=3.12.3`

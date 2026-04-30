@@ -1,4 +1,4 @@
-//! `xtask` — developer tooling for the rustakka workspace.
+//! `xtask` — developer tooling for the rakka workspace.
 //!
 //! Subcommands:
 //! * `sync-upstream` — diff against the tracked Akka.NET commit and print
@@ -27,7 +27,7 @@ fn main() -> Result<()> {
 }
 
 fn print_help() {
-    println!("rustakka xtask");
+    println!("rakka xtask");
     println!();
     println!("USAGE:");
     println!("  cargo xtask <subcommand>");
@@ -37,7 +37,7 @@ fn print_help() {
     println!("  parity                          regenerate docs/parity.md");
     println!("  profile [extra args...]         run the actor perf profiler (rust only)");
     println!(
-        "  dashboard [extra args...]       run rustakka-dashboard with embed-ui + common features"
+        "  dashboard [extra args...]       run rakka-dashboard with embed-ui + common features"
     );
     println!("  help                            print this help");
 }
@@ -46,23 +46,23 @@ fn dashboard(mut extra: Vec<String>) -> Result<()> {
     if extra.first().map(|s| s.as_str()) == Some("--") {
         extra.remove(0);
     }
-    let features = std::env::var("RUSTAKKA_DASHBOARD_FEATURES")
+    let features = std::env::var("RAKKA_DASHBOARD_FEATURES")
         .unwrap_or_else(|_| "bin,embed-ui,aggregator,metrics-prometheus".into());
     let status = Command::new(env!("CARGO"))
         .args([
             "run",
             "-q",
             "-p",
-            "rustakka-dashboard",
+            "rakka-dashboard",
             "--features",
             &features,
             "--",
         ])
         .args(&extra)
         .status()
-        .context("spawning cargo run for rustakka-dashboard")?;
+        .context("spawning cargo run for rakka-dashboard")?;
     if !status.success() {
-        return Err(anyhow!("rustakka-dashboard exited with {status}"));
+        return Err(anyhow!("rakka-dashboard exited with {status}"));
     }
     Ok(())
 }
@@ -112,12 +112,12 @@ fn profile(mut extra: Vec<String>) -> Result<()> {
         extra.remove(0);
     }
     let status = Command::new(env!("CARGO"))
-        .args(["run", "--release", "-q", "-p", "rustakka-profiler", "--"])
+        .args(["run", "--release", "-q", "-p", "rakka-profiler", "--"])
         .args(&extra)
         .status()
-        .context("spawning cargo run for rustakka-profiler")?;
+        .context("spawning cargo run for rakka-profiler")?;
     if !status.success() {
-        return Err(anyhow!("rustakka-profiler exited with {status}"));
+        return Err(anyhow!("rakka-profiler exited with {status}"));
     }
     Ok(())
 }
@@ -163,8 +163,8 @@ fn parity() -> Result<()> {
         entries.sort();
         for name in entries {
             let py_mod = match name.as_str() {
-                "pycore" => "rustakka (aggregate)".to_string(),
-                other => format!("rustakka.{}", other.trim_start_matches("py").replace('-', "_")),
+                "pycore" => "rakka (aggregate)".to_string(),
+                other => format!("rakka.{}", other.trim_start_matches("py").replace('-', "_")),
             };
             out.push_str(&format!("| {name} | {py_mod} | yes |\n"));
             py += 1;

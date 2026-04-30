@@ -1,11 +1,11 @@
 """Smoke tests — module imports, version, capabilities."""
 
-import rustakka
+import rakka
 
 
 def test_version():
-    assert isinstance(rustakka.__version__, str)
-    assert rustakka.__version__
+    assert isinstance(rakka.__version__, str)
+    assert rakka.__version__
 
 
 def test_submodules_present():
@@ -22,9 +22,9 @@ def test_submodules_present():
         "di",
         "hosting",
     ]:
-        assert hasattr(rustakka, mod), f"missing facade: {mod}"
+        assert hasattr(rakka, mod), f"missing facade: {mod}"
 
 
 def test_compat_defaults():
-    flags = rustakka.compat_flags("json")
+    flags = rakka.compat_flags("json")
     assert flags is not None and flags["subinterpreter_safe"]

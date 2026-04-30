@@ -1,0 +1,15 @@
+[package]
+name = "rakka-coordination"
+description = "Lease-based coordination API for rakka (akka.net Akka.Coordination)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rakka-core = { workspace = true }
+parking_lot = { workspace = true }
+async-trait = { workspace = true }
+tokio = { workspace = true }
+thiserror = { workspace = true }

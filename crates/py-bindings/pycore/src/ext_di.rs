@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use parking_lot::RwLock;
 use pyo3::prelude::*;
 
-#[pyclass(name = "ServiceContainer", module = "rustakka._native.di")]
+#[pyclass(name = "ServiceContainer", module = "rakka._native.di")]
 pub struct PyServiceContainer {
     services: RwLock<HashMap<String, Py<PyAny>>>,
 }

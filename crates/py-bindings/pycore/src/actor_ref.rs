@@ -7,12 +7,12 @@ use std::sync::Arc;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 
-use rustakka_core::actor::ActorRef as RustRef;
+use rakka_core::actor::ActorRef as RustRef;
 
 use crate::py_actor::PyMessage;
 use crate::runtime::runtime;
 
-#[pyclass(name = "ActorRef", module = "rustakka._native")]
+#[pyclass(name = "ActorRef", module = "rakka._native")]
 pub struct PyActorRef {
     pub(crate) inner: Arc<RustRef<PyMessage>>,
     pub(crate) path: String,

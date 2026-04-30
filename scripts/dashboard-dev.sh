@@ -8,14 +8,14 @@
 
 set -euo pipefail
 
-BIND="${RUSTAKKA_DASHBOARD_BIND:-127.0.0.1:9100}"
-NODE="${RUSTAKKA_DASHBOARD_NODE:-dev}"
-FEATURES="${RUSTAKKA_DASHBOARD_FEATURES:-bin,aggregator,metrics-prometheus}"
+BIND="${RAKKA_DASHBOARD_BIND:-127.0.0.1:9100}"
+NODE="${RAKKA_DASHBOARD_NODE:-dev}"
+FEATURES="${RAKKA_DASHBOARD_FEATURES:-bin,aggregator,metrics-prometheus}"
 
 here="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$here"
 
-backend_cmd=(cargo run -q -p rustakka-dashboard --features "$FEATURES" -- \
+backend_cmd=(cargo run -q -p rakka-dashboard --features "$FEATURES" -- \
     --bind "$BIND" --node "$NODE")
 
 if command -v cargo-watch >/dev/null 2>&1; then
@@ -26,13 +26,13 @@ fi
 "${backend_cmd[@]}" &
 BACKEND_PID=$!
 
-pushd crates/rustakka-dashboard/ui >/dev/null
+pushd crates/rakka-dashboard/ui >/dev/null
 if command -v pnpm >/dev/null 2>&1; then
     pnpm dev &
 elif command -v npm >/dev/null 2>&1; then
     npm run dev &
 else
-    echo "rustakka: neither pnpm nor npm found on PATH; install one to run the Vite dev server" >&2
+    echo "rakka: neither pnpm nor npm found on PATH; install one to run the Vite dev server" >&2
     kill "$BACKEND_PID" 2>/dev/null || true
     exit 1
 fi

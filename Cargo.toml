@@ -1,41 +1,41 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/rustakka",
-    "crates/rustakka-core",
-    "crates/rustakka-config",
-    "crates/rustakka-macros",
-    "crates/rustakka-testkit",
-    "crates/rustakka-remote",
-    "crates/rustakka-cluster",
-    "crates/rustakka-cluster-tools",
-    "crates/rustakka-cluster-sharding",
-    "crates/rustakka-cluster-metrics",
-    "crates/rustakka-distributed-data",
-    "crates/rustakka-persistence",
-    "crates/rustakka-persistence-query",
-    "crates/rustakka-persistence-tck",
-    "crates/rustakka-persistence-query-inmemory",
-    "crates/rustakka-persistence-sql",
-    "crates/rustakka-persistence-redis",
-    "crates/rustakka-persistence-mongodb",
-    "crates/rustakka-persistence-cassandra",
-    "crates/rustakka-persistence-aws",
-    "crates/rustakka-persistence-azure",
-    "crates/rustakka-streams",
-    "crates/rustakka-telemetry",
-    "crates/rustakka-dashboard",
-    "crates/rustakka-coordination",
-    "crates/rustakka-discovery",
-    "crates/rustakka-di",
-    "crates/rustakka-hosting",
-    "crates/rustakka-serialization-hyperion",
+    "crates/rakka",
+    "crates/rakka-core",
+    "crates/rakka-config",
+    "crates/rakka-macros",
+    "crates/rakka-testkit",
+    "crates/rakka-remote",
+    "crates/rakka-cluster",
+    "crates/rakka-cluster-tools",
+    "crates/rakka-cluster-sharding",
+    "crates/rakka-cluster-metrics",
+    "crates/rakka-distributed-data",
+    "crates/rakka-persistence",
+    "crates/rakka-persistence-query",
+    "crates/rakka-persistence-tck",
+    "crates/rakka-persistence-query-inmemory",
+    "crates/rakka-persistence-sql",
+    "crates/rakka-persistence-redis",
+    "crates/rakka-persistence-mongodb",
+    "crates/rakka-persistence-cassandra",
+    "crates/rakka-persistence-aws",
+    "crates/rakka-persistence-azure",
+    "crates/rakka-streams",
+    "crates/rakka-telemetry",
+    "crates/rakka-dashboard",
+    "crates/rakka-coordination",
+    "crates/rakka-discovery",
+    "crates/rakka-di",
+    "crates/rakka-hosting",
+    "crates/rakka-serialization-hyperion",
     "xtask",
     "examples/pingpong",
     "examples/chat",
     "examples/fault-tolerance",
     "benches/ping_throughput",
-    "crates/rustakka-profiler",
+    "crates/rakka-profiler",
     "crates/py-bindings/pycore",
     "crates/py-bindings/pytestkit",
     "crates/py-bindings/pyremote",
@@ -57,8 +57,8 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.78"
 license = "Apache-2.0"
-repository = "https://github.com/local/rustakka"
-authors = ["rustakka contributors"]
+repository = "https://github.com/local/rakka"
+authors = ["rakka contributors"]
 
 [workspace.dependencies]
 # Async / runtime
@@ -129,7 +129,7 @@ sha2 = "0.10"
 base64 = "0.22"
 url = "2"
 
-# HTTP / web (rustakka-dashboard)
+# HTTP / web (rakka-dashboard)
 axum = { version = "0.7", default-features = false, features = ["json", "ws", "http1", "tokio", "query", "matched-path"] }
 tower = { version = "0.5", default-features = false, features = ["util"] }
 tower-http = { version = "0.5", default-features = false, features = ["cors", "trace", "fs"] }
@@ -137,33 +137,33 @@ rust-embed = { version = "8" }
 clap = { version = "4", features = ["derive"] }
 
 # Internal
-rustakka-core = { path = "crates/rustakka-core", version = "0.1.0" }
-rustakka-config = { path = "crates/rustakka-config", version = "0.1.0" }
-rustakka-macros = { path = "crates/rustakka-macros", version = "0.1.0" }
-rustakka-testkit = { path = "crates/rustakka-testkit", version = "0.1.0" }
-rustakka-remote = { path = "crates/rustakka-remote", version = "0.1.0" }
-rustakka-cluster = { path = "crates/rustakka-cluster", version = "0.1.0" }
-rustakka-cluster-tools = { path = "crates/rustakka-cluster-tools", version = "0.1.0" }
-rustakka-cluster-sharding = { path = "crates/rustakka-cluster-sharding", version = "0.1.0" }
-rustakka-cluster-metrics = { path = "crates/rustakka-cluster-metrics", version = "0.1.0" }
-rustakka-distributed-data = { path = "crates/rustakka-distributed-data", version = "0.1.0" }
-rustakka-persistence = { path = "crates/rustakka-persistence", version = "0.1.0" }
-rustakka-persistence-query = { path = "crates/rustakka-persistence-query", version = "0.1.0" }
-rustakka-persistence-query-inmemory = { path = "crates/rustakka-persistence-query-inmemory", version = "0.1.0" }
-rustakka-persistence-tck = { path = "crates/rustakka-persistence-tck", version = "0.1.0" }
-rustakka-persistence-sql = { path = "crates/rustakka-persistence-sql", version = "0.1.0" }
-rustakka-persistence-redis = { path = "crates/rustakka-persistence-redis", version = "0.1.0" }
-rustakka-persistence-mongodb = { path = "crates/rustakka-persistence-mongodb", version = "0.1.0" }
-rustakka-persistence-cassandra = { path = "crates/rustakka-persistence-cassandra", version = "0.1.0" }
-rustakka-persistence-aws = { path = "crates/rustakka-persistence-aws", version = "0.1.0" }
-rustakka-persistence-azure = { path = "crates/rustakka-persistence-azure", version = "0.1.0" }
-rustakka-streams = { path = "crates/rustakka-streams", version = "0.1.0" }
-rustakka-telemetry = { path = "crates/rustakka-telemetry", version = "0.1.0" }
-rustakka-dashboard = { path = "crates/rustakka-dashboard", version = "0.1.0" }
-rustakka-coordination = { path = "crates/rustakka-coordination", version = "0.1.0" }
-rustakka-discovery = { path = "crates/rustakka-discovery", version = "0.1.0" }
-rustakka-di = { path = "crates/rustakka-di", version = "0.1.0" }
-rustakka-hosting = { path = "crates/rustakka-hosting", version = "0.1.0" }
+rakka-core = { path = "crates/rakka-core", version = "0.1.0" }
+rakka-config = { path = "crates/rakka-config", version = "0.1.0" }
+rakka-macros = { path = "crates/rakka-macros", version = "0.1.0" }
+rakka-testkit = { path = "crates/rakka-testkit", version = "0.1.0" }
+rakka-remote = { path = "crates/rakka-remote", version = "0.1.0" }
+rakka-cluster = { path = "crates/rakka-cluster", version = "0.1.0" }
+rakka-cluster-tools = { path = "crates/rakka-cluster-tools", version = "0.1.0" }
+rakka-cluster-sharding = { path = "crates/rakka-cluster-sharding", version = "0.1.0" }
+rakka-cluster-metrics = { path = "crates/rakka-cluster-metrics", version = "0.1.0" }
+rakka-distributed-data = { path = "crates/rakka-distributed-data", version = "0.1.0" }
+rakka-persistence = { path = "crates/rakka-persistence", version = "0.1.0" }
+rakka-persistence-query = { path = "crates/rakka-persistence-query", version = "0.1.0" }
+rakka-persistence-query-inmemory = { path = "crates/rakka-persistence-query-inmemory", version = "0.1.0" }
+rakka-persistence-tck = { path = "crates/rakka-persistence-tck", version = "0.1.0" }
+rakka-persistence-sql = { path = "crates/rakka-persistence-sql", version = "0.1.0" }
+rakka-persistence-redis = { path = "crates/rakka-persistence-redis", version = "0.1.0" }
+rakka-persistence-mongodb = { path = "crates/rakka-persistence-mongodb", version = "0.1.0" }
+rakka-persistence-cassandra = { path = "crates/rakka-persistence-cassandra", version = "0.1.0" }
+rakka-persistence-aws = { path = "crates/rakka-persistence-aws", version = "0.1.0" }
+rakka-persistence-azure = { path = "crates/rakka-persistence-azure", version = "0.1.0" }
+rakka-streams = { path = "crates/rakka-streams", version = "0.1.0" }
+rakka-telemetry = { path = "crates/rakka-telemetry", version = "0.1.0" }
+rakka-dashboard = { path = "crates/rakka-dashboard", version = "0.1.0" }
+rakka-coordination = { path = "crates/rakka-coordination", version = "0.1.0" }
+rakka-discovery = { path = "crates/rakka-discovery", version = "0.1.0" }
+rakka-di = { path = "crates/rakka-di", version = "0.1.0" }
+rakka-hosting = { path = "crates/rakka-hosting", version = "0.1.0" }
 
 [profile.release]
 opt-level = 3

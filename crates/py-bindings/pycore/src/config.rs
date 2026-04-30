@@ -2,9 +2,9 @@
 
 use pyo3::prelude::*;
 
-use rustakka_config::Config;
+use rakka_config::Config;
 
-#[pyclass(name = "Config", module = "rustakka._native", frozen)]
+#[pyclass(name = "Config", module = "rakka._native", frozen)]
 pub struct PyConfig {
     pub(crate) inner: Config,
 }
@@ -19,7 +19,7 @@ impl PyConfig {
     #[staticmethod]
     pub fn from_toml(text: &str) -> PyResult<Self> {
         let inner = Config::from_toml_str(text)
-            .map_err(|e| PyErr::new::<crate::errors::RustakkaError, _>(e.to_string()))?;
+            .map_err(|e| PyErr::new::<crate::errors::RakkaError, _>(e.to_string()))?;
         Ok(Self { inner })
     }
 

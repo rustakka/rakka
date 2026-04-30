@@ -5,8 +5,8 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rustakka::prelude::*;
-use rustakka_cluster_tools::DistributedPubSub;
+use rakka::prelude::*;
+use rakka_cluster_tools::DistributedPubSub;
 
 #[derive(Debug, Clone)]
 enum ChatMsg {

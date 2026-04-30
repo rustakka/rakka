@@ -1,0 +1,20 @@
+[package]
+name = "rakka-cluster"
+description = "rakka cluster — membership, gossip, reachability, SBR."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rakka-core = { workspace = true }
+rakka-remote = { workspace = true }
+rakka-config = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+parking_lot = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+async-trait = { workspace = true }

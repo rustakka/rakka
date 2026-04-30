@@ -1,0 +1,32 @@
+[package]
+name = "rakka-persistence-sql"
+description = "Unified SQL Journal + SnapshotStore provider for rakka (Postgres, MySQL, SQLite, MSSQL)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[features]
+default = ["sqlite"]
+sqlite = ["sqlx/sqlite"]
+postgres = ["sqlx/postgres"]
+mysql = ["sqlx/mysql"]
+mssql = []
+integration = []
+
+[dependencies]
+rakka-persistence = { workspace = true }
+rakka-persistence-query = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
+sqlx = { workspace = true }
+chrono = { workspace = true }
+
+[dev-dependencies]
+rakka-persistence-tck = { workspace = true }
+tokio = { workspace = true }

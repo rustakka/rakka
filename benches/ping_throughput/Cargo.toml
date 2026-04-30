@@ -5,7 +5,7 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-rustakka = { path = "../../crates/rustakka" }
+rakka = { path = "../../crates/rakka" }
 tokio = { workspace = true }
 async-trait = { workspace = true }
 

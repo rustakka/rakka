@@ -1,0 +1,17 @@
+[package]
+name = "rakka"
+description = "Idiomatic Rust port of Akka.NET — umbrella re-export crate."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rakka-core = { workspace = true }
+rakka-config = { workspace = true }
+rakka-macros = { workspace = true, optional = true }
+
+[features]
+default = ["macros"]
+macros = ["dep:rakka-macros"]

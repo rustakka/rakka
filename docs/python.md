@@ -1,9 +1,9 @@
-# rustakka Python bindings
+# rakka Python bindings
 
-`rustakka` ships first-class Python bindings that let you author actors in
+`rakka` ships first-class Python bindings that let you author actors in
 Python while keeping the Rust scheduler, mailbox, supervision, clustering,
 persistence, and streams machinery below. The native extension is built
-with [PyO3] + [maturin]; the Python facade lives in `python/rustakka/`.
+with [PyO3] + [maturin]; the Python facade lives in `python/rakka/`.
 
 ## Install
 
@@ -21,7 +21,7 @@ Supported Python: 3.10+ (abi3). 3.12 enables subinterpreters; 3.13t
 ## Hello, actor
 
 ```python
-from rustakka import Actor, ActorSystem, props
+from rakka import Actor, ActorSystem, props
 
 class Greeter(Actor):
     async def handle(self, ctx, msg):
@@ -39,18 +39,18 @@ The Python package mirrors the Rust workspace:
 
 | Rust crate                     | Python module                |
 |--------------------------------|------------------------------|
-| `rustakka-core`                | `rustakka` (Actor, Props…)   |
-| `rustakka-testkit`             | `rustakka.testkit`           |
-| `rustakka-cluster`             | `rustakka.cluster`           |
-| `rustakka-cluster-tools`       | `rustakka.cluster_tools`     |
-| `rustakka-cluster-sharding`    | `rustakka.cluster_sharding`  |
-| `rustakka-distributed-data`    | `rustakka.ddata`             |
-| `rustakka-persistence`         | `rustakka.persistence`       |
-| `rustakka-streams`             | `rustakka.streams`           |
-| `rustakka-coordination`        | `rustakka.coordination`      |
-| `rustakka-discovery`           | `rustakka.discovery`         |
-| `rustakka-di`                  | `rustakka.di`                |
-| `rustakka-hosting`             | `rustakka.hosting`           |
+| `rakka-core`                | `rakka` (Actor, Props…)   |
+| `rakka-testkit`             | `rakka.testkit`           |
+| `rakka-cluster`             | `rakka.cluster`           |
+| `rakka-cluster-tools`       | `rakka.cluster_tools`     |
+| `rakka-cluster-sharding`    | `rakka.cluster_sharding`  |
+| `rakka-distributed-data`    | `rakka.ddata`             |
+| `rakka-persistence`         | `rakka.persistence`       |
+| `rakka-streams`             | `rakka.streams`           |
+| `rakka-coordination`        | `rakka.coordination`      |
+| `rakka-discovery`           | `rakka.discovery`         |
+| `rakka-di`                  | `rakka.di`                |
+| `rakka-hosting`             | `rakka.hosting`           |
 
 ## GIL tuning guide
 
@@ -74,7 +74,7 @@ extensions you import are subinterpreter-safe; see the compatibility
 registry below).
 
 ```python
-from rustakka import InterpreterQuota
+from rakka import InterpreterQuota
 
 system.configure_interpreter(
     "ml-inference",
@@ -84,7 +84,7 @@ system.configure_interpreter(
         max_actors=32,
         max_handler_ms=250,
         memory_soft_limit_bytes=2 * 1024**3,
-        module_allowlist=["numpy", "torch", "rustakka"],
+        module_allowlist=["numpy", "torch", "rakka"],
         import_policy="eager",
     ),
 )
@@ -95,7 +95,7 @@ system.configure_interpreter(
 Free-threaded CPython 3.13+ (PEP 703). Single interpreter, but no GIL;
 `count` becomes the number of OS worker threads. Only useful if your
 deployment runs a no-GIL CPython build — check with
-`rustakka.nogil_supported()`.
+`rakka.nogil_supported()`.
 
 ### `python-subprocess`
 
@@ -119,7 +119,7 @@ used for untrusted handlers or hard memory caps.
 ### Metrics
 
 ```python
-for pool in rustakka._native.interpreter_metrics():
+for pool in rakka._native.interpreter_metrics():
     print(pool["label"], pool["kind"], pool["messages_handled"])
 ```
 
@@ -133,9 +133,9 @@ registry. Defaults ship for stdlib, `numpy`, `msgpack`, `pydantic`, etc.
 Operators or library authors can declare their own:
 
 ```python
-import rustakka
+import rakka
 
-rustakka.declare_compat(
+rakka.declare_compat(
     "my_fast_lib",
     subinterpreter_safe=True,
     nogil_safe=False,
@@ -144,13 +144,13 @@ rustakka.declare_compat(
 ```
 
 Handlers that try to import a module flagged as unsafe for the
-selected dispatcher raise `rustakka.InterpreterCompatError` — see
-`rustakka.compat_list()` for the current registry contents.
+selected dispatcher raise `rakka.InterpreterCompatError` — see
+`rakka.compat_list()` for the current registry contents.
 
 ## Testing
 
 ```python
-from rustakka.testkit import testkit  # pytest fixture
+from rakka.testkit import testkit  # pytest fixture
 
 def test_my_actor(testkit):
     probe = testkit.probe()
@@ -166,29 +166,29 @@ def test_my_actor(testkit):
 ## API surface summary
 
 ```python
-rustakka.Actor                       # subclass and implement async def handle
-rustakka.ActorSystem                 # .create / .create_blocking / .actor_of
-rustakka.Props, rustakka.props()     # (factory, dispatcher, interpreter_role, mailbox)
-rustakka.ActorRef                    # .tell / .ask (asyncio) / .ask_blocking
-rustakka.Context                     # .self_ref, .path
-rustakka.Config                      # .from_toml / .empty
+rakka.Actor                       # subclass and implement async def handle
+rakka.ActorSystem                 # .create / .create_blocking / .actor_of
+rakka.Props, rakka.props()     # (factory, dispatcher, interpreter_role, mailbox)
+rakka.ActorRef                    # .tell / .ask (asyncio) / .ask_blocking
+rakka.Context                     # .self_ref, .path
+rakka.Config                      # .from_toml / .empty
 
-rustakka.InterpreterQuota            # per-pool resource + import policy
-rustakka.subinterpreters_supported() # CPython >= 3.12
-rustakka.nogil_supported()           # CPython 3.13t (free-threaded)
-rustakka.declare_compat / compat_flags / compat_list
+rakka.InterpreterQuota            # per-pool resource + import policy
+rakka.subinterpreters_supported() # CPython >= 3.12
+rakka.nogil_supported()           # CPython 3.13t (free-threaded)
+rakka.declare_compat / compat_flags / compat_list
 
-rustakka.testkit.TestKit / TestProbe / testkit (pytest fixture)
-rustakka.cluster.Member / MembershipState / VectorClock
-rustakka.cluster_tools.DistributedPubSub
-rustakka.cluster_sharding.ShardRegion
-rustakka.ddata.GCounter / PNCounter / GSet / ORSet
-rustakka.persistence.InMemoryJournal
-rustakka.streams.map_reduce
-rustakka.coordination.InMemoryLease
-rustakka.discovery.StaticDiscovery
-rustakka.di.ServiceContainer
-rustakka.hosting.Builder / ActorSystemBuilder
+rakka.testkit.TestKit / TestProbe / testkit (pytest fixture)
+rakka.cluster.Member / MembershipState / VectorClock
+rakka.cluster_tools.DistributedPubSub
+rakka.cluster_sharding.ShardRegion
+rakka.ddata.GCounter / PNCounter / GSet / ORSet
+rakka.persistence.InMemoryJournal
+rakka.streams.map_reduce
+rakka.coordination.InMemoryLease
+rakka.discovery.StaticDiscovery
+rakka.di.ServiceContainer
+rakka.hosting.Builder / ActorSystemBuilder
 ```
 
 ## Known limitations

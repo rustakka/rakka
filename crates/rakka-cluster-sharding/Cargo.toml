@@ -1,0 +1,16 @@
+[package]
+name = "rakka-cluster-sharding"
+description = "Cluster Sharding for rakka."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rakka-core = { workspace = true }
+rakka-cluster = { workspace = true }
+parking_lot = { workspace = true }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+tracing = { workspace = true }

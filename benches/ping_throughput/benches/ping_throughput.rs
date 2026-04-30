@@ -2,7 +2,7 @@
 
 use async_trait::async_trait;
 use criterion::{criterion_group, criterion_main, Criterion, Throughput};
-use rustakka::prelude::*;
+use rakka::prelude::*;
 
 struct Null;
 

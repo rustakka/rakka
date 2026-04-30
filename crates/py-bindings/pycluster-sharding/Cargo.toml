@@ -1,6 +1,6 @@
 [package]
-name = "rustakka-pycluster-sharding"
-description = "Placeholder sub-crate (bindings aggregated in rustakka-pycore)."
+name = "rakka-pycluster-sharding"
+description = "Placeholder sub-crate (bindings aggregated in rakka-pycore)."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

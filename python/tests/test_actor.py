@@ -1,7 +1,7 @@
 """Ping-pong actor via the Python facade."""
 
-import rustakka
-from rustakka import Actor, ActorSystem, props
+import rakka
+from rakka import Actor, ActorSystem, props
 
 
 class Pong(Actor):

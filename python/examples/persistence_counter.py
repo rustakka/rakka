@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from rustakka import persistence
+from rakka import persistence
 
 
 def main() -> None:

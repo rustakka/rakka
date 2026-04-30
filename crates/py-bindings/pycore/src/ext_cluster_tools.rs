@@ -6,7 +6,7 @@ use parking_lot::Mutex;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
 
-#[pyclass(name = "DistributedPubSub", module = "rustakka._native.cluster_tools")]
+#[pyclass(name = "DistributedPubSub", module = "rakka._native.cluster_tools")]
 pub struct PyDistributedPubSub {
     topics: Arc<Mutex<std::collections::HashMap<String, Vec<Py<PyAny>>>>>,
 }

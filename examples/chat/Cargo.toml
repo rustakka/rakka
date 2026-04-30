@@ -5,8 +5,8 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-rustakka = { path = "../../crates/rustakka" }
-rustakka-cluster-tools = { workspace = true }
+rakka = { path = "../../crates/rakka" }
+rakka-cluster-tools = { workspace = true }
 tokio = { workspace = true }
 async-trait = { workspace = true }
 anyhow = { workspace = true }

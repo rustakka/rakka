@@ -3,10 +3,10 @@
 use parking_lot::Mutex;
 use pyo3::prelude::*;
 
-use rustakka_cluster::{Member, MemberStatus, MembershipState, VectorClock, VectorRelation};
-use rustakka_core::actor::Address;
+use rakka_cluster::{Member, MemberStatus, MembershipState, VectorClock, VectorRelation};
+use rakka_core::actor::Address;
 
-#[pyclass(name = "Member", module = "rustakka._native.cluster")]
+#[pyclass(name = "Member", module = "rakka._native.cluster")]
 #[derive(Clone)]
 pub struct PyMember {
     pub(crate) inner: Member,
@@ -45,7 +45,7 @@ impl PyMember {
     }
 }
 
-#[pyclass(name = "MembershipState", module = "rustakka._native.cluster")]
+#[pyclass(name = "MembershipState", module = "rakka._native.cluster")]
 pub struct PyMembershipState {
     pub(crate) inner: Mutex<MembershipState>,
 }
@@ -62,7 +62,7 @@ impl PyMembershipState {
     fn member_count(&self) -> usize { self.inner.lock().member_count() }
 }
 
-#[pyclass(name = "VectorClock", module = "rustakka._native.cluster")]
+#[pyclass(name = "VectorClock", module = "rakka._native.cluster")]
 pub struct PyVectorClock {
     inner: Mutex<VectorClock>,
 }

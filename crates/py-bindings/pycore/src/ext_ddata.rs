@@ -4,9 +4,9 @@
 use parking_lot::Mutex;
 use pyo3::prelude::*;
 
-use rustakka_distributed_data::{CrdtMerge, GCounter, GSet, OrSet, PNCounter};
+use rakka_distributed_data::{CrdtMerge, GCounter, GSet, OrSet, PNCounter};
 
-#[pyclass(name = "GCounter", module = "rustakka._native.ddata")]
+#[pyclass(name = "GCounter", module = "rakka._native.ddata")]
 pub struct PyGCounter { inner: Mutex<GCounter> }
 
 #[pymethods]
@@ -21,7 +21,7 @@ impl PyGCounter {
     }
 }
 
-#[pyclass(name = "PNCounter", module = "rustakka._native.ddata")]
+#[pyclass(name = "PNCounter", module = "rakka._native.ddata")]
 pub struct PyPNCounter { inner: Mutex<PNCounter> }
 
 #[pymethods]
@@ -37,7 +37,7 @@ impl PyPNCounter {
     }
 }
 
-#[pyclass(name = "GSet", module = "rustakka._native.ddata")]
+#[pyclass(name = "GSet", module = "rakka._native.ddata")]
 pub struct PyGSet { inner: Mutex<GSet<String>> }
 
 #[pymethods]
@@ -53,7 +53,7 @@ impl PyGSet {
     }
 }
 
-#[pyclass(name = "ORSet", module = "rustakka._native.ddata")]
+#[pyclass(name = "ORSet", module = "rakka._native.ddata")]
 pub struct PyORSet { inner: Mutex<OrSet<String>> }
 
 #[pymethods]

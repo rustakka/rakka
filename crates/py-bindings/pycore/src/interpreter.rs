@@ -22,7 +22,7 @@ use tokio::sync::mpsc;
 
 use crate::errors;
 
-#[pyclass(name = "InterpreterQuota", module = "rustakka._native")]
+#[pyclass(name = "InterpreterQuota", module = "rakka._native")]
 #[derive(Clone, Default)]
 pub struct InterpreterQuota {
     #[pyo3(get, set)]
@@ -81,7 +81,7 @@ impl InterpreterQuota {
 }
 
 /// Execution model for Python actors. Maps to the dispatcher names in
-/// `reference.conf.toml` under `rustakka.python.interpreters.*`.
+/// `reference.conf.toml` under `rakka.python.interpreters.*`.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub enum InterpreterKind {
     /// One interpreter, one OS thread. GIL is held here and nowhere else.
@@ -236,7 +236,7 @@ impl InterpreterInstance {
 fn spawn_worker() -> Arc<Worker> {
     let (tx, mut rx) = mpsc::unbounded_channel::<PyTask>();
     let handle = std::thread::Builder::new()
-        .name("rustakka-py-worker".into())
+        .name("rakka-py-worker".into())
         .spawn(move || {
             // Each worker serializes Python execution on its own OS thread.
             // For the pinned / subinterpreter-pool variants the GIL stays
@@ -292,7 +292,7 @@ impl InterpreterRegistry {
 }
 
 /// Python-facing classes.
-#[pyclass(name = "InterpreterPool", module = "rustakka._native")]
+#[pyclass(name = "InterpreterPool", module = "rakka._native")]
 pub struct PyInterpreterPool {
     pub(crate) instance: Arc<InterpreterInstance>,
 }

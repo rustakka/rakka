@@ -1,6 +1,6 @@
 # Performance profiler
 
-rustakka ships a cross-runtime actor profiler that measures the same
+rakka ships a cross-runtime actor profiler that measures the same
 four scenarios in both Rust and Python and emits a shared JSON schema
 so the results can be compared directly.
 
@@ -20,10 +20,10 @@ CPU probes come from `/proc/self/{status,stat}` on Linux and return
 
 ```bash
 # Rust only
-cargo run --release -p rustakka-profiler -- --scenario all --format md
+cargo run --release -p rakka-profiler -- --scenario all --format md
 
 # Python only (after maturin develop --release)
-python -m rustakka.profiler --scenario all --format md
+python -m rakka.profiler --scenario all --format md
 
 # Both, side-by-side (also writes merged JSON)
 python scripts/profile.py --output docs/reports/profiler.md \
@@ -95,11 +95,11 @@ The top-level report adds `runtime`, `version`, `host`, and a
 ## Developer notes
 
 - The Rust scenarios live in
-  [`crates/rustakka-profiler/src/scenarios.rs`](../crates/rustakka-profiler/src/scenarios.rs);
+  [`crates/rakka-profiler/src/scenarios.rs`](../crates/rakka-profiler/src/scenarios.rs);
   the CLI is
-  [`crates/rustakka-profiler/src/bin/rustakka_profiler.rs`](../crates/rustakka-profiler/src/bin/rustakka_profiler.rs).
+  [`crates/rakka-profiler/src/bin/rakka_profiler.rs`](../crates/rakka-profiler/src/bin/rakka_profiler.rs).
 - The Python counterpart is the
-  [`rustakka.profiler`](../python/rustakka/profiler/__init__.py)
+  [`rakka.profiler`](../python/rakka/profiler/__init__.py)
   sub-package (`_probes.py`, `_report.py`, `_scenarios.py`,
   `__main__.py`).
 - Resource probes are Linux-only today (`VmRSS`, `VmHWM`,

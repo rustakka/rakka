@@ -1,0 +1,14 @@
+[package]
+name = "rakka-hosting"
+description = "Application-host wiring for rakka (akka.net Akka.Hosting)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rakka-core = { workspace = true }
+rakka-config = { workspace = true }
+rakka-di = { workspace = true }
+tokio = { workspace = true }

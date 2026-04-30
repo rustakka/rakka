@@ -1,7 +1,7 @@
-//! PyO3 bindings for rustakka-core. Exposes the native extension module
-//! `rustakka._native` whose submodules mirror the Rust crate layout.
+//! PyO3 bindings for rakka-core. Exposes the native extension module
+//! `rakka._native` whose submodules mirror the Rust crate layout.
 //!
-//! Public Python API surface lives in `python/rustakka/`; this crate only
+//! Public Python API surface lives in `python/rakka/`; this crate only
 //! provides compiled types.
 
 // PyO3 macros emit code that trips a handful of clippy false positives.
@@ -43,7 +43,7 @@ mod ext_persistence;
 mod ext_streams;
 mod ext_testkit;
 
-/// Entry point registered with `#[pymodule]` — exposes `rustakka._native`.
+/// Entry point registered with `#[pymodule]` — exposes `rakka._native`.
 #[pymodule]
 fn _native(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;

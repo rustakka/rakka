@@ -1,0 +1,52 @@
+[package]
+name = "rakka-dashboard"
+description = "rakka dashboard — optional HTTP/WebSocket observability service with embedded React UI."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rakka-core = { workspace = true }
+rakka-telemetry = { workspace = true, features = ["cluster", "persistence", "remote", "streams", "ddata", "sharding", "cluster-metrics"] }
+rakka-config = { workspace = true }
+
+tokio = { workspace = true }
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+parking_lot = { workspace = true }
+thiserror = { workspace = true }
+futures-util = { workspace = true }
+
+rust-embed = { workspace = true, optional = true, features = ["mime-guess"] }
+clap = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+anyhow = { workspace = true, optional = true }
+tracing-subscriber = { workspace = true, optional = true }
+chrono = { workspace = true }
+
+[features]
+default = []
+embed-ui = ["dep:rust-embed"]
+metrics-prometheus = ["rakka-telemetry/prometheus"]
+metrics-otel = ["rakka-telemetry/otel"]
+metrics-otel-grpc = ["metrics-otel", "rakka-telemetry/otel-otlp-grpc"]
+metrics-otel-http = ["metrics-otel", "rakka-telemetry/otel-otlp-http"]
+metrics-otel-stdout = ["metrics-otel", "rakka-telemetry/otel-stdout"]
+bin = ["dep:clap", "dep:anyhow", "dep:tracing-subscriber"]
+aggregator = ["dep:reqwest"]
+
+[[bin]]
+name = "rakka-dashboard"
+path = "src/bin/rakka-dashboard.rs"
+required-features = ["bin"]
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full", "test-util"] }
+tower = { workspace = true, features = ["util"] }
+tokio-tungstenite = "0.24"

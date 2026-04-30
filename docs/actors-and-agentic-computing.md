@@ -3,8 +3,8 @@
 This note is meant for architects and product leads who are deciding *why*
 a native Akka-style runtime matters next to ad hoc microservices, raw
 thread pools, or “agents” that are only a prompt plus an HTTP loop. It
-applies to the **Akka family** (JVM Akka, Akka.NET) and to **rustakka**:
-the ideas are the same; rustakka is an **idiomatic, native Rust** port of
+applies to the **Akka family** (JVM Akka, Akka.NET) and to **rakka**:
+the ideas are the same; rakka is an **idiomatic, native Rust** port of
 the Akka.NET module layout, with **optional Python** on top.
 
 ## The core value: one model, two scales
@@ -54,14 +54,14 @@ Many LLM agent stacks separate **orchestration** (who runs next), **state**
 workflows as **agent state graphs**—nodes, edges, and transitions that
 lend themselves to a **supervised, message-based** host.
 
-Two companion crates in the **rustakka ecosystem** (not the Akka.NET port
+Two companion crates in the **rakka ecosystem** (not the Akka.NET port
 itself) are meant to be composed with this repository:
 
-- **`rustakka-langgraph`** — **LangGraph agent state graphs** on top of
-  rustakka: graph nodes as actors, edges as message routes, and explicit
+- **`rakka-langgraph`** — **LangGraph agent state graphs** on top of
+  rakka: graph nodes as actors, edges as message routes, and explicit
   turn-taking so the same *graph* you design for an agent team runs with
   cluster-aware refs and back-pressure, not a single-process toy loop.
-- **`rustakka-agents`** — **agentic patterns and practices above the graph
+- **`rakka-agents`** — **agentic patterns and practices above the graph
   layer**: how to name actors, model tools, combine humans-in-the-loop,
   test agent behavior with the testkit, and run operational
   **supervision + persistence** for long-lived agent sessions. It assumes
@@ -69,8 +69,8 @@ itself) are meant to be composed with this repository:
   of conventions, safety rails, and integration guidance so production
   agentics does not drown in ad hoc process wiring.
 
-**rustakka** (this tree) is still the **runtime and distribution**
-substrate. **`rustakka-telemetry`** and **`rustakka-dashboard`** then give
+**rakka** (this tree) is still the **runtime and distribution**
+substrate. **`rakka-telemetry`** and **`rakka-dashboard`** then give
 you **cross-crate visibility** (see the [Dashboard](dashboard.md)) so you
 can see those graphs and the rest of the system in one place.
 
@@ -112,10 +112,10 @@ landscape most agentic and distributed applications live in.
 - State lives **in one place** (the actor), not in a dozen “manager”
   singletons.
 - Communication is **message-shaped**, which makes system diagrams and
-  runtime **observability** (mailboxes, [telemetry across crates](dashboard.md#viewing-behavior-across-rustakka-crates), sharding) line up with the
+  runtime **observability** (mailboxes, [telemetry across crates](dashboard.md#viewing-behavior-across-rakka-crates), sharding) line up with the
   code you wrote.
 
-## rustakka in this picture
+## rakka in this picture
 
 - **Parity of concepts** with Akka.NET: same module boundaries, similar
   APIs, so **skills transfer** and upstream evolution can be tracked.
@@ -137,4 +137,4 @@ machine or many.
 - [Dashboard](dashboard.md) — **telemetry visualization hooks**; live API + Web UI across actors, cluster, sharding, persistence, remote, streams, and distributed data.
 - [Observability](observability.md) — metrics and OpenTelemetry.
 - [Repository README](../README.md) — quick start and crate map.
-- **`rustakka-langgraph`**, **`rustakka-agents`** — companion ecosystem crates (LangGraph state graphs, then agentic practices above the graph). Build and publish alongside this repo.
+- **`rakka-langgraph`**, **`rakka-agents`** — companion ecosystem crates (LangGraph state graphs, then agentic practices above the graph). Build and publish alongside this repo.

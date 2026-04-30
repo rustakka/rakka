@@ -1,6 +1,6 @@
-# rustakka — Python bindings
+# rakka — Python bindings
 
-First-class Python bindings for the Rust [`rustakka`](../) actor
+First-class Python bindings for the Rust [`rakka`](../) actor
 framework. Write actors in Python, run them under the Rust scheduler
 with supervision, clustering, persistence, and streams — and pick a
 dispatcher that matches your workload's GIL tolerance.
@@ -31,7 +31,7 @@ Supported Python: 3.10+ (abi3). 3.12 enables subinterpreters;
 ## Hello, actor
 
 ```python
-from rustakka import Actor, ActorSystem, props
+from rakka import Actor, ActorSystem, props
 
 class Greeter(Actor):
     async def handle(self, ctx, msg):
@@ -47,11 +47,11 @@ system.terminate_blocking()
 
 ```
 python/
-├── rustakka/                Python facade — import this
+├── rakka/                Python facade — import this
 │   ├── __init__.py          re-exports Actor / ActorSystem / ...
 │   ├── actor.py             Actor base class
 │   ├── system.py            ActorSystem, Props, ActorRef, props()
-│   ├── errors.py            RustakkaError, InterpreterOverloaded, ...
+│   ├── errors.py            RakkaError, InterpreterOverloaded, ...
 │   ├── interpreter.py       InterpreterQuota + capability probes
 │   ├── compat.py            C-extension compatibility registry
 │   ├── testkit.py           TestKit, TestProbe, pytest fixture
@@ -84,15 +84,15 @@ python/
 Capability probes:
 
 ```python
-import rustakka
-rustakka.subinterpreters_supported()   # True on CPython 3.12+
-rustakka.nogil_supported()             # True on CPython 3.13t
+import rakka
+rakka.subinterpreters_supported()   # True on CPython 3.12+
+rakka.nogil_supported()             # True on CPython 3.13t
 ```
 
 ### Quotas per interpreter pool
 
 ```python
-from rustakka import InterpreterQuota
+from rakka import InterpreterQuota
 
 system.configure_interpreter(
     "ml-inference",
@@ -104,7 +104,7 @@ system.configure_interpreter(
         memory_soft_limit_bytes=2 * 1024**3,
         cpu_share=0.5,
         max_handler_ms=250,
-        module_allowlist=["numpy", "torch", "rustakka"],
+        module_allowlist=["numpy", "torch", "rakka"],
         import_policy="eager",
     ),
 )
@@ -113,7 +113,7 @@ system.configure_interpreter(
 ### Metrics
 
 ```python
-for pool in rustakka._native.interpreter_metrics():
+for pool in rakka._native.interpreter_metrics():
     print(pool["label"], pool["kind"], pool["messages_handled"])
 ```
 
@@ -128,8 +128,8 @@ known C extensions. Baseline defaults ship for stdlib, `numpy`,
 own:
 
 ```python
-import rustakka
-rustakka.declare_compat(
+import rakka
+rakka.declare_compat(
     "my_fast_lib",
     subinterpreter_safe=True,
     nogil_safe=False,
@@ -139,12 +139,12 @@ rustakka.declare_compat(
 
 ## Profiling
 
-A `rustakka.profiler` sub-package mirrors the Rust `rustakka-profiler`
+A `rakka.profiler` sub-package mirrors the Rust `rakka-profiler`
 binary:
 
 ```bash
-python -m rustakka.profiler --scenario all --format md
-python -m rustakka.profiler --scenario cpu --messages 5000 --format json -o cpu.json
+python -m rakka.profiler --scenario all --format md
+python -m rakka.profiler --scenario cpu --messages 5000 --format json -o cpu.json
 ```
 
 It autoconfigures the fastest dispatcher per scenario (`python-nogil` →
@@ -158,7 +158,7 @@ guide in [`../docs/profiler.md`](../docs/profiler.md).
 Use the `testkit` fixture:
 
 ```python
-from rustakka.testkit import testkit
+from rakka.testkit import testkit
 
 def test_my_actor(testkit):
     probe = testkit.probe()
