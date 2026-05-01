@@ -13,6 +13,7 @@ use tokio::sync::Notify;
 use crate::source::Source;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum OverflowStrategy {
     /// Propagate backpressure by awaiting channel capacity.
     Backpressure,

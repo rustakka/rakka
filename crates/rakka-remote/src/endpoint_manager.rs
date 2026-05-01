@@ -24,8 +24,15 @@ use crate::transport::akka_protocol::{AkkaProtocolTransport, ProtocolEvent};
 use crate::transport::{Transport, TransportError};
 
 /// Per-peer association state.
+///
+/// State transitions follow akka.net's `EndpointManager`:
+/// `Idle → Pending → Connected → (Quarantined → Tombstoned)`.
+/// `Quarantined` is time-bounded by [`RemoteSettings::
+/// quarantine_duration`]; `Tombstoned` is permanent until
+/// [`EndpointManager::purge_tombstones`] sweeps the entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum AssociationState {
+#[non_exhaustive]
+pub enum AssociationState {
     Idle,
     Pending,
     Connected,
@@ -283,6 +290,29 @@ impl EndpointManager {
         let mut peers = self.inner.peers.write();
         let e = peers.entry(key).or_insert_with(PeerEntry::new);
         e.transition(AssociationState::Tombstoned);
+    }
+
+    /// Drop tombstoned peers whose `Tombstoned`-since age exceeds
+    /// `older_than`, so the peer table doesn't grow unbounded across
+    /// long-running clusters. Returns the number of entries removed.
+    /// Phase 5 — quarantine lifecycle.
+    pub fn purge_tombstones(&self, older_than: Duration) -> usize {
+        let mut peers = self.inner.peers.write();
+        let before = peers.len();
+        peers.retain(|_, e| {
+            !(e.state == AssociationState::Tombstoned && e.state_since.elapsed() >= older_than)
+        });
+        before - peers.len()
+    }
+
+    /// Current state for a single peer (`None` if no association
+    /// has ever been attempted).
+    pub fn peer_state(&self, target: &Address) -> Option<AssociationState> {
+        self.inner
+            .peers
+            .read()
+            .get(&target.to_string())
+            .map(|e| e.state)
     }
 
     /// Take the inbound stream of decoded user/system envelopes. Calling

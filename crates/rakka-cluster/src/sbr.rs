@@ -11,6 +11,7 @@ use crate::member::{Member, MemberStatus};
 
 /// What the resolver recommends the cluster do with the given side.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum DowningDecision {
     DownUnreachable,
     DownAll,

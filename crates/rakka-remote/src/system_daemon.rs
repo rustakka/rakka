@@ -109,7 +109,7 @@ impl RemoteSystemDaemon {
                 }
             }
             RemoteSystemMsg::Watch { watcher } => {
-                let stub = crate::remote_watcher::WatcherStub::new(
+                let proxy = crate::remote_watcher::RemoteWatcherProxy::new(
                     watcher.clone(),
                     self.inner.endpoint_manager.clone(),
                     self.inner.registry.clone(),
@@ -120,7 +120,7 @@ impl RemoteSystemDaemon {
                     .write()
                     .entry(path.to_string_without_address())
                     .or_default()
-                    .push(UntypedActorRef::from_remote(Arc::new(stub)));
+                    .push(UntypedActorRef::from_remote(Arc::new(proxy)));
             }
             RemoteSystemMsg::Unwatch { watcher } => {
                 let mut g = self.inner.remote_watchers.write();

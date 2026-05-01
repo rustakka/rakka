@@ -5,8 +5,10 @@ mod ask;
 mod backoff;
 mod circuit_breaker;
 mod pipe_to;
+mod retry;
 
 pub use ask::ask;
 pub use backoff::{BackoffOptions, BackoffSupervisor};
 pub use circuit_breaker::{CircuitBreaker, CircuitBreakerState};
 pub use pipe_to::pipe_to;
+pub use retry::{retry, RetrySchedule};

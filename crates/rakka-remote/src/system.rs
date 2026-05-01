@@ -162,9 +162,9 @@ impl RemoteSystem {
         let endpoint_manager = self.endpoint_manager().clone();
         let registry = self.registry().clone();
         let local_uid = self.address_uid.get();
-        let parsed = parse_remote_path(path)?;
-        // Encode closure that bypasses the registry's TypeId table when
-        // the user has not pre-registered M (uses bincode + the type's name).
+        // Reject malformed paths up front so callers don't get a
+        // dangling `ActorRef<M>` whose underlying handle never resolves.
+        let _parsed = parse_actor_path(path)?;
         let serialize: Arc<
             dyn Fn(M, Option<ActorPath>) -> SerializedMessage + Send + Sync,
         > = Arc::new(move |msg: M, sender: Option<ActorPath>| {
@@ -179,7 +179,6 @@ impl RemoteSystem {
             }
         });
         let _ = (registry, local_uid, endpoint_manager);
-        let _ = parsed;
         self.system.actor_selection_with(path, serialize)
     }
 
@@ -194,16 +193,6 @@ impl RemoteSystem {
         self.daemon.clear();
         let _ = DisassociateReason::Normal; // referenced for clarity
     }
-}
-
-fn parse_remote_path(s: &str) -> Option<ActorPath> {
-    let (addr, rest) = s.split_once("://")?;
-    let _ = addr;
-    if let Some((sys, host_path)) = rest.split_once('@') {
-        let _ = sys;
-        let _ = host_path;
-    }
-    Some(ActorPath::root(Address::local("__placeholder__")))
 }
 
 fn handle_inbound(daemon: &Arc<RemoteSystemDaemon>, inbound: InboundEnvelope) {

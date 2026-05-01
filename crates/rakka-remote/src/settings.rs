@@ -47,6 +47,30 @@ pub struct RemoteSettings {
     pub watch_heartbeat_interval: Duration,
     /// Watch failure threshold (in missed heartbeats).
     pub watch_failure_threshold: u32,
+
+    // -- Phase 5.J: phi-accrual failure-detector tuning --
+    //
+    // These mirror akka.net's `akka.remote.watch-failure-detector.*`
+    // keys. Producing a `FailureDetectorRegistry` from `RemoteSettings`
+    // honours each knob.
+    /// φ value above which the peer is considered failed (akka.net
+    /// default: 8.0 for watch, 10.0 for cluster).
+    pub phi_threshold: f64,
+    /// Maximum sample size kept in the heart-beat history.
+    pub phi_max_sample_size: usize,
+    /// Floor on the inter-arrival std-dev (avoids over-confidence on
+    /// suspiciously stable links). akka.net default: 100ms.
+    pub phi_min_std_deviation: Duration,
+    /// Pause window the detector tolerates before suspicion grows.
+    pub phi_acceptable_heartbeat_pause: Duration,
+
+    /// TLS configuration. Default is unconfigured (`!enabled()`).
+    /// Phase 5.E.
+    pub tls: crate::tls::TlsConfig,
+
+    /// Maximum payload bytes per wire frame. Larger payloads are
+    /// fragmented via `chunking::Chunker`. Phase 5.F.
+    pub maximum_payload_size: usize,
 }
 
 impl Default for RemoteSettings {
@@ -70,6 +94,12 @@ impl Default for RemoteSettings {
             require_cookie: None,
             watch_heartbeat_interval: Duration::from_secs(1),
             watch_failure_threshold: 5,
+            phi_threshold: 8.0,
+            phi_max_sample_size: 1000,
+            phi_min_std_deviation: Duration::from_millis(100),
+            phi_acceptable_heartbeat_pause: Duration::from_secs(3),
+            tls: crate::tls::TlsConfig::default(),
+            maximum_payload_size: 256 * 1024,
         }
     }
 }
@@ -95,6 +125,42 @@ impl RemoteSettings {
 
     pub fn with_protocol(mut self, p: impl Into<String>) -> Self {
         self.protocol = p.into();
+        self
+    }
+
+    /// Override the phi-accrual threshold (default 8.0).
+    pub fn with_phi_threshold(mut self, t: f64) -> Self {
+        self.phi_threshold = t;
+        self
+    }
+
+    /// Override the phi-accrual sample size (default 1000).
+    pub fn with_phi_sample_size(mut self, n: usize) -> Self {
+        self.phi_max_sample_size = n;
+        self
+    }
+
+    /// Override the std-dev floor (default 100ms).
+    pub fn with_phi_min_std_deviation(mut self, d: Duration) -> Self {
+        self.phi_min_std_deviation = d;
+        self
+    }
+
+    /// Override the acceptable heart-beat pause (default 3s).
+    pub fn with_phi_acceptable_pause(mut self, d: Duration) -> Self {
+        self.phi_acceptable_heartbeat_pause = d;
+        self
+    }
+
+    /// Override the TLS configuration (default: disabled).
+    pub fn with_tls(mut self, t: crate::tls::TlsConfig) -> Self {
+        self.tls = t;
+        self
+    }
+
+    /// Override the chunking threshold (default 256 KiB).
+    pub fn with_maximum_payload_size(mut self, n: usize) -> Self {
+        self.maximum_payload_size = n;
         self
     }
 }

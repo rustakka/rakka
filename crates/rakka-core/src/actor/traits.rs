@@ -1,30 +1,31 @@
 //! Core `Actor` trait and message envelope.
 //! akka.net: `Actor/ActorBase.cs`, `ReceiveActor.cs`.
 
-use std::any::Any;
-
 use async_trait::async_trait;
 
 use super::context::Context;
+use super::sender::Sender;
 use crate::supervision::SupervisorStrategy;
 
-/// Envelope that carries a user message plus an optional sender.
+/// Envelope that carries a user message plus a typed [`Sender`].
 ///
-/// `M` is the actor's user message type. Akka.NET has `Sender`; here we
-/// carry an opaque `Box<dyn Any + Send>` for sender type erasure, because
-/// the sender ref's type is generally unknown to the recipient.
+/// `M` is the actor's user message type. The [`Sender`] preserves the
+/// origin's identity end-to-end (no `Any::downcast` on reply paths) —
+/// see `docs/idiomatic-rust.md` (P-1) and Phase 1 of
+/// `docs/full-port-plan.md`.
 pub struct MessageEnvelope<M> {
     pub message: M,
-    pub sender: Option<Box<dyn Any + Send>>,
+    pub sender: Sender,
 }
 
 impl<M> MessageEnvelope<M> {
     pub fn new(message: M) -> Self {
-        Self { message, sender: None }
+        Self { message, sender: Sender::None }
     }
 
-    pub fn with_sender<S: Any + Send>(message: M, sender: S) -> Self {
-        Self { message, sender: Some(Box::new(sender)) }
+    /// Construct with a typed [`Sender`].
+    pub fn with_typed_sender(message: M, sender: Sender) -> Self {
+        Self { message, sender }
     }
 }
 

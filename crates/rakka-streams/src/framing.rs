@@ -8,6 +8,7 @@ use thiserror::Error;
 use crate::flow::Flow;
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum FramingError {
     #[error("frame exceeds {0} bytes")]
     FrameTooLarge(usize),

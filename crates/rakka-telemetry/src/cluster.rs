@@ -126,6 +126,7 @@ pub fn from_cluster_state(state: &rakka_cluster::MembershipState) -> ClusterStat
                 ReachabilityStatus::Reachable => "reachable".into(),
                 ReachabilityStatus::Unreachable => "unreachable".into(),
                 ReachabilityStatus::Terminated => "terminated".into(),
+                _ => "unknown".into(),
             },
         })
         .collect();

@@ -6,6 +6,7 @@ use tokio::sync::mpsc;
 use crate::source::Source;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum QueueOfferResult {
     Enqueued,
     Dropped,

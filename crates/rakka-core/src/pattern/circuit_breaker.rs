@@ -3,9 +3,10 @@
 use std::future::Future;
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum CircuitBreakerState {
     Closed,
     Open,
@@ -38,7 +39,16 @@ impl CircuitBreaker {
         match self.state.load(Ordering::Acquire) {
             0 => CircuitBreakerState::Closed,
             1 => {
-                if Instant::now().elapsed().as_nanos() as u64 >= self.reset_timeout.as_nanos() as u64 {
+                // Compare elapsed since the breaker opened (epoch in
+                // ns since process start) — Phase 3.4 fix; the
+                // previous comparison used `Instant::now().elapsed()`
+                // which is always 0 and never transitioned to half-open.
+                let now_ns = self.elapsed_ns();
+                let opened_ns = self.opened_at_ns.load(Ordering::Acquire);
+                if opened_ns > 0
+                    && now_ns.saturating_sub(opened_ns)
+                        >= self.reset_timeout.as_nanos() as u64
+                {
                     CircuitBreakerState::HalfOpen
                 } else {
                     CircuitBreakerState::Open
@@ -46,6 +56,16 @@ impl CircuitBreaker {
             }
             _ => CircuitBreakerState::HalfOpen,
         }
+    }
+
+    fn elapsed_ns(&self) -> u64 {
+        // Stable epoch chosen at first call of `record_failure`. We
+        // approximate via `std::time::SystemTime` + `UNIX_EPOCH` so
+        // both `record_failure` and `state()` agree.
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos() as u64)
+            .unwrap_or(0)
     }
 
     pub async fn call<F, Fut, T, E>(&self, f: F) -> Result<T, CircuitBreakerError<E>>
@@ -79,12 +99,14 @@ impl CircuitBreaker {
         let n = self.failures.fetch_add(1, Ordering::AcqRel) + 1;
         if n >= self.max_failures {
             self.state.store(1, Ordering::Release);
-            self.opened_at_ns.store(Instant::now().elapsed().as_nanos() as u64, Ordering::Release);
+            self.opened_at_ns
+                .store(self.elapsed_ns(), Ordering::Release);
         }
     }
 }
 
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum CircuitBreakerError<E> {
     #[error("circuit breaker is open")]
     Open,

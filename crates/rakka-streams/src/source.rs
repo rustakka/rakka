@@ -143,6 +143,33 @@ impl<T: Send + 'static> Source<T> {
         Source { inner: self.inner.map(f).buffer_unordered(p).boxed() }
     }
 
+    /// `async_boundary(buffer)` — explicit async stage that decouples
+    /// the upstream and downstream pipelines onto separate Tokio
+    /// tasks via a bounded mpsc channel of capacity `buffer`.
+    /// Akka.NET / Akka Streams: the `.async` call. Phase 12.3 of
+    /// `docs/full-port-plan.md`.
+    ///
+    /// Useful when an upstream stage is CPU-heavy and you want
+    /// downstream consumption to overlap with production. Slow
+    /// downstream applies natural back-pressure once the buffer
+    /// fills.
+    pub fn async_boundary(self, buffer: usize) -> Source<T> {
+        let buffer = buffer.max(1);
+        let (tx, rx) = tokio::sync::mpsc::channel::<T>(buffer);
+        let mut inner = self.inner;
+        tokio::spawn(async move {
+            while let Some(item) = inner.next().await {
+                if tx.send(item).await.is_err() {
+                    return;
+                }
+            }
+        });
+        let stream = futures::stream::unfold(rx, |mut rx| async move {
+            rx.recv().await.map(|item| (item, rx))
+        });
+        Source { inner: stream.boxed() }
+    }
+
     pub fn filter<F>(self, mut f: F) -> Source<T>
     where
         F: FnMut(&T) -> bool + Send + 'static,

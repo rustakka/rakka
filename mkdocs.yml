@@ -10,6 +10,11 @@ nav:
   - Home: index.md
   - "Actors & agentic systems": actors-and-agentic-computing.md
   - Parity: parity.md
+  - Full port plan: full-port-plan.md
+  - Idiomatic Rust principles: idiomatic-rust.md
+  - Audit (2026-04): audit-2026-04.md
+  - Architecture: architecture.md
+  - Migrating from Akka.NET: migrating-from-akka-net.md
   - Python bindings: python.md
   - Persistence providers: persistence-providers.md
   - Remoting: remoting.md

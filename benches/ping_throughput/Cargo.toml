@@ -15,3 +15,6 @@ criterion = { workspace = true }
 [[bench]]
 name = "ping_throughput"
 harness = false
+
+[lints]
+workspace = true

@@ -11,6 +11,7 @@ pub struct VectorClock {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum VectorRelation {
     Before,
     After,

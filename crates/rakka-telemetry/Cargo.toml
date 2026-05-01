@@ -60,3 +60,6 @@ otel-stdout = ["otel", "dep:opentelemetry-stdout"]
 tokio = { workspace = true, features = ["full", "test-util"] }
 toml = { workspace = true }
 async-trait = { workspace = true }
+
+[lints]
+workspace = true

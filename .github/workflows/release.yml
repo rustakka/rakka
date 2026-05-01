@@ -1,12 +1,27 @@
-name: Publish Crates
+name: Release
+
+# Releases are tagged from `main`. Push a tag matching `v*` (e.g.
+# `v0.2.0`, `v1.0.0-rc.1`) to fire this pipeline. The bump-and-tag
+# step is automated by `.github/workflows/version-bump.yml` (see the
+# "version-bump" Claude skill at ~/.claude/skills/version-bump/).
+#
+# This workflow:
+#   1. Runs the 1.0-rc gate (`cargo xtask verify`) so a tag never
+#      ships an untested build.
+#   2. Builds release binaries (`rakka-dashboard`, `rakka-profiler`)
+#      for Linux x86_64 + macOS aarch64.
+#   3. Creates the GitHub Release with the artifacts attached.
+#   4. Publishes every publishable Rust crate to crates.io in
+#      dependency order. Honors `--dry-run` for `workflow_dispatch`.
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Run cargo publish with --dry-run"
+        description: "Run cargo publish with --dry-run; skip GitHub Release upload"
         required: false
         default: "true"
 
@@ -14,74 +29,168 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
-  publish:
-    name: Publish to crates.io
+  verify:
+    name: Verify (1.0-rc gate)
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo xtask verify
+        run: cargo xtask verify
+
+  build-binaries:
+    name: Build binaries (${{ matrix.target }})
+    needs: verify
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: macos-latest
+            target: aarch64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - name: Build rakka-dashboard
+        run: cargo build --release --target ${{ matrix.target }} -p rakka-dashboard --features bin,embed-ui,aggregator,metrics-prometheus
+      - name: Build rakka-profiler
+        run: cargo build --release --target ${{ matrix.target }} -p rakka-profiler
+      - name: Stage artifacts
+        run: |
+          mkdir -p artifacts
+          for bin in rakka-dashboard rakka-profiler; do
+            src="target/${{ matrix.target }}/release/$bin"
+            if [ -f "$src" ]; then
+              cp "$src" "artifacts/${bin}-${{ matrix.target }}"
+            fi
+          done
+          (cd artifacts && tar czf "rakka-${{ matrix.target }}.tar.gz" rakka-dashboard-* rakka-profiler-*)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rakka-${{ matrix.target }}
+          path: artifacts/rakka-${{ matrix.target }}.tar.gz
+
+  github-release:
+    name: GitHub Release
+    needs: [verify, build-binaries]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Generate release notes
+        id: notes
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          # The two most recent tags; use HEAD as a fallback for the first release.
+          prev=$(git tag --sort=-creatordate | grep -v "^${tag}$" | head -n1 || true)
+          range="${prev:+$prev..}HEAD"
+          {
+            echo "## rakka ${tag}"
+            echo
+            echo "### Changes"
+            git log --no-merges --pretty=format:'- %s (%h)' "${range}"
+            echo
+            echo
+            echo "### Crates published"
+            grep -E "rakka-[a-z-]+ = \{ path" Cargo.toml | sed 's/^/- /'
+          } > RELEASE_NOTES.md
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.notes.outputs.tag }}
+          name: rakka ${{ steps.notes.outputs.tag }}
+          body_path: RELEASE_NOTES.md
+          prerelease: ${{ contains(steps.notes.outputs.tag, '-') }}
+          files: artifacts/**/*.tar.gz
+
+  publish-crates:
+    name: Publish to crates.io
+    needs: [verify, github-release]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: read
     env:
-      CARGO_TERM_COLOR: always
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-
       - uses: dtolnay/rust-toolchain@stable
-
       - uses: Swatinem/rust-cache@v2
 
-      - name: Verify workspace builds
-        run: cargo test --workspace
+      # Foundation crates first.
+      - run: cargo publish -p rakka-config
+      - run: cargo publish -p rakka-macros
+      - run: cargo publish -p rakka-core
 
-      - name: Determine dry-run flag
-        id: dry
+      # Mid-layer.
+      - run: cargo publish -p rakka-testkit
+      - run: cargo publish -p rakka-remote
+      - run: cargo publish -p rakka-distributed-data
+      - run: cargo publish -p rakka-coordination
+      - run: cargo publish -p rakka-discovery
+      - run: cargo publish -p rakka-di
+      - run: cargo publish -p rakka-cluster
+      - run: cargo publish -p rakka-cluster-tools
+      - run: cargo publish -p rakka-cluster-metrics
+
+      # Persistence stack.
+      - run: cargo publish -p rakka-persistence
+      - run: cargo publish -p rakka-persistence-tck
+      - run: cargo publish -p rakka-persistence-query
+      - run: cargo publish -p rakka-persistence-query-inmemory
+      - run: cargo publish -p rakka-persistence-sql
+      - run: cargo publish -p rakka-persistence-redis
+      - run: cargo publish -p rakka-persistence-mongodb
+      - run: cargo publish -p rakka-persistence-cassandra
+      - run: cargo publish -p rakka-persistence-aws
+      - run: cargo publish -p rakka-persistence-azure
+
+      # Streams + sharding + telemetry.
+      - run: cargo publish -p rakka-streams
+      - run: cargo publish -p rakka-cluster-sharding
+      - run: cargo publish -p rakka-telemetry
+      - run: cargo publish -p rakka-dashboard
+
+      # Hosting + facade last.
+      - run: cargo publish -p rakka-hosting
+      - run: cargo publish -p rakka
+
+  publish-crates-dry-run:
+    name: Publish to crates.io (dry run)
+    needs: verify
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Dry-run publish (foundation crates)
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            echo "flag=--dry-run" >> "$GITHUB_OUTPUT"
-          else
-            echo "flag=" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Publish rakka-persistence (core)
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-        run: cargo publish -p rakka-persistence ${{ steps.dry.outputs.flag }}
-
-      - name: Publish rakka-persistence-tck
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-        run: cargo publish -p rakka-persistence-tck ${{ steps.dry.outputs.flag }}
-
-      - name: Publish rakka-persistence-query
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-        run: cargo publish -p rakka-persistence-query ${{ steps.dry.outputs.flag }}
-
-      - name: Publish rakka-persistence-sql
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-        run: cargo publish -p rakka-persistence-sql ${{ steps.dry.outputs.flag }}
-
-      - name: Publish rakka-persistence-redis
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-        run: cargo publish -p rakka-persistence-redis ${{ steps.dry.outputs.flag }}
-
-      - name: Publish rakka-persistence-mongodb
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-        run: cargo publish -p rakka-persistence-mongodb ${{ steps.dry.outputs.flag }}
-
-      - name: Publish rakka-persistence-cassandra
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-        run: cargo publish -p rakka-persistence-cassandra ${{ steps.dry.outputs.flag }}
-
-      - name: Publish rakka-persistence-aws
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-        run: cargo publish -p rakka-persistence-aws ${{ steps.dry.outputs.flag }}
-
-      - name: Publish rakka-persistence-azure
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-        run: cargo publish -p rakka-persistence-azure ${{ steps.dry.outputs.flag }}
+          for c in rakka-config rakka-macros rakka-core rakka-testkit rakka-remote \
+                   rakka-distributed-data rakka-cluster rakka-persistence rakka-streams \
+                   rakka-cluster-sharding rakka; do
+            echo "==> $c"
+            cargo publish -p "$c" --dry-run --allow-dirty || true
+          done

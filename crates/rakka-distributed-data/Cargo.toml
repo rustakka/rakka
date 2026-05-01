@@ -14,3 +14,6 @@ serde = { workspace = true }
 parking_lot = { workspace = true }
 tokio = { workspace = true }
 async-trait = { workspace = true }
+
+[lints]
+workspace = true

@@ -47,7 +47,9 @@ pub mod prelude {
         Actor, ActorPath, ActorRef, ActorSystem, Address, Context, Props, UntypedActorRef,
     };
     pub use crate::pattern::{ask, pipe_to};
-    pub use crate::supervision::{Directive, OneForOneStrategy, SupervisorStrategy};
+    pub use crate::supervision::{
+        Directive, OneForOneStrategy, SupervisionError, SupervisorOf, SupervisorStrategy,
+    };
     pub use async_trait::async_trait;
     pub use rakka_config::Config;
 }

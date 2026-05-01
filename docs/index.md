@@ -77,16 +77,30 @@ python python/examples/ml_inference.py
 - [Profiler](profiler.md) — cross-runtime actor memory + CPU profiler,
   shared JSON schema, baseline numbers.
 - [Parity](parity.md) — generated crate-by-crate presence report.
+- [Full port plan](full-port-plan.md) — depth audit + 15-phase roadmap to
+  close the gap with upstream Akka.NET in idiomatic Rust.
+- [Idiomatic Rust principles](idiomatic-rust.md) — 12 invariants every
+  PR is reviewed against (no `Box<dyn Any>`, type-state lifecycle,
+  compile-time supervision contracts, …).
+- [Audit 2026-04](audit-2026-04.md) — empirical depth + anti-pattern
+  baseline; tracked by `cargo xtask audit --check` in CI.
+- [Architecture](architecture.md) — the layered crate stack and
+  concept-by-concept Akka.NET ↔ rakka mapping.
+- [Migrating from Akka.NET](migrating-from-akka-net.md) — translation
+  table, idiom-by-idiom diff, migration playbook.
 - [`../README.md`](../README.md) — repository overview and quick start.
 - [`../PORTING.md`](../PORTING.md) — upstream Akka.NET tracking commits.
 - [`../PORTING_TODO.md`](../PORTING_TODO.md) — phase progress checklist.
 
 ## Status
 
-All in-scope phases landed. 174+ Rust tests and 23 Python tests pass
-in CI. The 2026-04 remoting parity pass closed the largest remaining
-Akka.NET gap — see [`remoting.md`](remoting.md) for the architecture
-and the "Remoting parity pass" section of `PORTING_TODO.md` for the
-checklist.
+**Scaffolding-complete, depth-in-progress.** Every Akka.NET subsystem
+has a crate that builds and passes its unit tests (174+ Rust, 23
+Python), but a 2026-04-30 audit found that most subsystems cover only
+~1–10% of upstream LOC and skip critical protocol machinery (active
+gossip, leader election, shard rebalance, recovery permitter, real
+persistence backends, …). See [`full-port-plan.md`](full-port-plan.md)
+for the audit and the 15-phase roadmap, and [`parity.md`](parity.md)
+for per-crate depth grades.
 
 [akkanet]: https://getakka.net/

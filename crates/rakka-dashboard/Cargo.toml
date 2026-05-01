@@ -50,3 +50,6 @@ required-features = ["bin"]
 tokio = { workspace = true, features = ["full", "test-util"] }
 tower = { workspace = true, features = ["util"] }
 tokio-tungstenite = "0.24"
+
+[lints]
+workspace = true

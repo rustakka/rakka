@@ -7,11 +7,13 @@
 //! akka.net source: `src/core/Akka/Configuration/`.
 
 mod error;
+pub mod hocon;
 mod path;
 mod reference;
 mod value;
 
 pub use error::ConfigError;
+pub use hocon::HoconError;
 pub use path::ConfigPath;
 pub use reference::reference_config;
 pub use value::{Config, ConfigValue};

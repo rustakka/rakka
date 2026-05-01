@@ -31,16 +31,22 @@ goes into depth.
 
 ## Status
 
-All in-scope porting phases are landed with passing unit tests
-(**174+ Rust tests**, **23 Python tests**). The 2026-04 remoting
-parity pass closed the largest remaining Akka.NET gap — `rakka-remote`
-now ships the full Akka.Remote module (TCP transport, handshake, ack'd
-delivery, EndpointManager state machine, RemoteActorRefProvider,
-RemoteWatcher, daemon, transport adapters) with two-process
-integration tests proving cross-process `tell` works end-to-end. See
-[`docs/remoting.md`](docs/remoting.md),
-[`PORTING_TODO.md`](PORTING_TODO.md) for per-phase checkboxes, and
-[`PORTING.md`](PORTING.md) for upstream Akka.NET tracking.
+**Scaffolding-complete, depth-in-progress.** Every Akka.NET subsystem
+has a corresponding crate that builds and ships passing unit tests
+(**174+ Rust tests**, **23 Python tests**), but a 2026-04-30 audit
+found that most subsystems cover only **~1–10%** of upstream LOC and
+skip critical protocol machinery (active gossip, leader election,
+shard rebalance, recovery permitter, substream algebra, real
+persistence backends, …). See
+[`docs/full-port-plan.md`](docs/full-port-plan.md) for the audit and
+the 15-phase roadmap to true parity, and
+[`docs/parity.md`](docs/parity.md) for per-crate depth grades
+(`a`/`b`/`c`/`d`/`f`).
+
+[`PORTING_TODO.md`](PORTING_TODO.md) tracks per-phase progress;
+[`PORTING.md`](PORTING.md) tracks upstream Akka.NET sync commits.
+[`docs/remoting.md`](docs/remoting.md) describes the in-tree TCP
+remoting stack.
 
 ## Workspace layout
 

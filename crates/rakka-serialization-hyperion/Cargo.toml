@@ -12,3 +12,6 @@ rakka-core = { workspace = true }
 serde = { workspace = true }
 bincode = { workspace = true }
 thiserror = { workspace = true }
+
+[lints]
+workspace = true

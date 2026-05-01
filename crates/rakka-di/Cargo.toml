@@ -10,3 +10,6 @@ repository.workspace = true
 [dependencies]
 rakka-core = { workspace = true }
 parking_lot = { workspace = true }
+
+[lints]
+workspace = true

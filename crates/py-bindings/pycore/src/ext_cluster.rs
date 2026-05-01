@@ -80,6 +80,7 @@ impl PyVectorClock {
             VectorRelation::After => "after",
             VectorRelation::Same => "same",
             VectorRelation::Concurrent => "concurrent",
+            _ => "unknown",
         }.to_string()
     }
 }

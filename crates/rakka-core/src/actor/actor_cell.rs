@@ -77,7 +77,9 @@ async fn run_cell<A: Actor>(
     mut sys_rx: mpsc::UnboundedReceiver<SystemMsg>,
     props: &Props<A>,
 ) {
+    ctx.phase = super::context::LifecyclePhase::Starting;
     actor.pre_start(ctx).await;
+    ctx.phase = super::context::LifecyclePhase::Running;
 
     let supervisor_ref = props.supervisor_strategy.clone();
 
@@ -128,7 +130,7 @@ async fn run_cell<A: Actor>(
                         }
                     }
                 }
-                ctx.current_sender = None;
+                ctx.current_sender = super::sender::Sender::None;
             }
             Either::Timeout => {
                 if handle_system(actor, ctx, SystemMsg::ReceiveTimeout).await {
@@ -211,6 +213,7 @@ fn panic_payload_to_string(p: Box<dyn std::any::Any + Send>) -> String {
 }
 
 async fn finalize<A: Actor>(actor: &mut A, ctx: &mut Context<A>) {
+    ctx.phase = super::context::LifecyclePhase::Stopping;
     actor.post_stop(ctx).await;
     for w in ctx.watched_by.drain().collect::<Vec<_>>() {
         w.notify_watchers(ctx.path.clone());

@@ -1,0 +1,126 @@
+name: Version bump + tag
+
+# When commits land on `main`, decide a SemVer bump from
+# Conventional-Commit subjects and (optionally) push a `vX.Y.Z` tag
+# that fires the `release.yml` pipeline.
+#
+# Bump rules (matches the version-bump skill at
+# ~/.claude/skills/version-bump/):
+#   * `BREAKING CHANGE` / `!:` in any commit since the last tag → major
+#   * `feat:` → minor
+#   * `fix:` / `perf:` / anything else → patch
+#   * `chore:` / `docs:` / `ci:` / `test:` / `refactor:` / `style:` /
+#     `build:` only → no bump (skip)
+#
+# To override, push a commit whose footer contains
+# `Release-As: <version>` and the workflow will bump to that exact
+# version. Pass `dry_run=true` via workflow_dispatch to print the
+# decision without committing or tagging.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print the bump decision but skip commit + tag"
+        required: false
+        default: "false"
+      force:
+        description: "Force a bump (patch/minor/major) even when commits are skip-only"
+        required: false
+        default: ""
+
+concurrency:
+  group: version-bump
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  decide-and-bump:
+    name: Decide bump + tag
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || !startsWith(github.event.head_commit.message, 'chore(release):')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Decide bump kind from Conventional Commits
+        id: decide
+        env:
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+          FORCE: ${{ github.event.inputs.force }}
+        run: |
+          set -euo pipefail
+          if [ -n "${FORCE:-}" ]; then
+            echo "kind=$FORCE" >> "$GITHUB_OUTPUT"
+            echo "Forced bump: $FORCE"
+            exit 0
+          fi
+          last_tag=$(git tag --sort=-creatordate | head -n1 || true)
+          if [ -z "$last_tag" ]; then
+            range="HEAD"
+          else
+            range="${last_tag}..HEAD"
+          fi
+          subjects=$(git log --no-merges --pretty=format:%s%n%b "$range" || true)
+          # Honor explicit "Release-As: x.y.z" override.
+          release_as=$(printf '%s\n' "$subjects" | grep -E '^Release-As: ' | tail -n1 | awk '{print $2}' || true)
+          if [ -n "$release_as" ]; then
+            echo "kind=set:$release_as" >> "$GITHUB_OUTPUT"
+            echo "Override via Release-As: $release_as"
+            exit 0
+          fi
+          if printf '%s' "$subjects" | grep -qE 'BREAKING CHANGE|^[a-z]+(\([^)]+\))?!:'; then
+            echo "kind=major" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if printf '%s' "$subjects" | grep -qE '^feat(\([^)]+\))?:'; then
+            echo "kind=minor" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if printf '%s' "$subjects" | grep -qE '^(fix|perf|revert)(\([^)]+\))?:'; then
+            echo "kind=patch" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Only chore/docs/ci/test/refactor/style/build → skip.
+          echo "kind=skip" >> "$GITHUB_OUTPUT"
+
+      - name: Bump version + refresh Cargo.lock
+        if: steps.decide.outputs.kind != 'skip'
+        id: bump
+        run: |
+          set -euo pipefail
+          kind="${{ steps.decide.outputs.kind }}"
+          if [[ "$kind" == set:* ]]; then
+            ver="${kind#set:}"
+            cargo run -q -p xtask -- bump --set "$ver"
+          else
+            cargo run -q -p xtask -- bump "$kind"
+          fi
+          new_ver=$(awk '/^\[workspace.package\]/{f=1} f && /^version *=/ {gsub(/.*"|".*/,""); print; exit}' Cargo.toml)
+          echo "version=$new_ver" >> "$GITHUB_OUTPUT"
+
+      - name: Commit + tag
+        if: steps.decide.outputs.kind != 'skip' && github.event.inputs.dry_run != 'true'
+        env:
+          NEW_VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name "rakka-release-bot"
+          git config user.email "release-bot@users.noreply.github.com"
+          git add Cargo.toml Cargo.lock pyproject.toml 2>/dev/null || true
+          git commit -m "chore(release): v${NEW_VERSION}"
+          git tag -a "v${NEW_VERSION}" -m "rakka v${NEW_VERSION}"
+          git push origin HEAD --follow-tags
+
+      - name: Summary
+        run: |
+          echo "kind=${{ steps.decide.outputs.kind }}"
+          echo "version=${{ steps.bump.outputs.version || 'unchanged' }}"

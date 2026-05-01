@@ -74,6 +74,26 @@ impl Config {
         })
     }
 
+    /// Parse a HOCON document (Akka.NET / Pekko `reference.conf`
+    /// syntax). See [`crate::hocon`] for the supported subset.
+    pub fn from_hocon_str(s: &str) -> Result<Self, ConfigError> {
+        let v = crate::hocon::parse(s, std::path::Path::new("."))?;
+        match v {
+            ConfigValue::Object(o) => Ok(Self { root: o }),
+            _ => Err(ConfigError::WrongType { path: "".into(), expected: "object" }),
+        }
+    }
+
+    /// Parse a HOCON file from disk; `include` directives resolve
+    /// relative to the file's parent directory.
+    pub fn from_hocon_file(path: impl AsRef<std::path::Path>) -> Result<Self, ConfigError> {
+        let v = crate::hocon::parse_file(path.as_ref())?;
+        match v {
+            ConfigValue::Object(o) => Ok(Self { root: o }),
+            _ => Err(ConfigError::WrongType { path: "".into(), expected: "object" }),
+        }
+    }
+
     /// Merge `other` on top of `self`; keys from `other` win for scalars,
     /// objects merge recursively — matches HOCON fallback/merge semantics.
     pub fn with_fallback(mut self, fallback: Self) -> Self {

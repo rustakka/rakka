@@ -24,7 +24,7 @@ impl Actor for Participant {
     type Msg = ChatMsg;
 
     async fn pre_start(&mut self, ctx: &mut Context<Self>) {
-        self.bus.subscribe(self.topic.clone(), ctx.self_ref().as_untyped());
+        self.bus.subscribe(self.topic.clone(), ctx.self_ref().clone());
     }
 
     async fn handle(&mut self, _ctx: &mut Context<Self>, msg: ChatMsg) {

@@ -4,7 +4,6 @@
 //! mailbox (cheap, in-process, the common case) or by a remote handle that
 //! serializes `M` and ships it to another `ActorSystem`.
 
-use std::any::Any;
 use std::fmt;
 use std::sync::{Arc, Weak};
 use std::time::Duration;
@@ -16,6 +15,7 @@ use super::actor_cell::SystemMsg;
 use super::actor_system::ActorSystemInner;
 use super::path::ActorPath;
 use super::remote::{RemoteRef, RemoteSystemMsg, SerializedMessage};
+use super::sender::Sender;
 use super::traits::MessageEnvelope;
 
 /// Type-erased serializer used by the Remote variant of `ActorRef<M>`.
@@ -106,22 +106,18 @@ impl<M: Send + 'static> ActorRef<M> {
         }
     }
 
-    pub fn tell_with_sender<S: Any + Send>(&self, msg: M, sender: S) {
+    /// Send `msg` with a typed [`Sender`]. The sender's identity stays
+    /// type-checked end-to-end (no `Any::downcast` on the reply path).
+    pub fn tell_from(&self, msg: M, sender: Sender) {
         match &*self.inner {
             RefImpl::Local { user, path, system_ref, .. } => {
-                if user.send(MessageEnvelope::with_sender(msg, sender)).is_err() {
+                let env = MessageEnvelope::with_typed_sender(msg, sender);
+                if user.send(env).is_err() {
                     notify_dead_letter::<M>(path, system_ref);
                 }
             }
             RefImpl::Remote { handle, serialize, .. } => {
-                let sender_path = (&sender as &dyn Any)
-                    .downcast_ref::<ActorPath>()
-                    .cloned()
-                    .or_else(|| {
-                        (&sender as &dyn Any)
-                            .downcast_ref::<UntypedActorRef>()
-                            .map(|u| u.path().clone())
-                    });
+                let sender_path = sender.path().cloned();
                 handle.tell_serialized(serialize(msg, sender_path));
             }
         }

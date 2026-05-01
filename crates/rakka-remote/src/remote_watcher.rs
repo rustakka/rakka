@@ -159,24 +159,26 @@ impl RemoteWatcher {
     }
 }
 
-/// Stub for the daemon's `Watch` book-keeping. The actual remote send
-/// happens through `RemoteSystemDaemon::notify_terminated`, which calls
-/// `UntypedActorRef::notify_watchers` — this stub satisfies the trait
-/// bound for `UntypedActorRef::from_remote`.
-pub(crate) struct WatcherStub {
+/// Outbound `RemoteRef` proxy used by the daemon's death-watch
+/// book-keeping. Carries the `EndpointManager` + `SerializerRegistry`
+/// so the proxy can serialize and ship `RemoteSystemMsg::Terminated`
+/// over the wire without going through the local mailbox path.
+/// Wraps cheap clones of those handles; constructing the proxy
+/// itself is cheap.
+pub(crate) struct RemoteWatcherProxy {
     pub path: ActorPath,
     pub endpoint_manager: Option<EndpointManager>,
     pub registry: Option<SerializerRegistry>,
     pub local_uid: u64,
 }
 
-impl std::fmt::Debug for WatcherStub {
+impl std::fmt::Debug for RemoteWatcherProxy {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("WatcherStub").field("path", &self.path).finish()
+        f.debug_struct("RemoteWatcherProxy").field("path", &self.path).finish()
     }
 }
 
-impl WatcherStub {
+impl RemoteWatcherProxy {
     pub fn new(
         path: ActorPath,
         endpoint_manager: EndpointManager,
@@ -187,13 +189,14 @@ impl WatcherStub {
     }
 }
 
-impl RemoteRef for WatcherStub {
+impl RemoteRef for RemoteWatcherProxy {
     fn path(&self) -> &ActorPath {
         &self.path
     }
 
     fn tell_serialized(&self, _msg: rakka_core::actor::SerializedMessage) {
-        // Watcher stubs only forward Terminated; nothing else flows here.
+        // Watcher proxies only forward Terminated; user payloads flow
+        // through the regular RemoteActorRef path instead.
     }
 
     fn tell_system(&self, msg: RemoteSystemMsg) {

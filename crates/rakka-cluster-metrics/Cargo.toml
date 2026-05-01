@@ -12,3 +12,6 @@ rakka-core = { workspace = true }
 rakka-cluster = { workspace = true }
 parking_lot = { workspace = true }
 serde = { workspace = true }
+
+[lints]
+workspace = true

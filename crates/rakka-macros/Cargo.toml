@@ -19,3 +19,7 @@ syn = { workspace = true }
 rakka-core = { workspace = true }
 rakka-config = { workspace = true }
 tokio = { workspace = true }
+async-trait = { workspace = true }
+
+[lints]
+workspace = true

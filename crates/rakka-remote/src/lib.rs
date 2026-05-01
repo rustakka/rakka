@@ -44,6 +44,12 @@
 #![deny(rust_2018_idioms)]
 
 pub mod acked_delivery;
+pub mod cache;
+pub mod chunking;
+pub mod error;
+pub mod reader_writer;
+pub mod remote_props;
+pub mod tls;
 pub mod address_uid;
 pub mod codec;
 pub mod deadline_detector;
@@ -68,7 +74,13 @@ pub mod transport;
 pub use address_uid::AddressUid;
 pub use deadline_detector::DeadlineFailureDetector;
 pub use endpoint::{EndpointHandle, InboundEnvelope};
-pub use endpoint_manager::EndpointManager;
+pub use endpoint_manager::{AssociationState, EndpointManager};
+pub use cache::LruCache;
+pub use chunking::{Chunk, ChunkError, Chunker, Reassembler};
+pub use error::{RemoteError, RemoteErrorKind};
+pub use reader_writer::{spawn_reader_writer, RawTransport, ReaderWriterHandle};
+pub use tls::{parse_pem_blocks, TlsConfig, TlsError};
+pub use remote_props::{register_bincode as register_remote_props, RemotePropsError, RemotePropsRegistry};
 pub use envelope::RemoteEnvelope;
 pub use failure_detector::FailureDetector;
 pub use failure_detector_registry::FailureDetectorRegistry;

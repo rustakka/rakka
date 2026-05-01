@@ -34,6 +34,8 @@ members = [
     "examples/pingpong",
     "examples/chat",
     "examples/fault-tolerance",
+    "examples/event-sourced-counter",
+    "examples/cluster-pubsub-chat",
     "benches/ping_throughput",
     "crates/rakka-profiler",
     "crates/py-bindings/pycore",
@@ -173,3 +175,21 @@ codegen-units = 1
 [profile.bench]
 opt-level = 3
 lto = "thin"
+
+# Phase 0 lint baseline. See docs/idiomatic-rust.md (P-4).
+#
+# `todo`/`unimplemented` are denied workspace-wide because the audit
+# found 0 sites; any regression breaks CI immediately.
+#
+# `unwrap_used`/`expect_used`/`panic` (and `print_stdout`/
+# `print_stderr`/`dbg_macro` in library crates) are NOT promoted to
+# `warn` here — the existing CI gate runs `cargo clippy ... -D
+# warnings` and the audit found pre-existing sites that would break
+# it. Instead, the per-crate counts are tracked by `cargo xtask
+# audit` against `docs/reports/audit-2026-04.json`; CI runs
+# `cargo xtask audit --check` and fails on regression. Phases that
+# touch a given crate ratchet that crate's lints up to `warn`/`deny`
+# once the corresponding sites are cleaned up (see Phase 13).
+[workspace.lints.clippy]
+todo                 = "deny"
+unimplemented        = "deny"

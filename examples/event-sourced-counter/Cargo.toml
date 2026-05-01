@@ -1,0 +1,15 @@
+[package]
+name = "example-event-sourced-counter"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+rakka-persistence = { workspace = true }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

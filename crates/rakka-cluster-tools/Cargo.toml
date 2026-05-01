@@ -13,4 +13,12 @@ rakka-cluster = { workspace = true }
 tokio = { workspace = true }
 parking_lot = { workspace = true }
 async-trait = { workspace = true }
+thiserror = { workspace = true }
 tracing = { workspace = true }
+
+[dev-dependencies]
+rakka-testkit = { workspace = true }
+rakka-config = { workspace = true }
+
+[lints]
+workspace = true

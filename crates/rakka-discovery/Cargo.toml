@@ -12,3 +12,6 @@ rakka-core = { workspace = true }
 parking_lot = { workspace = true }
 async-trait = { workspace = true }
 tokio = { workspace = true }
+
+[lints]
+workspace = true

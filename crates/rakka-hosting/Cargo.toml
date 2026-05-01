@@ -12,3 +12,6 @@ rakka-core = { workspace = true }
 rakka-config = { workspace = true }
 rakka-di = { workspace = true }
 tokio = { workspace = true }
+
+[lints]
+workspace = true

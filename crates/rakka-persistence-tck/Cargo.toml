@@ -11,3 +11,6 @@ repository.workspace = true
 rakka-persistence = { workspace = true }
 async-trait = { workspace = true }
 tokio = { workspace = true }
+
+[lints]
+workspace = true

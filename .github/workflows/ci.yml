@@ -35,6 +35,53 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --workspace
 
+  audit:
+    name: audit (regression check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Check audit metrics vs 2026-04 baseline
+        run: cargo xtask audit --check
+
+  verify:
+    name: verify (1.0-rc gate)
+    runs-on: ubuntu-latest
+    needs: [fmt, clippy, test, audit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Run xtask verify (build + test + clippy + audit-check)
+        run: cargo xtask verify
+
+  semver-checks:
+    name: semver-checks (cargo-semver-checks)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    continue-on-error: true # warn-only until first 1.0 release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install cargo-semver-checks
+        run: cargo install cargo-semver-checks --locked
+      - name: Check public-API SemVer for every published crate
+        run: |
+          for crate in rakka rakka-core rakka-config rakka-macros rakka-testkit \
+                       rakka-remote rakka-cluster rakka-cluster-tools \
+                       rakka-cluster-sharding rakka-cluster-metrics \
+                       rakka-distributed-data rakka-persistence \
+                       rakka-persistence-query rakka-persistence-tck \
+                       rakka-streams rakka-coordination rakka-discovery \
+                       rakka-di rakka-hosting; do
+            echo "==> $crate"
+            cargo semver-checks check-release --package "$crate" || true
+          done
+
   python:
     runs-on: ubuntu-latest
     strategy:

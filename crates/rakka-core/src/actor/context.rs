@@ -1,7 +1,6 @@
 //! `Context<A>` — the actor's window into the system.
 //! akka.net: `Actor/IActorContext.cs`, `ActorCell.cs` (partial).
 
-use std::any::Any;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Weak;
 use std::time::Duration;
@@ -10,7 +9,20 @@ use super::actor_cell::{ChildEntry, SystemMsg};
 use super::actor_ref::{ActorRef, UntypedActorRef};
 use super::path::ActorPath;
 use super::props::Props;
+use super::sender::Sender;
 use super::traits::Actor;
+
+/// Lifecycle phase exposed via [`Context::phase`]. Phase 1.C of
+/// `docs/full-port-plan.md` — runtime precursor to the phantom-typed
+/// `Context<A, Phase>` (kept additive so it doesn't break existing
+/// signatures). Stage-only APIs assert against this in debug builds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum LifecyclePhase {
+    Starting,
+    Running,
+    Stopping,
+}
 
 /// Passed to every `Actor::handle` call.
 pub struct Context<A: Actor> {
@@ -22,8 +34,9 @@ pub struct Context<A: Actor> {
     pub(crate) watched_by: HashSet<UntypedActorRef>,
     pub(crate) stash: VecDeque<A::Msg>,
     pub(crate) receive_timeout: Option<Duration>,
-    pub(crate) current_sender: Option<Box<dyn Any + Send>>,
+    pub(crate) current_sender: Sender,
     pub(crate) stopping: bool,
+    pub(crate) phase: LifecyclePhase,
 }
 
 impl<A: Actor> Context<A> {
@@ -41,9 +54,18 @@ impl<A: Actor> Context<A> {
             watched_by: HashSet::new(),
             stash: VecDeque::new(),
             receive_timeout: None,
-            current_sender: None,
+            current_sender: Sender::None,
             stopping: false,
+            phase: LifecyclePhase::Starting,
         }
+    }
+
+    /// Current lifecycle phase. Phase 1.C marker — useful in
+    /// generic helpers that need to gate calls (e.g. `become`,
+    /// `unstash_all`) without taking a typed-`Context<A, P>`
+    /// parameter.
+    pub fn phase(&self) -> LifecyclePhase {
+        self.phase
     }
 
     pub fn self_ref(&self) -> &ActorRef<A::Msg> {
@@ -119,9 +141,18 @@ impl<A: Actor> Context<A> {
         self.receive_timeout = d;
     }
 
-    /// Downcast the current sender, if any was provided.
-    pub fn sender<S: Any + Send>(&self) -> Option<&S> {
-        self.current_sender.as_ref().and_then(|b| b.downcast_ref::<S>())
+    /// Typed sender of the message currently being processed.
+    ///
+    /// Returns [`Sender::None`] if the sender slot was empty (the
+    /// akka.net analog of `Sender == NoSender`).
+    pub fn sender(&self) -> &Sender {
+        &self.current_sender
+    }
+
+    /// Backwards-compatible alias for [`Context::sender`].
+    #[doc(hidden)]
+    pub fn sender_typed(&self) -> &Sender {
+        &self.current_sender
     }
 }
 

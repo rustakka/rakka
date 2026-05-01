@@ -9,6 +9,7 @@ use rakka_core::actor::Address;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum ReachabilityStatus {
     Reachable,
     Unreachable,
