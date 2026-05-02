@@ -46,6 +46,7 @@ wheels/
 # Ad-hoc profiler runs land in this folder; only the committed baseline stays.
 docs/reports/*.json
 !docs/reports/profiler-baseline.json
+!docs/reports/audit-2026-04.json
 
 # --- Claude Code harness state (developer-local) --------------------------
 .claude/
