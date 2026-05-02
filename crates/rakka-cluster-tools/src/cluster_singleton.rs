@@ -69,10 +69,7 @@ impl ClusterSingletonManager {
 
     /// Construct with a custom proxy buffer size.
     pub fn with_buffer_size(size: usize) -> Arc<Self> {
-        Arc::new(Self {
-            buffer_size: size,
-            ..Self::default()
-        })
+        Arc::new(Self { buffer_size: size, ..Self::default() })
     }
 
     pub fn state(&self) -> SingletonState {
@@ -82,19 +79,13 @@ impl ClusterSingletonManager {
     /// Mark `r` as the local singleton (we won the election).
     /// Flushes any messages that were buffered during handover.
     pub fn set_active_here(&self, r: UntypedActorRef) {
-        *self.state.write() = SingletonState::Active {
-            ref_: r.clone(),
-            here: true,
-        };
+        *self.state.write() = SingletonState::Active { ref_: r.clone(), here: true };
         self.flush(&r);
     }
 
     /// Mark `r` as the remote singleton (some other node is hosting it).
     pub fn set_active_remote(&self, r: UntypedActorRef) {
-        *self.state.write() = SingletonState::Active {
-            ref_: r.clone(),
-            here: false,
-        };
+        *self.state.write() = SingletonState::Active { ref_: r.clone(), here: false };
         self.flush(&r);
     }
 
@@ -223,7 +214,9 @@ mod tests {
         // Send 3 messages while inactive — all buffered.
         for _ in 0..3 {
             let c = calls.clone();
-            assert!(proxy.send(move |_r| { c.fetch_add(1, Ordering::SeqCst); }));
+            assert!(proxy.send(move |_r| {
+                c.fetch_add(1, Ordering::SeqCst);
+            }));
         }
         assert_eq!(mgr.buffered(), 3);
         assert_eq!(calls.load(Ordering::SeqCst), 0);
@@ -236,7 +229,9 @@ mod tests {
 
         // After active, send delivers immediately.
         let c2 = calls.clone();
-        proxy.send(move |_| { c2.fetch_add(1, Ordering::SeqCst); });
+        proxy.send(move |_| {
+            c2.fetch_add(1, Ordering::SeqCst);
+        });
         assert_eq!(calls.load(Ordering::SeqCst), 4);
     }
 

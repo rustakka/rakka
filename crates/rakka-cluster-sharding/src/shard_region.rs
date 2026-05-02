@@ -73,9 +73,7 @@ impl<E: MessageExtractor> ShardRegion<E> {
         let shard = {
             let mut map = self.shards.write();
             map.entry(shard_id.clone())
-                .or_insert_with(|| {
-                    Arc::new(Shard::new(shard_id.clone(), (self.handler_factory)()))
-                })
+                .or_insert_with(|| Arc::new(Shard::new(shard_id.clone(), (self.handler_factory)())))
                 .clone()
         };
 

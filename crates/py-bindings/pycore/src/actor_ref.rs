@@ -40,12 +40,7 @@ impl PyActorRef {
 
     /// Async ask — returns an `asyncio`-compatible awaitable.
     #[pyo3(signature = (msg, timeout=5.0))]
-    fn ask<'py>(
-        &self,
-        py: Python<'py>,
-        msg: Bound<'py, PyAny>,
-        timeout: f64,
-    ) -> PyResult<Bound<'py, PyAny>> {
+    fn ask<'py>(&self, py: Python<'py>, msg: Bound<'py, PyAny>, timeout: f64) -> PyResult<Bound<'py, PyAny>> {
         let payload = msg.unbind();
         let (env, rx) = PyMessage::ask(payload);
         self.inner.tell(env);
@@ -53,9 +48,7 @@ impl PyActorRef {
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let result = match tokio::time::timeout(dur, rx).await {
                 Ok(Ok(r)) => r,
-                Ok(Err(_)) => Err(PyErr::new::<crate::errors::AskError, _>(
-                    "reply channel dropped",
-                )),
+                Ok(Err(_)) => Err(PyErr::new::<crate::errors::AskError, _>("reply channel dropped")),
                 Err(_) => Err(PyErr::new::<crate::errors::AskError, _>("ask timed out")),
             };
             match result {
@@ -78,9 +71,7 @@ impl PyActorRef {
                 match tokio::time::timeout(dur, rx).await {
                     Ok(Ok(Ok(v))) => Ok(v),
                     Ok(Ok(Err(e))) => Err(e),
-                    Ok(Err(_)) => Err(PyErr::new::<crate::errors::AskError, _>(
-                        "reply channel dropped",
-                    )),
+                    Ok(Err(_)) => Err(PyErr::new::<crate::errors::AskError, _>("reply channel dropped")),
                     Err(_) => Err(PyErr::new::<crate::errors::AskError, _>("ask timed out")),
                 }
             })

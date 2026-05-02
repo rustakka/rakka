@@ -35,9 +35,7 @@ impl<T: Clone> LwwRegister<T> {
 
 impl<T: Clone> CrdtMerge for LwwRegister<T> {
     fn merge(&mut self, other: &Self) {
-        if other.timestamp > self.timestamp
-            || (other.timestamp == self.timestamp && other.node > self.node)
-        {
+        if other.timestamp > self.timestamp || (other.timestamp == self.timestamp && other.node > self.node) {
             *self = other.clone();
         }
     }

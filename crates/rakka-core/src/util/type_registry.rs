@@ -21,9 +21,7 @@ impl TypeRegistry {
     }
 
     pub fn get<T: Any + Send + Sync>(&self) -> Option<Arc<T>> {
-        self.inner
-            .get(&TypeId::of::<T>())
-            .and_then(|entry| entry.clone().downcast::<T>().ok())
+        self.inner.get(&TypeId::of::<T>()).and_then(|entry| entry.clone().downcast::<T>().ok())
     }
 
     pub fn contains<T: Any + Send + Sync>(&self) -> bool {

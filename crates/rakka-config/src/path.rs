@@ -10,13 +10,7 @@ pub struct ConfigPath {
 
 impl ConfigPath {
     pub fn parse(path: &str) -> Self {
-        Self {
-            segments: path
-                .split('.')
-                .filter(|s| !s.is_empty())
-                .map(|s| s.to_string())
-                .collect(),
-        }
+        Self { segments: path.split('.').filter(|s| !s.is_empty()).map(|s| s.to_string()).collect() }
     }
 
     pub fn segments(&self) -> &[String] {

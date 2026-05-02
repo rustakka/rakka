@@ -19,10 +19,5 @@ pub trait SpawnObserver: Send + Sync + 'static {
 /// actor has stopped. Called on the caller's thread, so implementers
 /// should be cheap.
 pub trait DeadLetterObserver: Send + Sync + 'static {
-    fn on_dead_letter(
-        &self,
-        recipient: &ActorPath,
-        sender: Option<&ActorPath>,
-        message_type: &'static str,
-    );
+    fn on_dead_letter(&self, recipient: &ActorPath, sender: Option<&ActorPath>, message_type: &'static str);
 }

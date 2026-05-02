@@ -62,7 +62,11 @@ jobs:
     name: semver-checks (cargo-semver-checks)
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    continue-on-error: true # warn-only until first 1.0 release
+    # Warn-only on 0.x pre-release commits; hard fail once any
+    # workspace crate hits 1.0 (15.E gate). The version line below
+    # is the single source of truth — flip from `0.` to `1.` to
+    # arm the gate.
+    continue-on-error: ${{ !startsWith(vars.RAKKA_WORKSPACE_VERSION || '0.', '1.') }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -71,6 +75,8 @@ jobs:
         run: cargo install cargo-semver-checks --locked
       - name: Check public-API SemVer for every published crate
         run: |
+          set -e
+          fails=0
           for crate in rakka rakka-core rakka-config rakka-macros rakka-testkit \
                        rakka-remote rakka-cluster rakka-cluster-tools \
                        rakka-cluster-sharding rakka-cluster-metrics \
@@ -79,8 +85,12 @@ jobs:
                        rakka-streams rakka-coordination rakka-discovery \
                        rakka-di rakka-hosting; do
             echo "==> $crate"
-            cargo semver-checks check-release --package "$crate" || true
+            cargo semver-checks check-release --package "$crate" || fails=$((fails+1))
           done
+          if [ "$fails" -gt 0 ]; then
+            echo "$fails crate(s) failed semver-checks"
+            exit 1
+          fi
 
   python:
     runs-on: ubuntu-latest
@@ -95,14 +105,20 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install build/test deps
+      - name: Create venv + install build/test deps
         run: |
+          python -m venv .venv
+          . .venv/bin/activate
           python -m pip install --upgrade pip
           pip install maturin pytest pytest-asyncio msgpack
       - name: maturin develop
-        run: maturin develop --release
+        run: |
+          . .venv/bin/activate
+          maturin develop --release
       - name: pytest
-        run: pytest python/tests -v
+        run: |
+          . .venv/bin/activate
+          pytest python/tests -v
 
   upstream-diff:
     if: github.event_name == 'schedule'

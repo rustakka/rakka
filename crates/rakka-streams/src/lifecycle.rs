@@ -19,22 +19,19 @@ use crate::source::Source;
 /// final element).
 ///
 /// Akka.NET: `Source.WatchTermination`.
-pub fn watch_termination<T: Send + 'static>(
-    src: Source<T>,
-) -> (Source<T>, oneshot::Receiver<()>) {
+pub fn watch_termination<T: Send + 'static>(src: Source<T>) -> (Source<T>, oneshot::Receiver<()>) {
     let (tx, rx) = oneshot::channel();
     let inner = src.into_boxed();
     let mut tx_holder = Some(tx);
     // `chain` a single synthetic element through a `filter_map` that
     // (a) drops the synthetic element so downstream sees only real
     // ones, and (b) fires the `tx` exactly once.
-    let terminator = futures::stream::once(async {})
-        .filter_map(move |()| {
-            if let Some(tx) = tx_holder.take() {
-                let _ = tx.send(());
-            }
-            std::future::ready(None::<T>)
-        });
+    let terminator = futures::stream::once(async {}).filter_map(move |()| {
+        if let Some(tx) = tx_holder.take() {
+            let _ = tx.send(());
+        }
+        std::future::ready(None::<T>)
+    });
     let stream = inner.chain(terminator).boxed();
     (Source { inner: stream }, rx)
 }
@@ -57,13 +54,13 @@ where
 /// plus an `Arc<AtomicU64>` that totals every element.
 ///
 /// Akka.NET: typically expressed as `monitor(... |_| counter.inc())`.
-pub fn count_elements<T: Send + 'static>(
-    src: Source<T>,
-) -> (Source<T>, Arc<AtomicU64>) {
+pub fn count_elements<T: Send + 'static>(src: Source<T>) -> (Source<T>, Arc<AtomicU64>) {
     let counter = Arc::new(AtomicU64::new(0));
     let c2 = counter.clone();
     (
-        monitor(src, move |_| { c2.fetch_add(1, Ordering::Relaxed); }),
+        monitor(src, move |_| {
+            c2.fetch_add(1, Ordering::Relaxed);
+        }),
         counter,
     )
 }

@@ -30,9 +30,7 @@ impl Actor for Recorder {
 
 #[tokio::test]
 async fn tell_from_sets_typed_sender() {
-    let sys = ActorSystem::create("TypedSenderTest", Config::reference())
-        .await
-        .unwrap();
+    let sys = ActorSystem::create("TypedSenderTest", Config::reference()).await.unwrap();
 
     let recorded: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
     let (notify_tx, notify_rx) = oneshot::channel();
@@ -52,10 +50,13 @@ async fn tell_from_sets_typed_sender() {
 
     // A second actor we'll cast as the sender for tell_from.
     let other = sys
-        .actor_of(Props::create(|| Recorder {
-            last_sender_path: Arc::new(Mutex::new(None)),
-            notify: Arc::new(Mutex::new(None)),
-        }), "other")
+        .actor_of(
+            Props::create(|| Recorder {
+                last_sender_path: Arc::new(Mutex::new(None)),
+                notify: Arc::new(Mutex::new(None)),
+            }),
+            "other",
+        )
         .unwrap();
     let sender_ref: UntypedActorRef = other.as_untyped();
     let sender_path_str = sender_ref.path().to_string();
@@ -75,9 +76,7 @@ async fn tell_from_sets_typed_sender() {
 
 #[tokio::test]
 async fn tell_yields_sender_none() {
-    let sys = ActorSystem::create("NoSenderTest", Config::reference())
-        .await
-        .unwrap();
+    let sys = ActorSystem::create("NoSenderTest", Config::reference()).await.unwrap();
 
     let recorded: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
     let (notify_tx, notify_rx) = oneshot::channel();

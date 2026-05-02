@@ -33,17 +33,10 @@ impl Counter {
 
 #[tokio::test]
 async fn derive_receive_dispatches_unit_variants() {
-    let sys = ActorSystem::create("DeriveReceive", Config::reference())
-        .await
-        .unwrap();
+    let sys = ActorSystem::create("DeriveReceive", Config::reference()).await.unwrap();
     let counter = Arc::new(Mutex::new(0u32));
     let c = counter.clone();
-    let r = sys
-        .actor_of(
-            rakka_core::actor::Props::create(move || Counter { n: c.clone() }),
-            "ctr",
-        )
-        .unwrap();
+    let r = sys.actor_of(rakka_core::actor::Props::create(move || Counter { n: c.clone() }), "ctr").unwrap();
     r.tell(CounterMsg::Inc);
     r.tell(CounterMsg::Inc);
     r.tell(CounterMsg::Inc);

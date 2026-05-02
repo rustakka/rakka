@@ -45,7 +45,11 @@ impl<M: Send + 'static> TestProbe<M> {
         F: FnMut(&M) -> bool,
     {
         let m = self.expect_msg(timeout).await?;
-        if pred(&m) { Ok(m) } else { Err(TestProbeError::Unexpected) }
+        if pred(&m) {
+            Ok(m)
+        } else {
+            Err(TestProbeError::Unexpected)
+        }
     }
 
     /// Assert that no message arrives within the given timeout.
@@ -62,11 +66,7 @@ impl<M: Send + 'static> TestProbe<M> {
     /// by `extract`. Akka.NET: `ExpectMsg<T>(...)` where `T` selects
     /// a sub-variant of the message enum. The `extract` closure
     /// returns `Some(payload)` for the desired variant.
-    pub async fn expect_msg_class<T, F>(
-        &mut self,
-        timeout: Duration,
-        extract: F,
-    ) -> Result<T, TestProbeError>
+    pub async fn expect_msg_class<T, F>(&mut self, timeout: Duration, extract: F) -> Result<T, TestProbeError>
     where
         F: FnOnce(M) -> Option<T>,
     {
@@ -77,17 +77,12 @@ impl<M: Send + 'static> TestProbe<M> {
     /// Receive exactly `n` messages or return [`TestProbeError::Timeout`]
     /// if `timeout` elapses before they all arrive.
     /// Akka.NET: `ReceiveN(int n, TimeSpan)`.
-    pub async fn receive_n(
-        &mut self,
-        n: usize,
-        timeout: Duration,
-    ) -> Result<Vec<M>, TestProbeError> {
+    pub async fn receive_n(&mut self, n: usize, timeout: Duration) -> Result<Vec<M>, TestProbeError> {
         let deadline = std::time::Instant::now() + timeout;
         let mut out = Vec::with_capacity(n);
         while out.len() < n {
-            let remaining = deadline
-                .checked_duration_since(std::time::Instant::now())
-                .ok_or(TestProbeError::Timeout)?;
+            let remaining =
+                deadline.checked_duration_since(std::time::Instant::now()).ok_or(TestProbeError::Timeout)?;
             out.push(self.expect_msg(remaining).await?);
         }
         Ok(out)
@@ -96,11 +91,7 @@ impl<M: Send + 'static> TestProbe<M> {
     /// Receive messages while `pred` returns true, stopping at the
     /// first message for which `pred` returns false (that message is
     /// discarded). Akka.NET: `ReceiveWhile`.
-    pub async fn receive_while<F>(
-        &mut self,
-        timeout: Duration,
-        mut pred: F,
-    ) -> Result<Vec<M>, TestProbeError>
+    pub async fn receive_while<F>(&mut self, timeout: Duration, mut pred: F) -> Result<Vec<M>, TestProbeError>
     where
         F: FnMut(&M) -> bool,
     {
@@ -127,19 +118,14 @@ impl<M: Send + 'static> TestProbe<M> {
 
     /// Drain messages until one matches `pred`. Discards mismatches.
     /// Akka.NET: `FishForMessage`.
-    pub async fn fish_for_message<F>(
-        &mut self,
-        timeout: Duration,
-        mut pred: F,
-    ) -> Result<M, TestProbeError>
+    pub async fn fish_for_message<F>(&mut self, timeout: Duration, mut pred: F) -> Result<M, TestProbeError>
     where
         F: FnMut(&M) -> bool,
     {
         let deadline = std::time::Instant::now() + timeout;
         loop {
-            let remaining = deadline
-                .checked_duration_since(std::time::Instant::now())
-                .ok_or(TestProbeError::Timeout)?;
+            let remaining =
+                deadline.checked_duration_since(std::time::Instant::now()).ok_or(TestProbeError::Timeout)?;
             let m = self.expect_msg(remaining).await?;
             if pred(&m) {
                 return Ok(m);
@@ -150,11 +136,7 @@ impl<M: Send + 'static> TestProbe<M> {
     /// Receive `expected.len()` messages and assert that the multi-set
     /// of received messages equals `expected` (order-insensitive).
     /// Akka.NET: `ExpectMsgAllOf`.
-    pub async fn expect_all_of(
-        &mut self,
-        timeout: Duration,
-        expected: Vec<M>,
-    ) -> Result<(), TestProbeError>
+    pub async fn expect_all_of(&mut self, timeout: Duration, expected: Vec<M>) -> Result<(), TestProbeError>
     where
         M: PartialEq + std::fmt::Debug,
     {
@@ -215,10 +197,7 @@ mod tests {
         p.actor_ref().tell(1);
         p.actor_ref().tell(2);
         p.actor_ref().tell(99);
-        let m = p
-            .fish_for_message(Duration::from_millis(100), |m| *m >= 50)
-            .await
-            .unwrap();
+        let m = p.fish_for_message(Duration::from_millis(100), |m| *m >= 50).await.unwrap();
         assert_eq!(m, 99);
     }
 
@@ -228,10 +207,7 @@ mod tests {
         for i in 1..=4u32 {
             p.actor_ref().tell(i);
         }
-        let collected = p
-            .receive_while(Duration::from_millis(100), |m| *m < 3)
-            .await
-            .unwrap();
+        let collected = p.receive_while(Duration::from_millis(100), |m| *m < 3).await.unwrap();
         assert_eq!(collected, vec![1, 2]);
     }
 
@@ -241,14 +217,13 @@ mod tests {
         for i in [3u32, 1, 2] {
             p.actor_ref().tell(i);
         }
-        p.expect_all_of(Duration::from_millis(100), vec![1, 2, 3])
-            .await
-            .unwrap();
+        p.expect_all_of(Duration::from_millis(100), vec![1, 2, 3]).await.unwrap();
     }
 
     #[tokio::test]
     async fn expect_msg_class_extracts_variant() {
         #[derive(Debug, PartialEq)]
+        #[allow(dead_code)]
         enum E {
             A(u32),
             B(String),

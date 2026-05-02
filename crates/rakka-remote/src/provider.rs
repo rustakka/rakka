@@ -5,14 +5,12 @@
 
 use std::sync::Arc;
 
-use rakka_core::actor::{
-    ActorPath, ActorSystem, Address, RemoteProvider, RemoteRef,
-};
+use rakka_core::actor::{ActorPath, ActorSystem, Address, RemoteProvider, RemoteRef};
 
 use crate::endpoint_manager::EndpointManager;
+use crate::remote_ref::RemoteActorRefImpl;
 use crate::serialization::SerializerRegistry;
 use crate::system_daemon::RemoteSystemDaemon;
-use crate::remote_ref::RemoteActorRefImpl;
 
 /// Per-system remote provider. Created by [`enable_remote`].
 pub struct RemoteActorRefProvider {
@@ -31,13 +29,7 @@ impl RemoteActorRefProvider {
         registry: SerializerRegistry,
         system_daemon: Arc<RemoteSystemDaemon>,
     ) -> Arc<Self> {
-        Arc::new(Self {
-            local_address,
-            local_uid,
-            endpoint_manager,
-            registry,
-            system_daemon,
-        })
+        Arc::new(Self { local_address, local_uid, endpoint_manager, registry, system_daemon })
     }
 
     pub fn endpoint_manager(&self) -> &EndpointManager {

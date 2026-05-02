@@ -81,8 +81,8 @@ where
                         return; // consumer dropped
                     }
                 }
-                Ok(None) => return,           // EOF
-                Err(_e) => return,            // recoverable per peer
+                Ok(None) => return, // EOF
+                Err(_e) => return,  // recoverable per peer
             }
         }
     });
@@ -96,12 +96,7 @@ where
         }
     });
 
-    ReaderWriterHandle {
-        outbound: out_tx,
-        inbound: in_rx,
-        reader,
-        writer,
-    }
+    ReaderWriterHandle { outbound: out_tx, inbound: in_rx, reader, writer }
 }
 
 #[cfg(test)]

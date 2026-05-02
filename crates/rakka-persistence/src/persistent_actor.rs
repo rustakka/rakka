@@ -29,8 +29,7 @@ pub trait PersistentActor: Send + 'static {
         writer_uuid: &str,
     ) -> Result<u64, JournalError> {
         let highest = journal.highest_sequence_nr(&self.persistence_id(), 0).await?;
-        let events =
-            journal.replay_messages(&self.persistence_id(), 1, highest, u64::MAX).await?;
+        let events = journal.replay_messages(&self.persistence_id(), 1, highest, u64::MAX).await?;
         for e in &events {
             let evt = Self::decode_event(&e.payload);
             Self::apply_event(state, &evt);
@@ -68,12 +67,7 @@ pub trait PersistentActor: Send + 'static {
         Ok(())
     }
 
-    async fn save_snapshot<S: SnapshotStore>(
-        &self,
-        store: Arc<S>,
-        sequence_nr: u64,
-        payload: Vec<u8>,
-    ) {
+    async fn save_snapshot<S: SnapshotStore>(&self, store: Arc<S>, sequence_nr: u64, payload: Vec<u8>) {
         store
             .save(
                 crate::snapshot::SnapshotMetadata {

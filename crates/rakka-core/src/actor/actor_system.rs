@@ -129,9 +129,7 @@ impl ActorSystem {
     pub fn actor_selection_with<M>(
         &self,
         path_str: &str,
-        serialize: Arc<
-            dyn Fn(M, Option<ActorPath>) -> super::remote::SerializedMessage + Send + Sync,
-        >,
+        serialize: Arc<dyn Fn(M, Option<ActorPath>) -> super::remote::SerializedMessage + Send + Sync>,
     ) -> Option<ActorRef<M>>
     where
         M: Send + 'static,

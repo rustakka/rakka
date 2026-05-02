@@ -13,8 +13,8 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use super::path::ActorPath;
 use super::address::Address;
+use super::path::ActorPath;
 
 /// A serialized user message destined for a remote actor.
 ///

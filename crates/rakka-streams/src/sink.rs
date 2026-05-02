@@ -25,21 +25,18 @@ impl Sink {
         Acc: Send + 'static,
         F: FnMut(Acc, T) -> Acc + Send + 'static,
     {
-        source
-            .into_boxed()
-            .fold(init, move |acc, x| futures::future::ready(f(acc, x)))
-            .await
+        source.into_boxed().fold(init, move |acc, x| futures::future::ready(f(acc, x))).await
     }
 
     /// akka.net: `AggregateAsync` — async fold.
-    pub async fn fold_async<T, Acc, F, Fut>(source: Source<T>, init: Acc, mut f: F) -> Acc
+    pub async fn fold_async<T, Acc, F, Fut>(source: Source<T>, init: Acc, f: F) -> Acc
     where
         T: Send + 'static,
         Acc: Send + 'static,
         F: FnMut(Acc, T) -> Fut + Send + 'static,
         Fut: Future<Output = Acc> + Send + 'static,
     {
-        source.into_boxed().fold(init, move |acc, x| f(acc, x)).await
+        source.into_boxed().fold(init, f).await
     }
 
     /// akka.net: `Sink.Seq` — collect into a Vec.
@@ -63,10 +60,7 @@ impl Sink {
     where
         T: Send + 'static,
     {
-        source
-            .into_boxed()
-            .fold(None, |_, x| async move { Some(x) })
-            .await
+        source.into_boxed().fold(None, |_, x| async move { Some(x) }).await
     }
 
     /// akka.net: `Sink.Sum`.
@@ -101,17 +95,14 @@ impl Sink {
     }
 
     /// akka.net: `Sink.ForEachAsync`.
-    pub async fn for_each_async<T, F, Fut>(source: Source<T>, parallelism: usize, mut f: F)
+    pub async fn for_each_async<T, F, Fut>(source: Source<T>, parallelism: usize, f: F)
     where
         T: Send + 'static,
         F: FnMut(T) -> Fut + Send + 'static,
         Fut: Future<Output = ()> + Send + 'static,
     {
         let p = parallelism.max(1);
-        source
-            .into_boxed()
-            .for_each_concurrent(p, move |x| f(x))
-            .await
+        source.into_boxed().for_each_concurrent(p, f).await
     }
 
     /// akka.net: `Sink.Ignore`.
@@ -121,10 +112,8 @@ impl Sink {
 
     /// Send each element to an `UnboundedSender`. akka.net: `Sink.ActorRef`
     /// (rakka equivalent uses an mpsc channel).
-    pub async fn to_sender<T>(
-        source: Source<T>,
-        tx: tokio::sync::mpsc::UnboundedSender<T>,
-    ) where
+    pub async fn to_sender<T>(source: Source<T>, tx: tokio::sync::mpsc::UnboundedSender<T>)
+    where
         T: Send + 'static,
     {
         let mut stream = source.into_boxed();
@@ -159,10 +148,7 @@ impl Sink {
     }
 
     /// `Sink.Queue` with a bounded element timeout per pull.
-    pub async fn pull_with_timeout<T: Send + 'static>(
-        q: &SinkQueue<T>,
-        t: Duration,
-    ) -> Option<T> {
+    pub async fn pull_with_timeout<T: Send + 'static>(q: &SinkQueue<T>, t: Duration) -> Option<T> {
         tokio::time::timeout(t, q.pull()).await.ok().flatten()
     }
 }

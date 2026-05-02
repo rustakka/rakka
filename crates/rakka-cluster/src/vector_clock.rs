@@ -40,20 +40,19 @@ impl VectorClock {
     }
 
     pub fn compare(&self, other: &Self) -> VectorRelation {
-        let keys: std::collections::BTreeSet<_> =
-            self.versions.keys().chain(other.versions.keys()).collect();
+        let keys: std::collections::BTreeSet<_> = self.versions.keys().chain(other.versions.keys()).collect();
         let mut a_le = true;
         let mut b_le = true;
         for k in keys {
             let a = self.versions.get(k.as_str()).copied().unwrap_or(0);
             let b = other.versions.get(k.as_str()).copied().unwrap_or(0);
             match a.cmp(&b) {
-                Ordering::Less => {}            // a still ≤
+                Ordering::Less => {} // a still ≤
                 Ordering::Greater => a_le = false,
                 Ordering::Equal => {}
             }
             match a.cmp(&b) {
-                Ordering::Greater => {}         // b still ≤
+                Ordering::Greater => {} // b still ≤
                 Ordering::Less => b_le = false,
                 Ordering::Equal => {}
             }

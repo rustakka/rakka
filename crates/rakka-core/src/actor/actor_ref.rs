@@ -19,8 +19,7 @@ use super::sender::Sender;
 use super::traits::MessageEnvelope;
 
 /// Type-erased serializer used by the Remote variant of `ActorRef<M>`.
-type RemoteSerializerFn<M> =
-    Arc<dyn Fn(M, Option<ActorPath>) -> SerializedMessage + Send + Sync>;
+type RemoteSerializerFn<M> = Arc<dyn Fn(M, Option<ActorPath>) -> SerializedMessage + Send + Sync>;
 
 enum RefImpl<M: Send + 'static> {
     Local {
@@ -63,21 +62,14 @@ impl<M: Send + 'static> ActorRef<M> {
         system: mpsc::UnboundedSender<SystemMsg>,
         system_ref: Weak<ActorSystemInner>,
     ) -> Self {
-        Self {
-            inner: Arc::new(RefImpl::Local { path, user, system, system_ref }),
-        }
+        Self { inner: Arc::new(RefImpl::Local { path, user, system, system_ref }) }
     }
 
     /// Construct a typed remote ref given a (type-erased) `RemoteRef` handle
     /// and a serializer for `M`. Used by `rakka-remote::RemoteActorRefProvider`.
-    pub fn from_remote(
-        handle: Arc<dyn RemoteRef>,
-        serialize: RemoteSerializerFn<M>,
-    ) -> Self {
+    pub fn from_remote(handle: Arc<dyn RemoteRef>, serialize: RemoteSerializerFn<M>) -> Self {
         let path = handle.path().clone();
-        Self {
-            inner: Arc::new(RefImpl::Remote { path, handle, serialize }),
-        }
+        Self { inner: Arc::new(RefImpl::Remote { path, handle, serialize }) }
     }
 
     pub fn path(&self) -> &ActorPath {
@@ -160,16 +152,10 @@ impl<M: Send + 'static> ActorRef<M> {
     pub fn as_untyped(&self) -> UntypedActorRef {
         match &*self.inner {
             RefImpl::Local { path, system, .. } => UntypedActorRef {
-                inner: Arc::new(UntypedImpl::Local {
-                    path: path.clone(),
-                    system: system.clone(),
-                }),
+                inner: Arc::new(UntypedImpl::Local { path: path.clone(), system: system.clone() }),
             },
             RefImpl::Remote { path, handle, .. } => UntypedActorRef {
-                inner: Arc::new(UntypedImpl::Remote {
-                    path: path.clone(),
-                    handle: handle.clone(),
-                }),
+                inner: Arc::new(UntypedImpl::Remote { path: path.clone(), handle: handle.clone() }),
             },
         }
     }
@@ -195,14 +181,8 @@ fn notify_dead_letter<M: 'static>(path: &ActorPath, system_ref: &Weak<ActorSyste
 }
 
 enum UntypedImpl {
-    Local {
-        path: ActorPath,
-        system: mpsc::UnboundedSender<SystemMsg>,
-    },
-    Remote {
-        path: ActorPath,
-        handle: Arc<dyn RemoteRef>,
-    },
+    Local { path: ActorPath, system: mpsc::UnboundedSender<SystemMsg> },
+    Remote { path: ActorPath, handle: Arc<dyn RemoteRef> },
 }
 
 /// Untyped ref used where the message type is not statically known
@@ -277,6 +257,7 @@ impl std::hash::Hash for UntypedActorRef {
 }
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum AskError {
     #[error("ask timed out")]
     Timeout,

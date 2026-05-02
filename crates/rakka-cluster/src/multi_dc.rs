@@ -80,10 +80,7 @@ pub fn heartbeat_interval_for(
 
 /// Partition a peer list into `(in_dc, cross_dc)` from `local`'s
 /// perspective.
-pub fn partition_by_dc<'a>(
-    local: &Member,
-    peers: &'a [Member],
-) -> (Vec<&'a Member>, Vec<&'a Member>) {
+pub fn partition_by_dc<'a>(local: &Member, peers: &'a [Member]) -> (Vec<&'a Member>, Vec<&'a Member>) {
     let mut in_dc = Vec::new();
     let mut cross = Vec::new();
     for p in peers {

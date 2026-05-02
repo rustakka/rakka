@@ -45,10 +45,7 @@ impl CircuitBreaker {
                 // which is always 0 and never transitioned to half-open.
                 let now_ns = self.elapsed_ns();
                 let opened_ns = self.opened_at_ns.load(Ordering::Acquire);
-                if opened_ns > 0
-                    && now_ns.saturating_sub(opened_ns)
-                        >= self.reset_timeout.as_nanos() as u64
-                {
+                if opened_ns > 0 && now_ns.saturating_sub(opened_ns) >= self.reset_timeout.as_nanos() as u64 {
                     CircuitBreakerState::HalfOpen
                 } else {
                     CircuitBreakerState::Open
@@ -99,8 +96,7 @@ impl CircuitBreaker {
         let n = self.failures.fetch_add(1, Ordering::AcqRel) + 1;
         if n >= self.max_failures {
             self.state.store(1, Ordering::Release);
-            self.opened_at_ns
-                .store(self.elapsed_ns(), Ordering::Release);
+            self.opened_at_ns.store(self.elapsed_ns(), Ordering::Release);
         }
     }
 }

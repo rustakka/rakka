@@ -43,12 +43,8 @@ async fn three_nodes_broadcast_pubsub_message() {
         let bus = DistributedPubSub::new();
         let seen = Arc::new(parking_lot::Mutex::new(Vec::<String>::new()));
         let s2 = seen.clone();
-        let recorder = sys
-            .actor_of(
-                Props::create(move || Recorder { seen: s2.clone() }),
-                &format!("rec-{i}"),
-            )
-            .unwrap();
+        let recorder =
+            sys.actor_of(Props::create(move || Recorder { seen: s2.clone() }), &format!("rec-{i}")).unwrap();
         bus.subscribe("room", recorder);
         buses.push(bus);
         recorders.push(seen);

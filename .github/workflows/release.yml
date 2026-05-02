@@ -21,9 +21,17 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Run cargo publish with --dry-run; skip GitHub Release upload"
+        description: "Run cargo publish + maturin upload with --dry-run; skip GitHub Release upload"
         required: false
         default: "true"
+      skip_python:
+        description: "Skip the Python wheel build/publish jobs"
+        required: false
+        default: "false"
+      skip_crates:
+        description: "Skip the crates.io publish job"
+        required: false
+        default: "false"
 
 concurrency:
   group: release-${{ github.ref }}
@@ -55,8 +63,21 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            archive_ext: tar.gz
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            archive_ext: tar.gz
+            cross: true
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            archive_ext: tar.gz
           - os: macos-latest
             target: aarch64-apple-darwin
+            archive_ext: tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive_ext: zip
+            bin_ext: .exe
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -65,28 +86,126 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
+      - name: Install cross (Linux aarch64)
+        if: matrix.cross == true
+        run: cargo install cross --locked
       - name: Build rakka-dashboard
-        run: cargo build --release --target ${{ matrix.target }} -p rakka-dashboard --features bin,embed-ui,aggregator,metrics-prometheus
+        shell: bash
+        run: |
+          if [ "${{ matrix.cross }}" = "true" ]; then
+            cross build --release --target ${{ matrix.target }} -p rakka-dashboard --features bin,embed-ui,aggregator,metrics-prometheus
+          else
+            cargo build --release --target ${{ matrix.target }} -p rakka-dashboard --features bin,embed-ui,aggregator,metrics-prometheus
+          fi
       - name: Build rakka-profiler
-        run: cargo build --release --target ${{ matrix.target }} -p rakka-profiler
-      - name: Stage artifacts
+        shell: bash
+        run: |
+          if [ "${{ matrix.cross }}" = "true" ]; then
+            cross build --release --target ${{ matrix.target }} -p rakka-profiler
+          else
+            cargo build --release --target ${{ matrix.target }} -p rakka-profiler
+          fi
+      - name: Stage artifacts (unix)
+        if: matrix.archive_ext == 'tar.gz'
+        shell: bash
         run: |
           mkdir -p artifacts
           for bin in rakka-dashboard rakka-profiler; do
             src="target/${{ matrix.target }}/release/$bin"
-            if [ -f "$src" ]; then
-              cp "$src" "artifacts/${bin}-${{ matrix.target }}"
-            fi
+            [ -f "$src" ] && cp "$src" "artifacts/${bin}-${{ matrix.target }}"
           done
           (cd artifacts && tar czf "rakka-${{ matrix.target }}.tar.gz" rakka-dashboard-* rakka-profiler-*)
+      - name: Stage artifacts (windows)
+        if: matrix.archive_ext == 'zip'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          foreach ($bin in @("rakka-dashboard", "rakka-profiler")) {
+            $src = "target/${{ matrix.target }}/release/$bin${{ matrix.bin_ext }}"
+            if (Test-Path $src) { Copy-Item $src "artifacts/$bin-${{ matrix.target }}${{ matrix.bin_ext }}" }
+          }
+          Compress-Archive -Path "artifacts/rakka-dashboard-*","artifacts/rakka-profiler-*" -DestinationPath "artifacts/rakka-${{ matrix.target }}.zip"
       - uses: actions/upload-artifact@v4
         with:
-          name: rakka-${{ matrix.target }}
-          path: artifacts/rakka-${{ matrix.target }}.tar.gz
+          name: rakka-binaries-${{ matrix.target }}
+          path: artifacts/rakka-${{ matrix.target }}.${{ matrix.archive_ext }}
+
+  build-wheels:
+    name: Build wheels (${{ matrix.target }} / ${{ matrix.os }})
+    needs: verify
+    if: github.event_name == 'push' || github.event.inputs.skip_python != 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux glibc + musl, x86_64 + aarch64. maturin uses
+          # manylinux/musllinux containers under the hood; the
+          # `manylinux: auto` flag picks the right base image.
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            python-target: x86_64
+            manylinux: auto
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            python-target: aarch64
+            manylinux: auto
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            python-target: x86_64
+            manylinux: musllinux_1_2
+          # macOS — universal2 yields a single fat wheel covering
+          # both x86_64 and arm64 architectures.
+          - os: macos-latest
+            target: universal2-apple-darwin
+            python-target: universal2
+            manylinux: "off"
+          # Windows.
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            python-target: x64
+            manylinux: "off"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build wheels (maturin)
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.python-target }}
+          # Build a wheel per supported CPython ABI on this platform.
+          args: --release --strip --out dist --interpreter "python3.10 python3.11 python3.12 python3.13"
+          # `auto` builds inside a manylinux container; `off` runs natively.
+          manylinux: ${{ matrix.manylinux }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rakka-wheels-${{ matrix.target }}
+          path: dist/*.whl
+
+  build-sdist:
+    name: Build sdist (Python)
+    needs: verify
+    if: github.event_name == 'push' || github.event.inputs.skip_python != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rakka-sdist
+          path: dist/*.tar.gz
 
   github-release:
     name: GitHub Release
-    needs: [verify, build-binaries]
+    needs: [verify, build-binaries, build-wheels, build-sdist]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     permissions:
@@ -114,6 +233,9 @@ jobs:
             echo
             echo "### Crates published"
             grep -E "rakka-[a-z-]+ = \{ path" Cargo.toml | sed 's/^/- /'
+            echo
+            echo "### Python wheels"
+            ls artifacts | grep "rakka-wheels-" | sed 's/^/- /' || true
           } > RELEASE_NOTES.md
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
       - name: Create GitHub Release
@@ -123,13 +245,16 @@ jobs:
           name: rakka ${{ steps.notes.outputs.tag }}
           body_path: RELEASE_NOTES.md
           prerelease: ${{ contains(steps.notes.outputs.tag, '-') }}
-          files: artifacts/**/*.tar.gz
+          files: |
+            artifacts/**/*.tar.gz
+            artifacts/**/*.zip
+            artifacts/**/*.whl
 
   publish-crates:
     name: Publish to crates.io
     needs: [verify, github-release]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && github.event.inputs.skip_crates != 'true'
     permissions:
       contents: read
     env:
@@ -194,3 +319,58 @@ jobs:
             echo "==> $c"
             cargo publish -p "$c" --dry-run --allow-dirty || true
           done
+
+  publish-pypi:
+    name: Publish wheels + sdist to PyPI
+    needs: [verify, build-wheels, build-sdist, github-release]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && github.event.inputs.skip_python != 'true'
+    # Trusted publishing — configure on PyPI: pypi.org → manage project →
+    # publishing → add GitHub publisher (owner / repo / workflow / env).
+    environment:
+      name: pypi
+      url: https://pypi.org/p/rakka
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Flatten wheel + sdist artifacts
+        run: |
+          mkdir -p upload
+          find dist -type f \( -name "*.whl" -o -name "*.tar.gz" \) -exec cp {} upload/ \;
+          ls -la upload/
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: upload
+          # If trusted publishing is not yet configured, set
+          # `password: ${{ secrets.PYPI_API_TOKEN }}` instead.
+          skip-existing: true
+
+  publish-pypi-dry-run:
+    name: PyPI dry-run (TestPyPI)
+    needs: [build-wheels, build-sdist]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true' && github.event.inputs.skip_python != 'true'
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/rakka
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Flatten wheel + sdist artifacts
+        run: |
+          mkdir -p upload
+          find dist -type f \( -name "*.whl" -o -name "*.tar.gz" \) -exec cp {} upload/ \;
+          ls -la upload/
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: upload
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true

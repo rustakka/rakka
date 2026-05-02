@@ -14,7 +14,6 @@
 //! it doesn't accidentally lose a real allocation to a stale write.
 
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use parking_lot::RwLock;
@@ -38,14 +37,9 @@ impl Default for DDataShardCoordinator {
 
 impl DDataShardCoordinator {
     pub fn new() -> Self {
-        let bootstrap = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_nanos() as u64)
-            .unwrap_or(1);
-        Self {
-            state: RwLock::new(LWWMap::new()),
-            next_ts: AtomicU64::new(bootstrap),
-        }
+        let bootstrap =
+            SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos() as u64).unwrap_or(1);
+        Self { state: RwLock::new(LWWMap::new()), next_ts: AtomicU64::new(bootstrap) }
     }
 
     /// Issue a fresh, strictly-increasing timestamp for the next
@@ -73,12 +67,8 @@ impl DDataShardCoordinator {
 
     /// Snapshot of the full allocation table.
     pub fn allocations(&self) -> Vec<(String, String)> {
-        let mut v: Vec<(String, String)> = self
-            .state
-            .read()
-            .iter()
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect();
+        let mut v: Vec<(String, String)> =
+            self.state.read().iter().map(|(k, v)| (k.clone(), v.clone())).collect();
         v.sort_by(|a, b| a.0.cmp(&b.0));
         v
     }
@@ -163,7 +153,7 @@ mod tests {
         c.allocate("s1", "r1");
         let snap = c.snapshot();
         c.allocate("s1", "r2"); // changes local
-        // Snapshot still reflects the earlier state.
+                                // Snapshot still reflects the earlier state.
         assert_eq!(snap.get(&"s1".to_string()), Some(&"r1".to_string()));
     }
 

@@ -27,17 +27,9 @@ pub async fn ensure_schema(pool: &AnyPool, cfg: &SqlConfig) -> Result<(), Journa
 }
 
 fn split_statements(ddl: &str) -> Vec<String> {
-    let stripped: String = ddl
-        .lines()
-        .map(|l| l.split("--").next().unwrap_or(""))
-        .collect::<Vec<_>>()
-        .join("\n");
-    stripped
-        .split(';')
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_string())
-        .collect()
+    let stripped: String =
+        ddl.lines().map(|l| l.split("--").next().unwrap_or("")).collect::<Vec<_>>().join("\n");
+    stripped.split(';').map(str::trim).filter(|s| !s.is_empty()).map(|s| s.to_string()).collect()
 }
 
 /// Drop every journal/snapshot row for tests that want a clean slate.
@@ -45,10 +37,7 @@ fn split_statements(ddl: &str) -> Vec<String> {
 #[allow(dead_code)]
 pub async fn truncate(pool: &AnyPool, _dialect: SqlDialect) -> Result<(), JournalError> {
     for table in ["event_tags", "event_journal", "snapshot_store"] {
-        sqlx::query(&format!("DELETE FROM {table}"))
-            .execute(pool)
-            .await
-            .map_err(JournalError::backend)?;
+        sqlx::query(&format!("DELETE FROM {table}")).execute(pool).await.map_err(JournalError::backend)?;
     }
     Ok(())
 }

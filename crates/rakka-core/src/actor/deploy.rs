@@ -8,16 +8,13 @@ pub struct Deploy {
     pub scope: Scope,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum Scope {
+    #[default]
     Local,
-    Remote { address: String },
-}
-
-impl Default for Scope {
-    fn default() -> Self {
-        Scope::Local
-    }
+    Remote {
+        address: String,
+    },
 }
 
 impl Deploy {

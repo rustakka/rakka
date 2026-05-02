@@ -34,10 +34,7 @@ pub struct HeartbeatSender {
 impl HeartbeatSender {
     pub fn new(interval: Duration) -> Arc<Self> {
         assert!(!interval.is_zero(), "heartbeat interval must be > 0");
-        Arc::new(Self {
-            interval,
-            peers: RwLock::new(HashMap::new()),
-        })
+        Arc::new(Self { interval, peers: RwLock::new(HashMap::new()) })
     }
 
     pub fn interval(&self) -> Duration {
@@ -68,8 +65,8 @@ impl HeartbeatSender {
     /// then calls [`Self::record_tick`].
     pub fn due_peers(&self, now: Instant) -> Vec<Address> {
         let g = self.peers.read();
-        g.iter()
-            .filter_map(|(_, hb)| {
+        g.values()
+            .filter_map(|hb| {
                 if now.duration_since(hb.last_tick) >= self.interval {
                     Address::parse(&_addr_round_trip(&g, hb))
                 } else {
@@ -91,12 +88,8 @@ impl HeartbeatSender {
 
     /// Snapshot of (peer-address-string, ticks-emitted).
     pub fn ticks_per_peer(&self) -> Vec<(String, u64)> {
-        let mut v: Vec<(String, u64)> = self
-            .peers
-            .read()
-            .iter()
-            .map(|(k, hb)| (k.clone(), hb.ticks))
-            .collect();
+        let mut v: Vec<(String, u64)> =
+            self.peers.read().iter().map(|(k, hb)| (k.clone(), hb.ticks)).collect();
         v.sort_by(|a, b| a.0.cmp(&b.0));
         v
     }

@@ -62,10 +62,7 @@ impl OtelExporter {
     /// Convenience constructor that also sets the node label.
     pub fn new_with_node(cfg: OtlpConfig, node: impl Into<String>) -> Result<Self, String> {
         let node = node.into();
-        let service_name = cfg
-            .service_name
-            .clone()
-            .unwrap_or_else(|| "rakka".to_string());
+        let service_name = cfg.service_name.clone().unwrap_or_else(|| "rakka".to_string());
 
         let mut kvs = vec![
             KeyValue::new("service.name", service_name.clone()),
@@ -136,12 +133,7 @@ impl OtelExporter {
                 .init(),
         };
 
-        Ok(Self {
-            provider: Arc::new(provider),
-            meter,
-            instruments,
-            node,
-        })
+        Ok(Self { provider: Arc::new(provider), meter, instruments, node })
     }
 
     fn node_attr(&self) -> KeyValue {
@@ -171,26 +163,22 @@ impl Exporter for OtelExporter {
                 self.instruments.dead_letters.add(1, &[node]);
             }
             TelemetryEvent::ClusterChanged(diff) => {
-                self.instruments.cluster_events.add(
-                    diff.added.len() as u64,
-                    &[node.clone(), KeyValue::new("kind", "added")],
-                );
-                self.instruments.cluster_events.add(
-                    diff.updated.len() as u64,
-                    &[node.clone(), KeyValue::new("kind", "updated")],
-                );
-                self.instruments.cluster_events.add(
-                    diff.removed.len() as u64,
-                    &[node.clone(), KeyValue::new("kind", "removed")],
-                );
+                self.instruments
+                    .cluster_events
+                    .add(diff.added.len() as u64, &[node.clone(), KeyValue::new("kind", "added")]);
+                self.instruments
+                    .cluster_events
+                    .add(diff.updated.len() as u64, &[node.clone(), KeyValue::new("kind", "updated")]);
+                self.instruments
+                    .cluster_events
+                    .add(diff.removed.len() as u64, &[node.clone(), KeyValue::new("kind", "removed")]);
                 self.instruments.cluster_events.add(
                     diff.became_unreachable.len() as u64,
                     &[node.clone(), KeyValue::new("kind", "unreachable")],
                 );
-                self.instruments.cluster_events.add(
-                    diff.became_reachable.len() as u64,
-                    &[node, KeyValue::new("kind", "reachable")],
-                );
+                self.instruments
+                    .cluster_events
+                    .add(diff.became_reachable.len() as u64, &[node, KeyValue::new("kind", "reachable")]);
             }
             TelemetryEvent::ShardingChanged(ev) => {
                 self.instruments.sharding_events.add(
@@ -203,16 +191,12 @@ impl Exporter for OtelExporter {
                 );
             }
             TelemetryEvent::JournalWrite(info) => {
-                self.instruments.persistence_writes.add(
-                    1,
-                    &[node, KeyValue::new("journal", info.journal.clone())],
-                );
+                self.instruments
+                    .persistence_writes
+                    .add(1, &[node, KeyValue::new("journal", info.journal.clone())]);
             }
             TelemetryEvent::RemoteAssociation(info) => {
-                self.instruments.remote_events.add(
-                    1,
-                    &[node, KeyValue::new("state", info.state.clone())],
-                );
+                self.instruments.remote_events.add(1, &[node, KeyValue::new("state", info.state.clone())]);
             }
             TelemetryEvent::StreamsGraphStarted { .. } => {
                 self.instruments.streams_started.add(1, &[node.clone()]);
@@ -223,10 +207,7 @@ impl Exporter for OtelExporter {
                 self.instruments.streams_running.add(-1, &[node]);
             }
             TelemetryEvent::DDataUpdated { key } => {
-                self.instruments.ddata_updates.add(
-                    1,
-                    &[node, KeyValue::new("key", key.clone())],
-                );
+                self.instruments.ddata_updates.add(1, &[node, KeyValue::new("key", key.clone())]);
             }
         }
     }
@@ -238,42 +219,27 @@ impl Exporter for OtelExporter {
 }
 
 #[cfg(feature = "otel-stdout")]
-fn build_provider(
-    cfg: &OtlpConfig,
-    resource: Resource,
-) -> Result<SdkMeterProvider, String> {
+fn build_provider(cfg: &OtlpConfig, resource: Resource) -> Result<SdkMeterProvider, String> {
     if cfg.stdout || !otlp_transport_enabled() {
         let exporter = opentelemetry_stdout::MetricsExporter::default();
         let reader = PeriodicReader::builder(exporter, opentelemetry_sdk::runtime::Tokio)
             .with_interval(Duration::from_secs(cfg.interval_secs.max(1)))
             .build();
-        return Ok(SdkMeterProvider::builder()
-            .with_reader(reader)
-            .with_resource(resource)
-            .build());
+        return Ok(SdkMeterProvider::builder().with_reader(reader).with_resource(resource).build());
     }
     build_otlp_provider(cfg, resource)
 }
 
 #[cfg(not(feature = "otel-stdout"))]
-fn build_provider(
-    cfg: &OtlpConfig,
-    resource: Resource,
-) -> Result<SdkMeterProvider, String> {
+fn build_provider(cfg: &OtlpConfig, resource: Resource) -> Result<SdkMeterProvider, String> {
     if cfg.stdout {
-        return Err(
-            "stdout OTel exporter requested but `otel-stdout` feature is not enabled"
-                .to_string(),
-        );
+        return Err("stdout OTel exporter requested but `otel-stdout` feature is not enabled".to_string());
     }
     build_otlp_provider(cfg, resource)
 }
 
 #[cfg(any(feature = "otel-otlp-grpc", feature = "otel-otlp-http"))]
-fn build_otlp_provider(
-    cfg: &OtlpConfig,
-    resource: Resource,
-) -> Result<SdkMeterProvider, String> {
+fn build_otlp_provider(cfg: &OtlpConfig, resource: Resource) -> Result<SdkMeterProvider, String> {
     use opentelemetry_otlp::WithExportConfig;
 
     let interval = Duration::from_secs(cfg.interval_secs.max(1));
@@ -282,11 +248,7 @@ fn build_otlp_provider(
         #[cfg(feature = "otel-otlp-grpc")]
         "grpc" => opentelemetry_otlp::new_pipeline()
             .metrics(opentelemetry_sdk::runtime::Tokio)
-            .with_exporter(
-                opentelemetry_otlp::new_exporter()
-                    .tonic()
-                    .with_endpoint(cfg.endpoint.clone()),
-            )
+            .with_exporter(opentelemetry_otlp::new_exporter().tonic().with_endpoint(cfg.endpoint.clone()))
             .with_resource(resource)
             .with_period(interval)
             .build()
@@ -294,11 +256,7 @@ fn build_otlp_provider(
         #[cfg(feature = "otel-otlp-http")]
         "http" => opentelemetry_otlp::new_pipeline()
             .metrics(opentelemetry_sdk::runtime::Tokio)
-            .with_exporter(
-                opentelemetry_otlp::new_exporter()
-                    .http()
-                    .with_endpoint(cfg.endpoint.clone()),
-            )
+            .with_exporter(opentelemetry_otlp::new_exporter().http().with_endpoint(cfg.endpoint.clone()))
             .with_resource(resource)
             .with_period(interval)
             .build()
@@ -310,14 +268,8 @@ fn build_otlp_provider(
 }
 
 #[cfg(not(any(feature = "otel-otlp-grpc", feature = "otel-otlp-http")))]
-fn build_otlp_provider(
-    _cfg: &OtlpConfig,
-    _resource: Resource,
-) -> Result<SdkMeterProvider, String> {
-    Err(
-        "no OTLP transport compiled in; enable `otel-otlp-grpc` or `otel-otlp-http`"
-            .to_string(),
-    )
+fn build_otlp_provider(_cfg: &OtlpConfig, _resource: Resource) -> Result<SdkMeterProvider, String> {
+    Err("no OTLP transport compiled in; enable `otel-otlp-grpc` or `otel-otlp-http`".to_string())
 }
 
 #[allow(dead_code)]

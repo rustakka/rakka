@@ -6,7 +6,8 @@ use rakka_persistence::JournalError;
 
 /// Azurite developer account / key defaults.
 pub const AZURITE_ACCOUNT: &str = "devstoreaccount1";
-pub const AZURITE_KEY: &str = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
+pub const AZURITE_KEY: &str =
+    "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
 pub const AZURITE_ENDPOINT: &str = "http://127.0.0.1:10002/devstoreaccount1";
 
 #[derive(Debug, Clone)]
@@ -20,11 +21,7 @@ pub struct AzureConfig {
 }
 
 impl AzureConfig {
-    pub fn new(
-        account: impl Into<String>,
-        key: impl Into<String>,
-        endpoint: impl Into<String>,
-    ) -> Self {
+    pub fn new(account: impl Into<String>, key: impl Into<String>, endpoint: impl Into<String>) -> Self {
         Self {
             account: account.into(),
             key: key.into(),
@@ -47,9 +44,8 @@ impl AzureConfig {
         let mut key = None;
         let mut endpoint = None;
         for part in cs.split(';').filter(|p| !p.is_empty()) {
-            let (k, v) = part
-                .split_once('=')
-                .ok_or_else(|| JournalError::backend("malformed connection string"))?;
+            let (k, v) =
+                part.split_once('=').ok_or_else(|| JournalError::backend("malformed connection string"))?;
             match k.trim() {
                 "AccountName" => account = Some(v.to_string()),
                 "AccountKey" => key = Some(v.to_string()),

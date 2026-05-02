@@ -10,8 +10,7 @@ use rakka_dashboard::{DashboardConfig, DashboardMode, DashboardServer};
 use rakka_telemetry::dto::ActorStatus;
 use rakka_telemetry::TelemetryExtension;
 
-async fn start_server() -> (rakka_dashboard::DashboardHandle, std::sync::Arc<TelemetryExtension>)
-{
+async fn start_server() -> (rakka_dashboard::DashboardHandle, std::sync::Arc<TelemetryExtension>) {
     let telemetry = TelemetryExtension::new("ws-node", 32);
     let cfg = DashboardConfig {
         bind: "127.0.0.1:0".parse().unwrap(),
@@ -24,7 +23,9 @@ async fn start_server() -> (rakka_dashboard::DashboardHandle, std::sync::Arc<Tel
     (handle, telemetry)
 }
 
-async fn read_text(socket: &mut tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>) -> Option<String> {
+async fn read_text(
+    socket: &mut tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>,
+) -> Option<String> {
     loop {
         match tokio::time::timeout(Duration::from_secs(2), socket.next()).await {
             Ok(Some(Ok(Message::Text(t)))) => return Some(t),

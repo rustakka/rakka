@@ -23,8 +23,7 @@ use crate::eventsourced::EventsourcedError;
 use crate::journal::{Journal, PersistentRepr};
 use crate::recovery_permitter::RecoveryPermitter;
 
-type CmdFn<S, D, C, E, Err> =
-    Box<dyn FnMut(&S, &D, C) -> Result<Vec<E>, Err> + Send + 'static>;
+type CmdFn<S, D, C, E, Err> = Box<dyn FnMut(&S, &D, C) -> Result<Vec<E>, Err> + Send + 'static>;
 type EvtFn<S, D, E> = Box<dyn FnMut(&mut S, &mut D, &E) + Send + 'static>;
 type EncodeFn<E> = Box<dyn Fn(&E) -> Result<Vec<u8>, String> + Send + Sync>;
 type DecodeFn<E> = Box<dyn Fn(&[u8]) -> Result<E, String> + Send + Sync>;
@@ -120,22 +119,15 @@ where
         journal: Arc<J>,
         permitter: &RecoveryPermitter,
     ) -> Result<u64, EventsourcedError<Err>> {
-        let _permit = permitter
-            .acquire()
-            .await
-            .ok_or(EventsourcedError::PermitDenied)?;
+        let _permit = permitter.acquire().await.ok_or(EventsourcedError::PermitDenied)?;
         let on_event = self
             .on_event
             .as_mut()
             .ok_or_else(|| EventsourcedError::Codec("on_event not registered".into()))?;
-        let decode = self
-            .decode
-            .as_ref()
-            .ok_or_else(|| EventsourcedError::Codec("decoder not registered".into()))?;
+        let decode =
+            self.decode.as_ref().ok_or_else(|| EventsourcedError::Codec("decoder not registered".into()))?;
         let highest = journal.highest_sequence_nr(&self.persistence_id, 0).await?;
-        let events = journal
-            .replay_messages(&self.persistence_id, 1, highest, u64::MAX)
-            .await?;
+        let events = journal.replay_messages(&self.persistence_id, 1, highest, u64::MAX).await?;
         for e in &events {
             let evt = decode(&e.payload).map_err(EventsourcedError::Codec)?;
             let prev = self.state.clone();
@@ -167,18 +159,11 @@ where
             .on_event
             .as_mut()
             .ok_or_else(|| EventsourcedError::Codec("on_event not registered".into()))?;
-        let encode = self
-            .encode
-            .as_ref()
-            .ok_or_else(|| EventsourcedError::Codec("encoder not registered".into()))?;
-        let s = self
-            .state
-            .as_ref()
-            .ok_or_else(|| EventsourcedError::Codec("initial state not set".into()))?;
-        let d = self
-            .data
-            .as_ref()
-            .ok_or_else(|| EventsourcedError::Codec("initial data not set".into()))?;
+        let encode =
+            self.encode.as_ref().ok_or_else(|| EventsourcedError::Codec("encoder not registered".into()))?;
+        let s =
+            self.state.as_ref().ok_or_else(|| EventsourcedError::Codec("initial state not set".into()))?;
+        let d = self.data.as_ref().ok_or_else(|| EventsourcedError::Codec("initial data not set".into()))?;
         let events = on_cmd(s, d, cmd).map_err(EventsourcedError::Domain)?;
         if events.is_empty() {
             return Ok(());
@@ -282,11 +267,10 @@ mod tests {
     #[tokio::test]
     async fn missing_initial_state_is_typed_error() {
         let journal = Arc::new(InMemoryJournal::default());
-        let mut fsm: PersistentFSM<DoorState, DoorData, DoorCmd, DoorEvent, E> =
-            PersistentFSM::new("door-2")
-                .on_command(|_, _, _| Ok(vec![DoorEvent::Toggled]))
-                .on_event(|_, _, _| {})
-                .with_codec(|_| Ok(vec![]), |_| Ok(DoorEvent::Toggled));
+        let mut fsm: PersistentFSM<DoorState, DoorData, DoorCmd, DoorEvent, E> = PersistentFSM::new("door-2")
+            .on_command(|_, _, _| Ok(vec![DoorEvent::Toggled]))
+            .on_event(|_, _, _| {})
+            .with_codec(|_| Ok(vec![]), |_| Ok(DoorEvent::Toggled));
         let r = fsm.handle(journal, DoorCmd::Toggle).await;
         assert!(matches!(r, Err(EventsourcedError::Codec(_))));
     }

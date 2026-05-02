@@ -41,10 +41,7 @@ async fn body_json(resp: axum::http::Response<Body>) -> serde_json::Value {
 async fn overview_returns_vitals() {
     let (_t, server) = make_server();
     let app = server.router();
-    let resp = app
-        .oneshot(Request::get("/api/overview").body(Body::empty()).unwrap())
-        .await
-        .unwrap();
+    let resp = app.oneshot(Request::get("/api/overview").body(Body::empty()).unwrap()).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     let body = body_json(resp).await;
     assert_eq!(body["node"], "test-node");
@@ -56,10 +53,7 @@ async fn overview_returns_vitals() {
 async fn snapshot_is_full_payload() {
     let (_t, server) = make_server();
     let app = server.router();
-    let resp = app
-        .oneshot(Request::get("/api/snapshot").body(Body::empty()).unwrap())
-        .await
-        .unwrap();
+    let resp = app.oneshot(Request::get("/api/snapshot").body(Body::empty()).unwrap()).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     let body = body_json(resp).await;
     assert!(body["actors"]["total"].as_u64().unwrap() >= 1);
@@ -71,10 +65,8 @@ async fn snapshot_is_full_payload() {
 async fn dead_letters_list_with_limit() {
     let (_t, server) = make_server();
     let app = server.router();
-    let resp = app
-        .oneshot(Request::get("/api/dead-letters?limit=10").body(Body::empty()).unwrap())
-        .await
-        .unwrap();
+    let resp =
+        app.oneshot(Request::get("/api/dead-letters?limit=10").body(Body::empty()).unwrap()).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     let body = body_json(resp).await;
     assert_eq!(body.as_array().unwrap().len(), 1);
@@ -84,23 +76,17 @@ async fn dead_letters_list_with_limit() {
 async fn actors_tree_returns_roots() {
     let (_t, server) = make_server();
     let app = server.router();
-    let resp = app
-        .oneshot(Request::get("/api/actors/tree").body(Body::empty()).unwrap())
-        .await
-        .unwrap();
+    let resp = app.oneshot(Request::get("/api/actors/tree").body(Body::empty()).unwrap()).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     let body = body_json(resp).await;
-    assert!(body["roots"].as_array().unwrap().len() >= 1);
+    assert!(!body["roots"].as_array().unwrap().is_empty());
 }
 
 #[tokio::test]
 async fn healthz_is_ok() {
     let (_t, server) = make_server();
     let app = server.router();
-    let resp = app
-        .oneshot(Request::get("/healthz").body(Body::empty()).unwrap())
-        .await
-        .unwrap();
+    let resp = app.oneshot(Request::get("/healthz").body(Body::empty()).unwrap()).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -117,11 +103,7 @@ async fn cluster_sharding_remote_streams_ddata_respond_ok() {
         "/api/streams",
         "/api/ddata",
     ] {
-        let resp = app
-            .clone()
-            .oneshot(Request::get(path).body(Body::empty()).unwrap())
-            .await
-            .unwrap();
+        let resp = app.clone().oneshot(Request::get(path).body(Body::empty()).unwrap()).await.unwrap();
         assert_eq!(resp.status(), StatusCode::OK, "{path} should be 200");
     }
 }

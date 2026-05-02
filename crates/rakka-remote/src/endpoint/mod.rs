@@ -153,7 +153,7 @@ impl EndpointWriter {
                     let Some(cmd) = cmd else { break };
                     match cmd {
                         EndpointCmd::Send(mut env) | EndpointCmd::SendSystem(mut env) => {
-                            env.seq_no = self.seq.next();
+                            env.seq_no = self.seq.advance();
                             let _ = self.send_buf.push(env.clone());
                             if let Err(e) = self
                                 .protocol

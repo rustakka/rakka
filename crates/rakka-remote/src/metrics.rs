@@ -47,28 +47,19 @@ impl RemoteMetrics {
     }
 
     pub fn record_send(&self, address: &Address, bytes: usize) {
-        let e = self
-            .inner
-            .entry(address.to_string())
-            .or_default();
+        let e = self.inner.entry(address.to_string()).or_default();
         e.sent_messages.fetch_add(1, Ordering::Relaxed);
         e.sent_bytes.fetch_add(bytes as u64, Ordering::Relaxed);
     }
 
     pub fn record_receive(&self, address: &Address, bytes: usize) {
-        let e = self
-            .inner
-            .entry(address.to_string())
-            .or_default();
+        let e = self.inner.entry(address.to_string()).or_default();
         e.received_messages.fetch_add(1, Ordering::Relaxed);
         e.received_bytes.fetch_add(bytes as u64, Ordering::Relaxed);
     }
 
     pub fn record_error(&self, address: &Address) {
-        let e = self
-            .inner
-            .entry(address.to_string())
-            .or_default();
+        let e = self.inner.entry(address.to_string()).or_default();
         e.errors.fetch_add(1, Ordering::Relaxed);
     }
 

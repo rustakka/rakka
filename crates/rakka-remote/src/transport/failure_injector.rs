@@ -60,9 +60,7 @@ impl Transport for FailureInjectorTransport {
         match mode {
             InjectionMode::Pass => self.inner.send(target, pdu).await,
             InjectionMode::DropEvery(n) if n >= 1 => {
-                let i = self
-                    .counter
-                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                let i = self.counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 if i % n == 0 {
                     Ok(())
                 } else {

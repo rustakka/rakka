@@ -43,9 +43,9 @@ pub fn register_system_payloads(reg: &SerializerRegistry) {
             manifest: std::any::type_name::<T>().to_string(),
             type_id: TypeId::of::<T>(),
             encode: Arc::new(|v: &dyn std::any::Any| {
-                let v = v.downcast_ref::<T>().ok_or_else(|| {
-                    SerializeError::Downcast(std::any::type_name::<T>().to_string())
-                })?;
+                let v = v
+                    .downcast_ref::<T>()
+                    .ok_or_else(|| SerializeError::Downcast(std::any::type_name::<T>().to_string()))?;
                 bincode_encode(v)
             }),
             decode: Arc::new(|b: &[u8]| {

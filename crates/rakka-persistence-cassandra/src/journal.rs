@@ -95,17 +95,13 @@ impl Journal for CassandraJournal {
             ks = self.cfg.keyspace,
             table = self.cfg.journal_table,
         );
-        let prepared =
-            self.session.prepare(insert_cql).await.map_err(JournalError::backend)?;
+        let prepared = self.session.prepare(insert_cql).await.map_err(JournalError::backend)?;
         let now = chrono::Utc::now().timestamp_millis();
         for (pid, batch) in by_pid {
             let mut expected = self.current_max(&pid).await? + 1;
             for msg in batch {
                 if msg.sequence_nr != expected {
-                    return Err(JournalError::SequenceOutOfOrder {
-                        expected,
-                        got: msg.sequence_nr,
-                    });
+                    return Err(JournalError::SequenceOutOfOrder { expected, got: msg.sequence_nr });
                 }
                 let partition = self.cfg.partition_for(msg.sequence_nr);
                 let tag_set: HashSet<String> = msg.tags.iter().cloned().collect();
@@ -181,13 +177,10 @@ impl Journal for CassandraJournal {
                 break;
             }
             let remaining = max - out.len() as u64;
-            let to_bound = (to as i64).min(i64::MAX);
+            let to_bound = to as i64;
             let rows = self
                 .session
-                .execute_unpaged(
-                    &prepared,
-                    (persistence_id, partition, from as i64, to_bound),
-                )
+                .execute_unpaged(&prepared, (persistence_id, partition, from as i64, to_bound))
                 .await
                 .map_err(JournalError::backend)?
                 .into_rows_result()
@@ -218,11 +211,7 @@ impl Journal for CassandraJournal {
         Ok(out)
     }
 
-    async fn highest_sequence_nr(
-        &self,
-        persistence_id: &str,
-        _from: u64,
-    ) -> Result<u64, JournalError> {
+    async fn highest_sequence_nr(&self, persistence_id: &str, _from: u64) -> Result<u64, JournalError> {
         self.current_max(persistence_id).await
     }
 }

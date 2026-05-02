@@ -14,10 +14,8 @@
 //! ShardRemoved    { shard_id }
 //! ```
 
-use std::sync::Arc;
-
 use async_trait::async_trait;
-use rakka_persistence::{Eventsourced, EventsourcedError, Journal, RecoveryPermitter};
+use rakka_persistence::Eventsourced;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -92,11 +90,7 @@ impl Eventsourced for PersistentShardCoordinator {
                 let Some(from) = state.allocations.get(&shard_id).cloned() else {
                     return Err(CoordinatorError::UnknownShard(shard_id));
                 };
-                Ok(vec![CoordinatorEvent::ShardRebalanced {
-                    shard_id,
-                    from_region: from,
-                    to_region,
-                }])
+                Ok(vec![CoordinatorEvent::ShardRebalanced { shard_id, from_region: from, to_region }])
             }
             CoordinatorCommand::Remove { shard_id } => {
                 if !state.allocations.contains_key(&shard_id) {
@@ -149,19 +143,17 @@ pub fn project_into(state: &CoordinatorState, target: &ShardCoordinator) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rakka_persistence::InMemoryJournal;
+    use rakka_persistence::{EventsourcedError, InMemoryJournal, RecoveryPermitter};
+    use std::sync::Arc;
 
     fn cfg() -> (Arc<InMemoryJournal>, RecoveryPermitter) {
-        (
-            Arc::new(InMemoryJournal::default()),
-            RecoveryPermitter::new(2),
-        )
+        (Arc::new(InMemoryJournal::default()), RecoveryPermitter::new(2))
     }
 
     #[tokio::test]
     async fn allocate_then_rebalance_round_trips() {
         let (journal, permits) = cfg();
-        let mut coord = PersistentShardCoordinator::new("coord-1");
+        let coord = PersistentShardCoordinator::new("coord-1");
         let mut state = CoordinatorState::default();
         let mut seq = 0u64;
 
@@ -171,10 +163,7 @@ mod tests {
                 &mut state,
                 &mut seq,
                 "w",
-                CoordinatorCommand::Allocate {
-                    shard_id: "s1".into(),
-                    region: "r1".into(),
-                },
+                CoordinatorCommand::Allocate { shard_id: "s1".into(), region: "r1".into() },
             )
             .await
             .unwrap();
@@ -184,10 +173,7 @@ mod tests {
                 &mut state,
                 &mut seq,
                 "w",
-                CoordinatorCommand::Rebalance {
-                    shard_id: "s1".into(),
-                    to_region: "r2".into(),
-                },
+                CoordinatorCommand::Rebalance { shard_id: "s1".into(), to_region: "r2".into() },
             )
             .await
             .unwrap();
@@ -212,22 +198,16 @@ mod tests {
                 &mut state,
                 &mut seq,
                 "w",
-                CoordinatorCommand::Rebalance {
-                    shard_id: "missing".into(),
-                    to_region: "r2".into(),
-                },
+                CoordinatorCommand::Rebalance { shard_id: "missing".into(), to_region: "r2".into() },
             )
             .await;
-        assert!(matches!(
-            r,
-            Err(EventsourcedError::Domain(CoordinatorError::UnknownShard(_)))
-        ));
+        assert!(matches!(r, Err(EventsourcedError::Domain(CoordinatorError::UnknownShard(_)))));
     }
 
     #[tokio::test]
     async fn project_into_in_memory_coordinator() {
         let (journal, permits) = cfg();
-        let mut coord = PersistentShardCoordinator::new("coord-3");
+        let coord = PersistentShardCoordinator::new("coord-3");
         let mut state = CoordinatorState::default();
         let mut seq = 0u64;
         for (sid, region) in [("s1", "r1"), ("s2", "r2"), ("s3", "r1")] {
@@ -237,10 +217,7 @@ mod tests {
                     &mut state,
                     &mut seq,
                     "w",
-                    CoordinatorCommand::Allocate {
-                        shard_id: sid.into(),
-                        region: region.into(),
-                    },
+                    CoordinatorCommand::Allocate { shard_id: sid.into(), region: region.into() },
                 )
                 .await
                 .unwrap();
@@ -260,7 +237,7 @@ mod tests {
     #[tokio::test]
     async fn remove_shard_drops_from_state() {
         let (journal, _) = cfg();
-        let mut coord = PersistentShardCoordinator::new("coord-4");
+        let coord = PersistentShardCoordinator::new("coord-4");
         let mut state = CoordinatorState::default();
         let mut seq = 0u64;
         coord
@@ -269,10 +246,7 @@ mod tests {
                 &mut state,
                 &mut seq,
                 "w",
-                CoordinatorCommand::Allocate {
-                    shard_id: "s1".into(),
-                    region: "r1".into(),
-                },
+                CoordinatorCommand::Allocate { shard_id: "s1".into(), region: "r1".into() },
             )
             .await
             .unwrap();

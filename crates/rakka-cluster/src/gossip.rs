@@ -23,12 +23,13 @@ impl Gossip {
 
     /// Merge with another gossip, taking vector-clock max and union of members.
     pub fn merge(&self, other: &Self) -> Self {
-        let mut merged = Self::default();
-        merged.version = self.version.merge(&other.version);
+        let mut merged = Self { version: self.version.merge(&other.version), ..Self::default() };
         for m in self.state.members.iter().chain(other.state.members.iter()) {
             merged.state.add_or_update(m.clone());
         }
-        for ((a, b), st) in self.state.reachability.records.iter().chain(other.state.reachability.records.iter()) {
+        for ((a, b), st) in
+            self.state.reachability.records.iter().chain(other.state.reachability.records.iter())
+        {
             merged.state.reachability.records.insert((a.clone(), b.clone()), *st);
         }
         merged

@@ -59,26 +59,14 @@ impl RememberedEntities {
     }
 
     /// Mark `entity_id` active. Updates the cache and the store.
-    pub async fn record_active(
-        &self,
-        shard_id: &str,
-        entity_id: &str,
-    ) -> Result<(), RememberError> {
+    pub async fn record_active(&self, shard_id: &str, entity_id: &str) -> Result<(), RememberError> {
         self.store.add(shard_id, entity_id).await?;
-        self.cache
-            .write()
-            .entry(shard_id.into())
-            .or_default()
-            .insert(entity_id.into());
+        self.cache.write().entry(shard_id.into()).or_default().insert(entity_id.into());
         Ok(())
     }
 
     /// Mark `entity_id` inactive (passivated/stopped).
-    pub async fn record_inactive(
-        &self,
-        shard_id: &str,
-        entity_id: &str,
-    ) -> Result<(), RememberError> {
+    pub async fn record_inactive(&self, shard_id: &str, entity_id: &str) -> Result<(), RememberError> {
         self.store.remove(shard_id, entity_id).await?;
         if let Some(set) = self.cache.write().get_mut(shard_id) {
             set.remove(entity_id);
@@ -88,11 +76,7 @@ impl RememberedEntities {
 
     /// Snapshot of currently-known entity ids for `shard_id`.
     pub fn entities(&self, shard_id: &str) -> HashSet<String> {
-        self.cache
-            .read()
-            .get(shard_id)
-            .cloned()
-            .unwrap_or_default()
+        self.cache.read().get(shard_id).cloned().unwrap_or_default()
     }
 
     pub fn shard_count(&self) -> usize {
@@ -119,11 +103,7 @@ impl RememberEntitiesStore for InMemoryRememberStore {
     }
 
     async fn add(&self, shard_id: &str, entity_id: &str) -> Result<(), RememberError> {
-        self.inner
-            .write()
-            .entry(shard_id.into())
-            .or_default()
-            .insert(entity_id.into());
+        self.inner.write().entry(shard_id.into()).or_default().insert(entity_id.into());
         Ok(())
     }
 

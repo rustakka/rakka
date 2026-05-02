@@ -57,11 +57,7 @@ impl RetrySchedule {
 /// initial call). Returns the last error if every attempt fails.
 ///
 /// `max_attempts == 1` means "no retries" — `op` runs exactly once.
-pub async fn retry<T, E, F, Fut>(
-    mut op: F,
-    max_attempts: u32,
-    schedule: RetrySchedule,
-) -> Result<T, E>
+pub async fn retry<T, E, F, Fut>(mut op: F, max_attempts: u32, schedule: RetrySchedule) -> Result<T, E>
 where
     F: FnMut() -> Fut,
     Fut: Future<Output = Result<T, E>>,
@@ -117,7 +113,11 @@ mod tests {
                 let c2 = c2.clone();
                 async move {
                     let n = c2.fetch_add(1, Ordering::SeqCst) + 1;
-                    if n < 3 { Err("not yet") } else { Ok(n as i32) }
+                    if n < 3 {
+                        Err("not yet")
+                    } else {
+                        Ok(n as i32)
+                    }
                 }
             },
             5,
@@ -130,21 +130,14 @@ mod tests {
 
     #[tokio::test]
     async fn returns_last_error_after_max_attempts() {
-        let r: Result<i32, &'static str> = retry(
-            || async { Err("nope") },
-            3,
-            RetrySchedule::fixed(Duration::from_millis(0)),
-        )
-        .await;
+        let r: Result<i32, &'static str> =
+            retry(|| async { Err("nope") }, 3, RetrySchedule::fixed(Duration::from_millis(0))).await;
         assert_eq!(r, Err("nope"));
     }
 
     #[test]
     fn exponential_backoff_doubles_until_cap() {
-        let s = RetrySchedule::exponential(
-            Duration::from_millis(10),
-            Duration::from_millis(80),
-        );
+        let s = RetrySchedule::exponential(Duration::from_millis(10), Duration::from_millis(80));
         assert_eq!(s.delay_for(0), Duration::from_millis(10));
         assert_eq!(s.delay_for(1), Duration::from_millis(20));
         assert_eq!(s.delay_for(2), Duration::from_millis(40));

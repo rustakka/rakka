@@ -20,6 +20,7 @@ pub struct Source<T> {
 impl<T: Send + 'static> Source<T> {
     // --- factories (akka.net: `Dsl/Source.cs`) ---------------------------------
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_iter<I: IntoIterator<Item = T> + Send + 'static>(iter: I) -> Self
     where
         I::IntoIter: Send + 'static,
@@ -48,13 +49,8 @@ impl<T: Send + 'static> Source<T> {
         T: Clone,
     {
         Source {
-            inner: stream::unfold(iter.into_iter(), |mut it| async move {
-                match it.next() {
-                    Some(v) => Some((v, it)),
-                    None => None,
-                }
-            })
-            .boxed(),
+            inner: stream::unfold(iter.into_iter(), |mut it| async move { it.next().map(|v| (v, it)) })
+                .boxed(),
         }
     }
 
@@ -65,19 +61,13 @@ impl<T: Send + 'static> Source<T> {
         Source { inner: stream::once(fut).boxed() }
     }
 
-    pub fn unfold<S, F, Fut>(init: S, mut f: F) -> Self
+    pub fn unfold<S, F, Fut>(init: S, f: F) -> Self
     where
         S: Send + 'static,
         F: FnMut(S) -> Fut + Send + 'static,
         Fut: Future<Output = Option<(T, S)>> + Send + 'static,
     {
-        Source {
-            inner: stream::unfold(init, move |s| {
-                let fut = f(s);
-                async move { fut.await }
-            })
-            .boxed(),
-        }
+        Source { inner: stream::unfold(init, f).boxed() }
     }
 
     pub fn tick(initial_delay: Duration, interval: Duration, value: T) -> Self
@@ -103,12 +93,7 @@ impl<T: Send + 'static> Source<T> {
     }
 
     pub fn from_receiver(rx: tokio::sync::mpsc::UnboundedReceiver<T>) -> Self {
-        Source {
-            inner: stream::unfold(rx, |mut rx| async move {
-                rx.recv().await.map(|v| (v, rx))
-            })
-            .boxed(),
-        }
+        Source { inner: stream::unfold(rx, |mut rx| async move { rx.recv().await.map(|v| (v, rx)) }).boxed() }
     }
 
     // --- linear transforms -----------------------------------------------------
@@ -164,9 +149,8 @@ impl<T: Send + 'static> Source<T> {
                 }
             }
         });
-        let stream = futures::stream::unfold(rx, |mut rx| async move {
-            rx.recv().await.map(|item| (item, rx))
-        });
+        let stream =
+            futures::stream::unfold(rx, |mut rx| async move { rx.recv().await.map(|item| (item, rx)) });
         Source { inner: stream.boxed() }
     }
 
@@ -317,12 +301,7 @@ impl<T: Send + 'static> Source<T> {
     where
         F: FnMut(&T) + Send + 'static,
     {
-        Source {
-            inner: self
-                .inner
-                .inspect(move |v| f(v))
-                .boxed(),
-        }
+        Source { inner: self.inner.inspect(move |v| f(v)).boxed() }
     }
 
     pub fn via<U>(self, flow: Flow<T, U>) -> Source<U>
@@ -351,10 +330,8 @@ mod tests {
 
     #[tokio::test]
     async fn map_filter_take() {
-        let out: Vec<i32> = Sink::collect(
-            Source::from_iter(0..100).map(|x| x * 3).filter(|x| x % 2 == 0).take(5),
-        )
-        .await;
+        let out: Vec<i32> =
+            Sink::collect(Source::from_iter(0..100).map(|x| x * 3).filter(|x| x % 2 == 0).take(5)).await;
         assert_eq!(out, vec![0, 6, 12, 18, 24]);
     }
 
@@ -373,19 +350,16 @@ mod tests {
 
     #[tokio::test]
     async fn intersperse_inserts_separator() {
-        let out: Vec<i32> =
-            Sink::collect(Source::from_iter(vec![1, 2, 3]).intersperse(0)).await;
+        let out: Vec<i32> = Sink::collect(Source::from_iter(vec![1, 2, 3]).intersperse(0)).await;
         assert_eq!(out, vec![1, 0, 2, 0, 3]);
     }
 
     #[tokio::test]
     async fn map_async_preserves_order() {
-        let out: Vec<i32> = Sink::collect(
-            Source::from_iter(1..=4).map_async(4, |x| async move {
-                tokio::time::sleep(std::time::Duration::from_millis(5)).await;
-                x * x
-            }),
-        )
+        let out: Vec<i32> = Sink::collect(Source::from_iter(1..=4).map_async(4, |x| async move {
+            tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+            x * x
+        }))
         .await;
         assert_eq!(out, vec![1, 4, 9, 16]);
     }

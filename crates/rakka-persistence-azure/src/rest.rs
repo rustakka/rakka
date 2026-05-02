@@ -5,9 +5,9 @@
 //! provider crates need. Not a general-purpose Azure SDK.
 
 use chrono::Utc;
+use rakka_persistence::JournalError;
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{Client, Method};
-use rakka_persistence::JournalError;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::Value;
@@ -46,23 +46,12 @@ impl TableClient {
         let mut headers = HeaderMap::new();
         let date = Self::date_header();
         headers.insert("x-ms-date", HeaderValue::from_str(&date).unwrap());
-        headers.insert(
-            "x-ms-version",
-            HeaderValue::from_static("2019-02-02"),
-        );
-        headers.insert(
-            "Accept",
-            HeaderValue::from_static("application/json;odata=nometadata"),
-        );
-        headers.insert(
-            "Content-Type",
-            HeaderValue::from_static("application/json"),
-        );
+        headers.insert("x-ms-version", HeaderValue::from_static("2019-02-02"));
+        headers.insert("Accept", HeaderValue::from_static("application/json;odata=nometadata"));
+        headers.insert("Content-Type", HeaderValue::from_static("application/json"));
         let authorization = self.signer.sign_lite(method.as_str(), &date, canonicalized_resource);
-        headers.insert(
-            "Authorization",
-            HeaderValue::from_str(&authorization).map_err(JournalError::backend)?,
-        );
+        headers
+            .insert("Authorization", HeaderValue::from_str(&authorization).map_err(JournalError::backend)?);
         Ok(headers)
     }
 
@@ -88,11 +77,7 @@ impl TableClient {
         }
     }
 
-    pub async fn insert_entity<T: Serialize>(
-        &self,
-        table: &str,
-        entity: &T,
-    ) -> Result<(), JournalError> {
+    pub async fn insert_entity<T: Serialize>(&self, table: &str, entity: &T) -> Result<(), JournalError> {
         let canonical = format!("/{}/{}", self.signer.account(), table);
         let url = format!("{}/{}", self.endpoint, table);
         let resp = self

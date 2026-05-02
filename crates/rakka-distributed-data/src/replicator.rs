@@ -51,9 +51,7 @@ impl WriteConsistency {
     pub fn timeout(self) -> Option<Duration> {
         match self {
             Self::Local => None,
-            Self::All { timeout }
-            | Self::Majority { timeout }
-            | Self::From { timeout, .. } => Some(timeout),
+            Self::All { timeout } | Self::Majority { timeout } | Self::From { timeout, .. } => Some(timeout),
         }
     }
 }
@@ -71,9 +69,7 @@ impl ReadConsistency {
     pub fn timeout(self) -> Option<Duration> {
         match self {
             Self::Local => None,
-            Self::All { timeout }
-            | Self::Majority { timeout }
-            | Self::From { timeout, .. } => Some(timeout),
+            Self::All { timeout } | Self::Majority { timeout } | Self::From { timeout, .. } => Some(timeout),
         }
     }
 }
@@ -129,26 +125,14 @@ impl Replicator {
     /// `update(key, _)` or `delete(key)`. Returns a
     /// [`SubscriptionToken`] whose `Drop` removes the subscription.
     /// Phase 8.E.
-    pub fn subscribe<F>(
-        self: &Arc<Self>,
-        key: impl Into<String>,
-        notifier: F,
-    ) -> SubscriptionToken
+    pub fn subscribe<F>(self: &Arc<Self>, key: impl Into<String>, notifier: F) -> SubscriptionToken
     where
         F: Fn(&str) + Send + Sync + 'static,
     {
         let key = key.into();
         let id = self.next_sub_id.fetch_add(1, Ordering::Relaxed);
-        self.subscribers
-            .write()
-            .entry(key.clone())
-            .or_default()
-            .push((id, Box::new(notifier)));
-        SubscriptionToken {
-            id,
-            key,
-            replicator: Arc::downgrade(self),
-        }
+        self.subscribers.write().entry(key.clone()).or_default().push((id, Box::new(notifier)));
+        SubscriptionToken { id, key, replicator: Arc::downgrade(self) }
     }
 
     /// Internal: deliver notifications. Public so the cluster
@@ -239,7 +223,9 @@ mod tests {
         let r = Replicator::new();
         let n = Arc::new(AtomicU32::new(0));
         let n2 = n.clone();
-        let _t = r.subscribe("k", move |_| { n2.fetch_add(1, Ordering::SeqCst); });
+        let _t = r.subscribe("k", move |_| {
+            n2.fetch_add(1, Ordering::SeqCst);
+        });
         let mut c = GCounter::new();
         c.increment("a", 1);
         r.update("k", c.clone());
@@ -252,7 +238,9 @@ mod tests {
         let r = Replicator::new();
         let n = Arc::new(AtomicU32::new(0));
         let n2 = n.clone();
-        let _t = r.subscribe("k", move |_| { n2.fetch_add(1, Ordering::SeqCst); });
+        let _t = r.subscribe("k", move |_| {
+            n2.fetch_add(1, Ordering::SeqCst);
+        });
         r.update("k", GCounter::new());
         r.delete("k");
         assert_eq!(n.load(Ordering::SeqCst), 2);
@@ -263,7 +251,9 @@ mod tests {
         let r = Replicator::new();
         let n = Arc::new(AtomicU32::new(0));
         let n2 = n.clone();
-        let t = r.subscribe("k", move |_| { n2.fetch_add(1, Ordering::SeqCst); });
+        let t = r.subscribe("k", move |_| {
+            n2.fetch_add(1, Ordering::SeqCst);
+        });
         assert_eq!(r.subscriber_count("k"), 1);
         drop(t);
         assert_eq!(r.subscriber_count("k"), 0);
@@ -304,7 +294,9 @@ mod tests {
         let r = Replicator::new();
         let n = Arc::new(AtomicU32::new(0));
         let n2 = n.clone();
-        let _t = r.subscribe("a", move |_| { n2.fetch_add(1, Ordering::SeqCst); });
+        let _t = r.subscribe("a", move |_| {
+            n2.fetch_add(1, Ordering::SeqCst);
+        });
         r.update("a", GCounter::new());
         r.update("b", GCounter::new());
         assert_eq!(n.load(Ordering::SeqCst), 1);

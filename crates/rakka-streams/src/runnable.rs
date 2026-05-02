@@ -16,9 +16,7 @@ impl<M: Send + 'static> RunnableGraph<M> {
         Fut: Future<Output = M> + Send + 'static,
     {
         use futures::FutureExt;
-        RunnableGraph {
-            runner: Box::new(move || f().boxed()),
-        }
+        RunnableGraph { runner: Box::new(move || f().boxed()) }
     }
 
     pub async fn run(self) -> M {

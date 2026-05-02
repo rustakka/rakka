@@ -54,10 +54,7 @@ impl Journal for AzureJournal {
             let mut expected = self.current_max(&pid).await? + 1;
             for msg in batch {
                 if msg.sequence_nr != expected {
-                    return Err(JournalError::SequenceOutOfOrder {
-                        expected,
-                        got: msg.sequence_nr,
-                    });
+                    return Err(JournalError::SequenceOutOfOrder { expected, got: msg.sequence_nr });
                 }
                 expected += 1;
                 let entity = EventEntity::from_repr(&msg);
@@ -111,11 +108,7 @@ impl Journal for AzureJournal {
         Ok(entities.into_iter().take(limit).map(EventEntity::into_repr).collect())
     }
 
-    async fn highest_sequence_nr(
-        &self,
-        persistence_id: &str,
-        _from: u64,
-    ) -> Result<u64, JournalError> {
+    async fn highest_sequence_nr(&self, persistence_id: &str, _from: u64) -> Result<u64, JournalError> {
         self.current_max(persistence_id).await
     }
 }

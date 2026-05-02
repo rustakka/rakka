@@ -69,9 +69,7 @@ impl Config {
             toml::Value::Table(t) => t,
             _ => return Err(ConfigError::WrongType { path: "".into(), expected: "object" }),
         };
-        Ok(Self {
-            root: table.into_iter().map(|(k, v)| (k, ConfigValue::from_toml(v))).collect(),
-        })
+        Ok(Self { root: table.into_iter().map(|(k, v)| (k, ConfigValue::from_toml(v))).collect() })
     }
 
     /// Parse a HOCON document (Akka.NET / Pekko `reference.conf`

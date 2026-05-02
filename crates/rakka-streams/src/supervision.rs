@@ -96,8 +96,7 @@ mod tests {
 
     #[tokio::test]
     async fn stopping_decider_terminates_at_first_error() {
-        let s: Source<Result<i32, &'static str>> =
-            Source::from_iter(vec![Ok(1), Ok(2), Err("boom"), Ok(99)]);
+        let s: Source<Result<i32, &'static str>> = Source::from_iter(vec![Ok(1), Ok(2), Err("boom"), Ok(99)]);
         let out = with_decider(s, deciders::stopping());
         let collected = Sink::collect(out).await;
         assert_eq!(collected, vec![1, 2]);
@@ -105,8 +104,7 @@ mod tests {
 
     #[tokio::test]
     async fn restarting_decider_behaves_like_resume_for_stateless() {
-        let s: Source<Result<i32, &'static str>> =
-            Source::from_iter(vec![Err("x"), Ok(7), Err("y"), Ok(8)]);
+        let s: Source<Result<i32, &'static str>> = Source::from_iter(vec![Err("x"), Ok(7), Err("y"), Ok(8)]);
         let out = with_decider(s, deciders::restarting());
         let collected = Sink::collect(out).await;
         assert_eq!(collected, vec![7, 8]);
@@ -115,11 +113,17 @@ mod tests {
     #[tokio::test]
     async fn custom_decider_can_inspect_error() {
         use std::sync::Arc;
-        let decider: Decider<i32> = Arc::new(|e: &i32| {
-            if *e < 0 { SupervisionDirective::Stop } else { SupervisionDirective::Resume }
-        });
-        let s: Source<Result<i32, i32>> =
-            Source::from_iter(vec![Ok(1), Err(5), Ok(2), Err(-1), Ok(99)]);
+        let decider: Decider<i32> =
+            Arc::new(
+                |e: &i32| {
+                    if *e < 0 {
+                        SupervisionDirective::Stop
+                    } else {
+                        SupervisionDirective::Resume
+                    }
+                },
+            );
+        let s: Source<Result<i32, i32>> = Source::from_iter(vec![Ok(1), Err(5), Ok(2), Err(-1), Ok(99)]);
         let out = with_decider(s, decider);
         let collected = Sink::collect(out).await;
         assert_eq!(collected, vec![1, 2]);

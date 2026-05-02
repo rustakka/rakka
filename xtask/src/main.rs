@@ -52,9 +52,7 @@ fn print_help() {
     println!("  bump <patch|minor|major|--pre <id>|--set <ver>>");
     println!("                                  bump workspace + python version, refresh Cargo.lock");
     println!("  profile [extra args...]         run the actor perf profiler (rust only)");
-    println!(
-        "  dashboard [extra args...]       run rakka-dashboard with embed-ui + common features"
-    );
+    println!("  dashboard [extra args...]       run rakka-dashboard with embed-ui + common features");
     println!("  help                            print this help");
 }
 
@@ -65,15 +63,7 @@ fn dashboard(mut extra: Vec<String>) -> Result<()> {
     let features = std::env::var("RAKKA_DASHBOARD_FEATURES")
         .unwrap_or_else(|_| "bin,embed-ui,aggregator,metrics-prometheus".into());
     let status = Command::new(env!("CARGO"))
-        .args([
-            "run",
-            "-q",
-            "-p",
-            "rakka-dashboard",
-            "--features",
-            &features,
-            "--",
-        ])
+        .args(["run", "-q", "-p", "rakka-dashboard", "--features", &features, "--"])
         .args(&extra)
         .status()
         .context("spawning cargo run for rakka-dashboard")?;
@@ -94,9 +84,7 @@ fn sync_upstream(args: Vec<String>) -> Result<()> {
     )?;
     let script = Path::new("scripts").join("sync-upstream.py");
     if !script.exists() {
-        return Err(anyhow!(
-            "scripts/sync-upstream.py not found (cwd must be the workspace root)"
-        ));
+        return Err(anyhow!("scripts/sync-upstream.py not found (cwd must be the workspace root)"));
     }
     let status = Command::new(python)
         .arg(&script)
@@ -139,9 +127,9 @@ fn bump(args: Vec<String>) -> Result<()> {
     // workspace `Cargo.lock`, and prints the new version. The user
     // (or a CI hook) then commits + tags + pushes.
     let mut iter = args.into_iter();
-    let arg = iter.next().ok_or_else(|| anyhow!(
-        "usage: bump <patch|minor|major> | bump --pre <id> | bump --set <version>"
-    ))?;
+    let arg = iter
+        .next()
+        .ok_or_else(|| anyhow!("usage: bump <patch|minor|major> | bump --pre <id> | bump --set <version>"))?;
     let cargo_toml = std::path::Path::new("Cargo.toml");
     let pyproject = std::path::Path::new("pyproject.toml");
     let current = read_workspace_version(cargo_toml)?;
@@ -153,20 +141,17 @@ fn bump(args: Vec<String>) -> Result<()> {
             let id = iter.next().ok_or_else(|| anyhow!("--pre requires <id>"))?;
             semver_bump(&current, BumpKind::Pre(id))?
         }
-        "--set" => iter
-            .next()
-            .ok_or_else(|| anyhow!("--set requires <version>"))?,
+        "--set" => iter.next().ok_or_else(|| anyhow!("--set requires <version>"))?,
         other => return Err(anyhow!("unknown bump arg: {other}")),
     };
     println!("{} -> {}", current, next);
     write_workspace_version(cargo_toml, &next)?;
+    write_workspace_deps_versions(cargo_toml, &current, &next)?;
     if pyproject.exists() {
         write_pyproject_version(pyproject, &next)?;
     }
     // Refresh Cargo.lock — `cargo metadata` is enough to rewrite it.
-    let _ = Command::new(env!("CARGO"))
-        .args(["update", "--workspace"])
-        .status();
+    let _ = Command::new(env!("CARGO")).args(["update", "--workspace"]).status();
     println!("RAKKA_NEW_VERSION={next}");
     Ok(())
 }
@@ -220,10 +205,7 @@ fn read_workspace_version(path: &std::path::Path) -> Result<String> {
     let block_start = text
         .find("[workspace.package]")
         .ok_or_else(|| anyhow!("no [workspace.package] block in {}", path.display()))?;
-    let block_end = text[block_start..]
-        .find("\n[")
-        .map(|i| block_start + i)
-        .unwrap_or(text.len());
+    let block_end = text[block_start..].find("\n[").map(|i| block_start + i).unwrap_or(text.len());
     let block = &text[block_start..block_end];
     for line in block.lines() {
         let trimmed = line.trim_start();
@@ -239,23 +221,52 @@ fn read_workspace_version(path: &std::path::Path) -> Result<String> {
 fn write_workspace_version(path: &std::path::Path, version: &str) -> Result<()> {
     let text = std::fs::read_to_string(path)?;
     // Replace the first `version = "..."` after `[workspace.package]`.
-    let block_start = text
-        .find("[workspace.package]")
-        .ok_or_else(|| anyhow!("no [workspace.package] block"))?;
+    let block_start =
+        text.find("[workspace.package]").ok_or_else(|| anyhow!("no [workspace.package] block"))?;
     let after_block = &text[block_start..];
-    let local_idx = after_block
-        .find("version = ")
-        .ok_or_else(|| anyhow!("no version line"))?;
+    let local_idx = after_block.find("version = ").ok_or_else(|| anyhow!("no version line"))?;
     let abs = block_start + local_idx;
-    let line_end = text[abs..]
-        .find('\n')
-        .map(|i| abs + i)
-        .unwrap_or(text.len());
+    let line_end = text[abs..].find('\n').map(|i| abs + i).unwrap_or(text.len());
     let new_line = format!("version = \"{version}\"");
     let mut out = String::with_capacity(text.len() + new_line.len());
     out.push_str(&text[..abs]);
     out.push_str(&new_line);
     out.push_str(&text[line_end..]);
+    std::fs::write(path, out)?;
+    Ok(())
+}
+
+/// Bumps the `version = "<prev>"` pin on every internal path-dep line
+/// inside `[workspace.dependencies]`. The release pipeline rejects a
+/// crate whose internal deps still resolve to an older version, so this
+/// must move in lockstep with the workspace version.
+fn write_workspace_deps_versions(path: &std::path::Path, prev: &str, next: &str) -> Result<()> {
+    let text = std::fs::read_to_string(path)?;
+    let block_start = match text.find("[workspace.dependencies]") {
+        Some(i) => i,
+        None => return Ok(()),
+    };
+    // The block ends at the next top-level header or EOF.
+    let after = &text[block_start + "[workspace.dependencies]".len()..];
+    let block_len = after.find("\n[").map(|i| i + 1).unwrap_or(after.len());
+    let head = &text[..block_start];
+    let block = &text[block_start..block_start + "[workspace.dependencies]".len() + block_len];
+    let tail = &text[block_start + "[workspace.dependencies]".len() + block_len..];
+
+    let needle = format!("version = \"{prev}\"");
+    let replacement = format!("version = \"{next}\"");
+    let mut new_block = String::with_capacity(block.len());
+    for line in block.split_inclusive('\n') {
+        if line.contains("path = \"crates/") && line.contains(&needle) {
+            new_block.push_str(&line.replace(&needle, &replacement));
+        } else {
+            new_block.push_str(line);
+        }
+    }
+    let mut out = String::with_capacity(text.len());
+    out.push_str(head);
+    out.push_str(&new_block);
+    out.push_str(tail);
     std::fs::write(path, out)?;
     Ok(())
 }
@@ -301,8 +312,7 @@ fn soak(args: Vec<String>) -> Result<()> {
             other => return Err(anyhow!("unknown soak flag: {other}")),
         }
     }
-    let deadline = std::time::Instant::now()
-        + std::time::Duration::from_secs_f64(hours * 3600.0);
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs_f64(hours * 3600.0);
     let mut iteration = 0u32;
     let mut failures = 0u32;
     println!("==> soak: running cargo test --workspace for {hours} hour(s)");
@@ -319,10 +329,7 @@ fn soak(args: Vec<String>) -> Result<()> {
             println!("[iter {iteration}] ok");
         }
     }
-    println!(
-        "soak: {iteration} iterations, {failures} failure(s) over {:.2}h",
-        hours
-    );
+    println!("soak: {iteration} iterations, {failures} failure(s) over {:.2}h", hours);
     if failures > 0 {
         return Err(anyhow!("{failures} soak iterations failed"));
     }
@@ -336,15 +343,15 @@ fn verify() -> Result<()> {
     let steps: Vec<(&str, &[&str])> = vec![
         ("cargo build --workspace", &["build", "--workspace"]),
         ("cargo test --workspace --quiet", &["test", "--workspace", "--quiet"]),
-        ("cargo clippy --workspace --all-targets -- -D warnings",
-         &["clippy", "--workspace", "--all-targets", "--", "-D", "warnings"]),
+        (
+            "cargo clippy --workspace --all-targets -- -D warnings",
+            &["clippy", "--workspace", "--all-targets", "--", "-D", "warnings"],
+        ),
     ];
     for (label, args) in &steps {
         println!("==> {label}");
-        let status = Command::new(cargo)
-            .args(args.iter())
-            .status()
-            .with_context(|| format!("spawning `{label}`"))?;
+        let status =
+            Command::new(cargo).args(args.iter()).status().with_context(|| format!("spawning `{label}`"))?;
         if !status.success() {
             return Err(anyhow!("{label} failed: {status}"));
         }
@@ -467,9 +474,9 @@ fn audit(args: Vec<String>) -> Result<()> {
             "--" => continue,
             "--check" => check_mode = true,
             "--json" => {
-                json_out = Some(PathBuf::from(iter.next().ok_or_else(|| {
-                    anyhow!("--json requires a path argument")
-                })?));
+                json_out = Some(PathBuf::from(
+                    iter.next().ok_or_else(|| anyhow!("--json requires a path argument"))?,
+                ));
             }
             other => return Err(anyhow!("unknown audit flag: {other}")),
         }
@@ -477,9 +484,7 @@ fn audit(args: Vec<String>) -> Result<()> {
 
     let crates_dir = Path::new("crates");
     if !crates_dir.is_dir() {
-        return Err(anyhow!(
-            "no crates/ directory found (cwd must be workspace root)"
-        ));
+        return Err(anyhow!("no crates/ directory found (cwd must be workspace root)"));
     }
 
     let mut per_crate: BTreeMap<String, CrateCounts> = BTreeMap::new();
@@ -522,21 +527,42 @@ fn audit(args: Vec<String>) -> Result<()> {
             check_metric(&mut regressions, name, "panic_macro", counts.panic_macro, baseline.panic_macro);
             check_metric(&mut regressions, name, "todo_macro", counts.todo_macro, baseline.todo_macro);
             check_metric(
-                &mut regressions, name, "unimplemented_macro",
-                counts.unimplemented_macro, baseline.unimplemented_macro,
+                &mut regressions,
+                name,
+                "unimplemented_macro",
+                counts.unimplemented_macro,
+                baseline.unimplemented_macro,
             );
             check_metric(&mut regressions, name, "box_dyn_any", counts.box_dyn_any, baseline.box_dyn_any);
             check_metric(
-                &mut regressions, name, "placeholder_marker",
-                counts.placeholder_marker, baseline.placeholder_marker,
+                &mut regressions,
+                name,
+                "placeholder_marker",
+                counts.placeholder_marker,
+                baseline.placeholder_marker,
             );
             check_metric(&mut regressions, name, "stub_comment", counts.stub_comment, baseline.stub_comment);
             check_metric(
-                &mut regressions, name, "placeholder_comment",
-                counts.placeholder_comment, baseline.placeholder_comment,
+                &mut regressions,
+                name,
+                "placeholder_comment",
+                counts.placeholder_comment,
+                baseline.placeholder_comment,
             );
-            check_metric(&mut regressions, name, "println_macro", counts.println_macro, baseline.println_macro);
-            check_metric(&mut regressions, name, "eprintln_macro", counts.eprintln_macro, baseline.eprintln_macro);
+            check_metric(
+                &mut regressions,
+                name,
+                "println_macro",
+                counts.println_macro,
+                baseline.println_macro,
+            );
+            check_metric(
+                &mut regressions,
+                name,
+                "eprintln_macro",
+                counts.eprintln_macro,
+                baseline.eprintln_macro,
+            );
             check_metric(&mut regressions, name, "dbg_macro", counts.dbg_macro, baseline.dbg_macro);
         }
         if !regressions.is_empty() {
@@ -554,10 +580,7 @@ fn audit(args: Vec<String>) -> Result<()> {
 
 fn check_metric(out: &mut Vec<String>, crate_name: &str, metric: &str, current: usize, baseline: usize) {
     if current > baseline {
-        out.push(format!(
-            "{crate_name}: {metric} {baseline} -> {current} (+{})",
-            current - baseline
-        ));
+        out.push(format!("{crate_name}: {metric} {baseline} -> {current} (+{})", current - baseline));
     }
 }
 
@@ -716,28 +739,64 @@ fn contains_macro(line: &str, needle: &str) -> bool {
 
 fn print_audit_table(per_crate: &BTreeMap<String, CrateCounts>, total: &CrateCounts) {
     let header = [
-        "crate", "files", "LOC", "unwrap", "expect", "panic", "todo", "unimpl", "Box<Any", "PHldr",
-        "stub//", "phldr//", "println", "eprint", "dbg",
+        "crate", "files", "LOC", "unwrap", "expect", "panic", "todo", "unimpl", "Box<Any", "PHldr", "stub//",
+        "phldr//", "println", "eprint", "dbg",
     ];
     println!(
         "{:<32} {:>5} {:>6} {:>6} {:>6} {:>5} {:>4} {:>6} {:>7} {:>5} {:>6} {:>7} {:>7} {:>6} {:>4}",
-        header[0], header[1], header[2], header[3], header[4], header[5], header[6],
-        header[7], header[8], header[9], header[10], header[11], header[12], header[13], header[14],
+        header[0],
+        header[1],
+        header[2],
+        header[3],
+        header[4],
+        header[5],
+        header[6],
+        header[7],
+        header[8],
+        header[9],
+        header[10],
+        header[11],
+        header[12],
+        header[13],
+        header[14],
     );
     for (name, c) in per_crate {
         println!(
             "{:<32} {:>5} {:>6} {:>6} {:>6} {:>5} {:>4} {:>6} {:>7} {:>5} {:>6} {:>7} {:>7} {:>6} {:>4}",
-            name, c.files, c.loc, c.unwrap_used, c.expect_used, c.panic_macro,
-            c.todo_macro, c.unimplemented_macro, c.box_dyn_any, c.placeholder_marker,
-            c.stub_comment, c.placeholder_comment, c.println_macro, c.eprintln_macro, c.dbg_macro,
+            name,
+            c.files,
+            c.loc,
+            c.unwrap_used,
+            c.expect_used,
+            c.panic_macro,
+            c.todo_macro,
+            c.unimplemented_macro,
+            c.box_dyn_any,
+            c.placeholder_marker,
+            c.stub_comment,
+            c.placeholder_comment,
+            c.println_macro,
+            c.eprintln_macro,
+            c.dbg_macro,
         );
     }
     println!(
         "{:<32} {:>5} {:>6} {:>6} {:>6} {:>5} {:>4} {:>6} {:>7} {:>5} {:>6} {:>7} {:>7} {:>6} {:>4}",
-        "TOTAL", total.files, total.loc, total.unwrap_used, total.expect_used,
-        total.panic_macro, total.todo_macro, total.unimplemented_macro, total.box_dyn_any,
-        total.placeholder_marker, total.stub_comment, total.placeholder_comment,
-        total.println_macro, total.eprintln_macro, total.dbg_macro,
+        "TOTAL",
+        total.files,
+        total.loc,
+        total.unwrap_used,
+        total.expect_used,
+        total.panic_macro,
+        total.todo_macro,
+        total.unimplemented_macro,
+        total.box_dyn_any,
+        total.placeholder_marker,
+        total.stub_comment,
+        total.placeholder_comment,
+        total.println_macro,
+        total.eprintln_macro,
+        total.dbg_macro,
     );
 }
 

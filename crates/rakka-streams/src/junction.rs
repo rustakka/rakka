@@ -10,9 +10,7 @@ use crate::source::Source;
 
 /// akka.net: `Merge<T>` (interleaving, order not guaranteed).
 pub fn merge<T: Send + 'static>(a: Source<T>, b: Source<T>) -> Source<T> {
-    Source {
-        inner: futures::stream::select(a.into_boxed(), b.into_boxed()).boxed(),
-    }
+    Source { inner: futures::stream::select(a.into_boxed(), b.into_boxed()).boxed() }
 }
 
 /// akka.net: `Merge(sources)` with arbitrary fan-in.
@@ -48,9 +46,7 @@ where
 
 /// akka.net: `ZipWithIndex`.
 pub fn zip_with_index<T: Send + 'static>(source: Source<T>) -> Source<(u64, T)> {
-    Source {
-        inner: source.into_boxed().enumerate().map(|(i, v)| (i as u64, v)).boxed(),
-    }
+    Source { inner: source.into_boxed().enumerate().map(|(i, v)| (i as u64, v)).boxed() }
 }
 
 /// akka.net: `Broadcast(2)` — cheap fan-out into two independent sources
@@ -87,11 +83,9 @@ mod tests {
 
     #[tokio::test]
     async fn zip_pairs_sources() {
-        let out = Sink::collect(zip(
-            Source::from_iter(vec!["a", "b", "c"]),
-            Source::from_iter(vec![1, 2, 3]),
-        ))
-        .await;
+        let out =
+            Sink::collect(zip(Source::from_iter(vec!["a", "b", "c"]), Source::from_iter(vec![1, 2, 3])))
+                .await;
         assert_eq!(out, vec![("a", 1), ("b", 2), ("c", 3)]);
     }
 

@@ -25,9 +25,7 @@ mod tests {
     fn json_roundtrip() {
         let reg = SerializationRegistry::default();
         reg.register(JsonSerializer::<Greeting>::new(1));
-        let out = reg
-            .to_bytes(&Greeting { who: "world".into() })
-            .expect("serialize");
+        let out = reg.to_bytes(&Greeting { who: "world".into() }).expect("serialize");
         let back: Greeting = reg.from_bytes(&out).expect("deserialize");
         assert_eq!(back.who, "world");
     }

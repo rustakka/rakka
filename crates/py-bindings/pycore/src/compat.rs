@@ -19,13 +19,9 @@ pub struct CompatFlags {
 static REGISTRY: Lazy<RwLock<HashMap<String, CompatFlags>>> = Lazy::new(|| {
     let mut m = HashMap::new();
     // Baseline, conservative defaults — operators override at import time.
-    let yes =
-        |notes: &str| CompatFlags { subinterpreter_safe: true, nogil_safe: true, notes: notes.into() };
-    let sub_only = |notes: &str| CompatFlags {
-        subinterpreter_safe: true,
-        nogil_safe: false,
-        notes: notes.into(),
-    };
+    let yes = |notes: &str| CompatFlags { subinterpreter_safe: true, nogil_safe: true, notes: notes.into() };
+    let sub_only =
+        |notes: &str| CompatFlags { subinterpreter_safe: true, nogil_safe: false, notes: notes.into() };
     let unknown =
         |notes: &str| CompatFlags { subinterpreter_safe: false, nogil_safe: false, notes: notes.into() };
 

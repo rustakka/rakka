@@ -20,9 +20,7 @@ pub struct RemoteActorRefImpl {
 
 impl std::fmt::Debug for RemoteActorRefImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("RemoteActorRefImpl")
-            .field("path", &self.path.to_string())
-            .finish()
+        f.debug_struct("RemoteActorRefImpl").field("path", &self.path.to_string()).finish()
     }
 }
 

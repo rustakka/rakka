@@ -42,11 +42,7 @@ fn config_from_hocon_file_resolves_includes() {
     let inc_path = dir.join("inc.conf");
     fs::write(&inc_path, "akka.actor.provider = \"remote\"").unwrap();
     let main_path = dir.join("main.conf");
-    fs::write(
-        &main_path,
-        format!("include \"{}\"\nakka.actor.dispatcher = \"io\"\n", "inc.conf"),
-    )
-    .unwrap();
+    fs::write(&main_path, format!("include \"{}\"\nakka.actor.dispatcher = \"io\"\n", "inc.conf")).unwrap();
 
     let cfg = Config::from_hocon_file(&main_path).expect("parse main + include");
     assert_eq!(cfg.get_string("akka.actor.provider").unwrap(), "remote");
@@ -63,10 +59,7 @@ fn tempdir() -> std::path::PathBuf {
     let mut p = std::env::temp_dir();
     let suffix = format!(
         "rakka-hocon-{}",
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
+        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
     );
     p.push(suffix);
     fs::create_dir_all(&p).unwrap();

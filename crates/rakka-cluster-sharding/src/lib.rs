@@ -13,9 +13,7 @@ mod remember_entities;
 mod shard;
 mod shard_region;
 
-pub use allocation::{
-    LeastShardAllocationStrategy, PinnedAllocationStrategy, ShardAllocationStrategy,
-};
+pub use allocation::{LeastShardAllocationStrategy, PinnedAllocationStrategy, ShardAllocationStrategy};
 pub use coordinator::ShardCoordinator;
 pub use ddata_coordinator::DDataShardCoordinator;
 pub use entity_ref::EntityRef;
@@ -28,7 +26,7 @@ pub use persistent_coordinator::{
 };
 pub use rebalance::{RebalanceAction, RebalanceRunner};
 pub use remember_entities::{
-    InMemoryRememberStore, RememberError, RememberEntitiesStore, RememberedEntities,
+    InMemoryRememberStore, RememberEntitiesStore, RememberError, RememberedEntities,
 };
 pub use shard::Shard;
 pub use shard_region::ShardRegion;

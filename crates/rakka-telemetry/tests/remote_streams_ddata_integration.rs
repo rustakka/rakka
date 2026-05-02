@@ -32,26 +32,17 @@ async fn remote_probe_refreshes_from_endpoint_manager() {
     use rakka_remote::{RemoteSettings, RemoteSystem};
     use rakka_telemetry::remote::refresh_from_endpoint_manager;
 
-    let sys_a = rakka_core::actor::ActorSystem::create("A", rakka_config::Config::reference())
-        .await
-        .unwrap();
-    let sys_b = rakka_core::actor::ActorSystem::create("B", rakka_config::Config::reference())
-        .await
-        .unwrap();
-    let remote_a = RemoteSystem::start(sys_a, "127.0.0.1:0".parse().unwrap(), RemoteSettings::default())
-        .await
-        .unwrap();
-    let remote_b = RemoteSystem::start(sys_b, "127.0.0.1:0".parse().unwrap(), RemoteSettings::default())
-        .await
-        .unwrap();
+    let sys_a = rakka_core::actor::ActorSystem::create("A", rakka_config::Config::reference()).await.unwrap();
+    let sys_b = rakka_core::actor::ActorSystem::create("B", rakka_config::Config::reference()).await.unwrap();
+    let remote_a =
+        RemoteSystem::start(sys_a, "127.0.0.1:0".parse().unwrap(), RemoteSettings::default()).await.unwrap();
+    let remote_b =
+        RemoteSystem::start(sys_b, "127.0.0.1:0".parse().unwrap(), RemoteSettings::default()).await.unwrap();
     remote_a.register_bincode::<u32>();
     remote_b.register_bincode::<u32>();
 
     // Trigger an association A → B so the EndpointManager learns about B.
-    let _ = remote_a
-        .endpoint_manager()
-        .endpoint_for(&remote_b.local_address)
-        .await;
+    let _ = remote_a.endpoint_manager().endpoint_for(&remote_b.local_address).await;
     tokio::time::sleep(std::time::Duration::from_millis(150)).await;
 
     let probe = RemoteProbe::new(TelemetryBus::new(8));

@@ -4,12 +4,12 @@
 use std::env;
 
 use rakka_persistence_cassandra::{CassandraConfig, CassandraJournal, CassandraSnapshotStore};
-use rakka_persistence_tck::{journal_suite, snapshot_round_trip, snapshot_suite};
+use rakka_persistence_tck::{
+    journal_concurrent_suite, journal_extended_suite, journal_suite, snapshot_round_trip, snapshot_suite,
+};
 
 fn it_nodes() -> Option<Vec<String>> {
-    env::var("RAKKA_IT_CASSANDRA_NODES")
-        .ok()
-        .map(|v| v.split(',').map(|s| s.trim().to_string()).collect())
+    env::var("RAKKA_IT_CASSANDRA_NODES").ok().map(|v| v.split(',').map(|s| s.trim().to_string()).collect())
 }
 
 fn unique_keyspace() -> String {
@@ -26,7 +26,9 @@ async fn cassandra_journal_passes_tck() {
     };
     let cfg = CassandraConfig::new(nodes, unique_keyspace()).with_partition_size(100);
     let j = CassandraJournal::connect(cfg).await.expect("cassandra journal");
-    journal_suite(j, "cassandra-j").await;
+    journal_suite(j.clone(), "cassandra-j").await;
+    journal_extended_suite(j.clone(), "cassandra-j").await;
+    journal_concurrent_suite(j, "cassandra-j").await;
 }
 
 #[tokio::test]

@@ -42,9 +42,7 @@ impl ShardCoordinator {
         // Snapshot current counts.
         let counts = self.region_shard_counts();
         let chosen = strategy.allocate_shard(shard_id, &counts)?;
-        self.allocation
-            .write()
-            .insert(shard_id.to_string(), chosen.clone());
+        self.allocation.write().insert(shard_id.to_string(), chosen.clone());
         Some(chosen)
     }
 
@@ -52,10 +50,7 @@ impl ShardCoordinator {
     /// shard ids the caller should hand off (the caller picks the
     /// destination via `allocate_with_strategy` after each handoff
     /// completes).
-    pub fn rebalance_with_strategy<S: ShardAllocationStrategy>(
-        &self,
-        strategy: &S,
-    ) -> Vec<String> {
+    pub fn rebalance_with_strategy<S: ShardAllocationStrategy>(&self, strategy: &S) -> Vec<String> {
         let allocations = self.allocation.read().clone();
         let counts = region_shard_counts(&allocations);
         strategy.rebalance(&allocations, &counts)
@@ -84,7 +79,7 @@ impl ShardCoordinator {
     /// want to include known-but-empty regions should merge in their
     /// own region list.
     pub fn region_shard_counts(&self) -> HashMap<String, usize> {
-        region_shard_counts(&*self.allocation.read())
+        region_shard_counts(&self.allocation.read())
     }
 }
 
@@ -131,10 +126,7 @@ mod tests {
     fn pinned_strategy_creates_target_region_immediately() {
         let c = ShardCoordinator::new();
         let s = PinnedAllocationStrategy { region: "primary".into() };
-        assert_eq!(
-            c.allocate_with_strategy("s1", &s),
-            Some("primary".to_string())
-        );
+        assert_eq!(c.allocate_with_strategy("s1", &s), Some("primary".to_string()));
         assert_eq!(c.region_for("s1"), Some("primary".to_string()));
     }
 
@@ -145,10 +137,7 @@ mod tests {
             c.allocate(s, "r1");
         }
         c.allocate("s6", "r2");
-        let strat = LeastShardAllocationStrategy {
-            max_simultaneous_rebalance: 2,
-            rebalance_threshold: 2,
-        };
+        let strat = LeastShardAllocationStrategy { max_simultaneous_rebalance: 2, rebalance_threshold: 2 };
         let to_move = c.rebalance_with_strategy(&strat);
         assert_eq!(to_move.len(), 2);
         for shard in &to_move {

@@ -42,11 +42,7 @@ struct RemoteWatcherInner {
 }
 
 impl RemoteWatcher {
-    pub fn new(
-        endpoint_manager: EndpointManager,
-        registry: SerializerRegistry,
-        local_uid: u64,
-    ) -> Arc<Self> {
+    pub fn new(endpoint_manager: EndpointManager, registry: SerializerRegistry, local_uid: u64) -> Arc<Self> {
         let detectors = endpoint_manager.failure_detectors();
         Arc::new(Self {
             inner: Arc::new(RemoteWatcherInner {
@@ -78,36 +74,23 @@ impl RemoteWatcher {
             self.inner.registry.clone(),
             self.inner.local_uid,
         );
-        remote_ref.tell_system(RemoteSystemMsg::Watch {
-            watcher: watcher.path().clone(),
-        });
+        remote_ref.tell_system(RemoteSystemMsg::Watch { watcher: watcher.path().clone() });
         self.inner.watches.write().push(Watch { watcher, watchee });
         self.start_supervisor();
         Ok(())
     }
 
     pub async fn unwatch(self: &Arc<Self>, watcher: &UntypedActorRef, watchee: &ActorPath) {
-        self.inner
-            .watches
-            .write()
-            .retain(|w| !(w.watcher.path() == watcher.path() && &w.watchee == watchee));
+        self.inner.watches.write().retain(|w| !(w.watcher.path() == watcher.path() && &w.watchee == watchee));
         let target = watchee.address.clone();
-        if self
-            .inner
-            .endpoint_manager
-            .endpoint_for(&target)
-            .await
-            .is_ok()
-        {
+        if self.inner.endpoint_manager.endpoint_for(&target).await.is_ok() {
             let remote_ref = RemoteActorRefImpl::new(
                 watchee.clone(),
                 self.inner.endpoint_manager.clone(),
                 self.inner.registry.clone(),
                 self.inner.local_uid,
             );
-            remote_ref.tell_system(RemoteSystemMsg::Unwatch {
-                watcher: watcher.path().clone(),
-            });
+            remote_ref.tell_system(RemoteSystemMsg::Unwatch { watcher: watcher.path().clone() });
         }
     }
 
@@ -200,9 +183,7 @@ impl RemoteRef for RemoteWatcherProxy {
     }
 
     fn tell_system(&self, msg: RemoteSystemMsg) {
-        let (Some(mgr), Some(reg)) =
-            (self.endpoint_manager.clone(), self.registry.clone())
-        else {
+        let (Some(mgr), Some(reg)) = (self.endpoint_manager.clone(), self.registry.clone()) else {
             return;
         };
         let target = self.path.clone();

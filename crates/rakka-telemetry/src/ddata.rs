@@ -41,8 +41,7 @@ impl DDataProbe {
     /// Refresh key set from a live replicator. Feature-gated.
     #[cfg(feature = "ddata")]
     pub fn refresh_from(&self, replicator: &rakka_distributed_data::Replicator) {
-        let current: std::collections::HashSet<String> =
-            self.keys.iter().map(|k| k.clone()).collect();
+        let current: std::collections::HashSet<String> = self.keys.iter().map(|k| k.clone()).collect();
         let fresh: std::collections::HashSet<String> = replicator.keys().into_iter().collect();
         for gone in current.difference(&fresh) {
             self.keys.remove(gone);

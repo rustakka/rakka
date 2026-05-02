@@ -12,11 +12,7 @@ pub async fn ensure_table(client: &Client, cfg: &DynamoConfig) -> Result<(), Jou
     if !cfg.auto_create_table {
         return Ok(());
     }
-    let existing = client
-        .list_tables()
-        .send()
-        .await
-        .map_err(|e| JournalError::backend(format!("{e:?}")))?;
+    let existing = client.list_tables().send().await.map_err(|e| JournalError::backend(format!("{e:?}")))?;
     if existing.table_names().iter().any(|n| n == &cfg.table_name) {
         return Ok(());
     }

@@ -104,7 +104,18 @@ jobs:
           else
             cargo run -q -p xtask -- bump "$kind"
           fi
-          new_ver=$(awk '/^\[workspace.package\]/{f=1} f && /^version *=/ {gsub(/.*"|".*/,""); print; exit}' Cargo.toml)
+          new_ver=$(awk '
+            /^\[workspace\.package\]/ { f=1; next }
+            f && /^\[/ { exit }
+            f && /^version[[:space:]]*=/ {
+              match($0, /"[^"]+"/)
+              print substr($0, RSTART+1, RLENGTH-2)
+              exit
+            }' Cargo.toml)
+          if [ -z "$new_ver" ]; then
+            echo "::error::failed to extract bumped version from Cargo.toml"
+            exit 1
+          fi
           echo "version=$new_ver" >> "$GITHUB_OUTPUT"
 
       - name: Commit + tag

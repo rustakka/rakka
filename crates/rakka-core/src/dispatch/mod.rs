@@ -4,5 +4,8 @@ pub mod dispatcher;
 pub mod mailbox;
 pub mod message_queues;
 
-pub use dispatcher::{DefaultDispatcher, Dispatcher, DispatcherHandle, PinnedDispatcher};
+pub use dispatcher::{
+    CallingThreadDispatcher, DefaultDispatcher, Dispatcher, DispatcherHandle, PinnedDispatcher,
+    ThreadPoolDispatcher,
+};
 pub use mailbox::{Mailbox, MailboxConfig, MailboxKind};

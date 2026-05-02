@@ -7,12 +7,13 @@ use dashmap::DashMap;
 use parking_lot::Mutex;
 
 type SubFn = Arc<dyn Fn(&(dyn Any + Send + Sync)) + Send + Sync>;
+type SubMap = Arc<DashMap<TypeId, Mutex<Vec<(u64, SubFn)>>>>;
 
 #[derive(Clone)]
 pub struct Subscription {
     pub id: u64,
     type_id: TypeId,
-    map: Arc<DashMap<TypeId, Mutex<Vec<(u64, SubFn)>>>>,
+    map: SubMap,
 }
 
 impl Subscription {
@@ -25,7 +26,7 @@ impl Subscription {
 
 #[derive(Default)]
 pub struct EventStream {
-    map: Arc<DashMap<TypeId, Mutex<Vec<(u64, SubFn)>>>>,
+    map: SubMap,
     next_id: std::sync::atomic::AtomicU64,
 }
 
@@ -34,10 +35,7 @@ impl EventStream {
         Self::default()
     }
 
-    pub fn subscribe<T: Any + Send + Sync>(
-        &self,
-        f: impl Fn(&T) + Send + Sync + 'static,
-    ) -> Subscription {
+    pub fn subscribe<T: Any + Send + Sync>(&self, f: impl Fn(&T) + Send + Sync + 'static) -> Subscription {
         let id = self.next_id.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let type_id = TypeId::of::<T>();
         let cb: SubFn = Arc::new(move |any: &(dyn Any + Send + Sync)| {
@@ -53,11 +51,7 @@ impl EventStream {
     /// `pred(t)` are delivered to `f`. Phase 3.5 of
     /// `docs/full-port-plan.md`. Akka.NET's
     /// `EventStream.Subscribe(IActorRef, predicate)` analog.
-    pub fn subscribe_filtered<T, P>(
-        &self,
-        pred: P,
-        f: impl Fn(&T) + Send + Sync + 'static,
-    ) -> Subscription
+    pub fn subscribe_filtered<T, P>(&self, pred: P, f: impl Fn(&T) + Send + Sync + 'static) -> Subscription
     where
         T: Any + Send + Sync,
         P: Fn(&T) -> bool + Send + Sync + 'static,
@@ -77,10 +71,7 @@ impl EventStream {
 
     /// Number of subscribers registered for events of type `T`.
     pub fn subscriber_count<T: Any>(&self) -> usize {
-        self.map
-            .get(&TypeId::of::<T>())
-            .map(|e| e.lock().len())
-            .unwrap_or(0)
+        self.map.get(&TypeId::of::<T>()).map(|e| e.lock().len()).unwrap_or(0)
     }
 
     pub fn publish<T: Any + Send + Sync>(&self, value: T) {
@@ -124,7 +115,9 @@ mod tests {
         let c2 = count.clone();
         let _sub = bus.subscribe_filtered(
             |v: &u32| *v > 5,
-            move |_| { c2.fetch_add(1, Ordering::SeqCst); },
+            move |_| {
+                c2.fetch_add(1, Ordering::SeqCst);
+            },
         );
         bus.publish(1u32);
         bus.publish(7u32);

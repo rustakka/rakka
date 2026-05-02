@@ -63,15 +63,8 @@ fn parse_exporters(dict: Option<&Bound<'_, PyDict>>) -> PyResult<ExportersConfig
             out.prometheus = Some(PrometheusConfig { enabled, ..Default::default() });
         } else {
             let sub: &Bound<'_, PyDict> = prom.downcast()?;
-            let enabled = sub
-                .get_item("enabled")?
-                .map(|v| v.extract::<bool>())
-                .transpose()?
-                .unwrap_or(true);
-            let namespace = sub
-                .get_item("namespace")?
-                .map(|v| v.extract::<String>())
-                .transpose()?;
+            let enabled = sub.get_item("enabled")?.map(|v| v.extract::<bool>()).transpose()?.unwrap_or(true);
+            let namespace = sub.get_item("namespace")?.map(|v| v.extract::<String>()).transpose()?;
             out.prometheus = Some(PrometheusConfig { enabled, namespace });
         }
     }
@@ -79,29 +72,17 @@ fn parse_exporters(dict: Option<&Bound<'_, PyDict>>) -> PyResult<ExportersConfig
         let sub: &Bound<'_, PyDict> = otlp.downcast()?;
         let endpoint = sub
             .get_item("endpoint")?
-            .ok_or_else(|| pyo3::exceptions::PyValueError::new_err(
-                "exporters.otlp requires `endpoint`",
-            ))?
+            .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("exporters.otlp requires `endpoint`"))?
             .extract::<String>()?;
         let protocol = sub
             .get_item("protocol")?
             .map(|v| v.extract::<String>())
             .transpose()?
             .unwrap_or_else(|| "grpc".into());
-        let service_name = sub
-            .get_item("service_name")?
-            .map(|v| v.extract::<String>())
-            .transpose()?;
-        let interval_secs = sub
-            .get_item("interval_secs")?
-            .map(|v| v.extract::<u64>())
-            .transpose()?
-            .unwrap_or(30);
-        let stdout = sub
-            .get_item("stdout")?
-            .map(|v| v.extract::<bool>())
-            .transpose()?
-            .unwrap_or(false);
+        let service_name = sub.get_item("service_name")?.map(|v| v.extract::<String>()).transpose()?;
+        let interval_secs =
+            sub.get_item("interval_secs")?.map(|v| v.extract::<u64>()).transpose()?.unwrap_or(30);
+        let stdout = sub.get_item("stdout")?.map(|v| v.extract::<bool>()).transpose()?.unwrap_or(false);
         let headers: HashMap<String, String> = sub
             .get_item("headers")?
             .map(|v| v.extract::<HashMap<String, String>>())
@@ -142,11 +123,9 @@ fn serve(
     peers: Option<Vec<String>>,
     exporters: Option<Py<PyDict>>,
 ) -> PyResult<Py<PyDashboardHandle>> {
-    let bind_addr: std::net::SocketAddr = bind
-        .parse()
-        .map_err(|e: std::net::AddrParseError| {
-            pyo3::exceptions::PyValueError::new_err(format!("invalid bind address {bind:?}: {e}"))
-        })?;
+    let bind_addr: std::net::SocketAddr = bind.parse().map_err(|e: std::net::AddrParseError| {
+        pyo3::exceptions::PyValueError::new_err(format!("invalid bind address {bind:?}: {e}"))
+    })?;
     let mode = match peers {
         None => DashboardMode::Local,
         Some(ps) if ps.is_empty() => DashboardMode::Local,
@@ -157,25 +136,13 @@ fn serve(
         parse_exporters(bound)?
     };
     let telemetry = TelemetryExtension::new(node.clone(), 1024);
-    let cfg = DashboardConfig {
-        bind: bind_addr,
-        mode,
-        ws_channel_capacity: 1024,
-        exporters: exporters_cfg,
-    };
+    let cfg = DashboardConfig { bind: bind_addr, mode, ws_channel_capacity: 1024, exporters: exporters_cfg };
     let server = DashboardServer::new(telemetry, cfg);
     let rt = runtime();
-    let handle = py
-        .allow_threads(|| rt.block_on(async move { server.start().await }))
-        .map_err(errors::map)?;
+    let handle =
+        py.allow_threads(|| rt.block_on(async move { server.start().await })).map_err(errors::map)?;
     let bound = handle.bound_addr.to_string();
-    Py::new(
-        py,
-        PyDashboardHandle {
-            bound_addr: bound,
-            inner: Some(handle),
-        },
-    )
+    Py::new(py, PyDashboardHandle { bound_addr: bound, inner: Some(handle) })
 }
 
 pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {

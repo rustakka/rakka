@@ -10,8 +10,7 @@ use std::sync::Arc;
 
 use parking_lot::RwLock;
 use prometheus::{
-    Encoder, Gauge, GaugeVec, IntCounter, IntCounterVec, IntGauge, IntGaugeVec, Opts, Registry,
-    TextEncoder,
+    Encoder, Gauge, GaugeVec, IntCounter, IntCounterVec, IntGauge, IntGaugeVec, Opts, Registry, TextEncoder,
 };
 
 use super::Exporter;
@@ -66,7 +65,10 @@ impl PrometheusExporter {
 
     /// Build a new exporter with an optional metric namespace (e.g.
     /// `"rakka"` produces `rakka_actors_spawned_total`).
-    pub fn with_namespace(node: impl Into<String>, namespace: Option<&str>) -> Result<Self, prometheus::Error> {
+    pub fn with_namespace(
+        node: impl Into<String>,
+        namespace: Option<&str>,
+    ) -> Result<Self, prometheus::Error> {
         let registry = Registry::new();
         let ns = namespace.unwrap_or("rakka");
         let node = node.into();
@@ -82,9 +84,7 @@ impl PrometheusExporter {
                 .const_label("node", &node),
         )?;
         let actors_live = IntGauge::with_opts(
-            Opts::new("actors_live", "Currently-live actor count")
-                .namespace(ns)
-                .const_label("node", &node),
+            Opts::new("actors_live", "Currently-live actor count").namespace(ns).const_label("node", &node),
         )?;
         let mailbox_depth = IntGaugeVec::new(
             Opts::new("mailbox_depth", "Last-sampled mailbox depth per actor")
@@ -117,9 +117,7 @@ impl PrometheusExporter {
         )?;
 
         let sharding_events_total = IntCounterVec::new(
-            Opts::new("sharding_events_total", "Sharding events")
-                .namespace(ns)
-                .const_label("node", &node),
+            Opts::new("sharding_events_total", "Sharding events").namespace(ns).const_label("node", &node),
             &["region", "event"],
         )?;
         let sharding_allocations = IntGaugeVec::new(
@@ -130,21 +128,15 @@ impl PrometheusExporter {
         )?;
 
         let persistence_events_written_total = IntCounterVec::new(
-            Opts::new(
-                "persistence_events_written_total",
-                "Events written to the journal",
-            )
-            .namespace(ns)
-            .const_label("node", &node),
+            Opts::new("persistence_events_written_total", "Events written to the journal")
+                .namespace(ns)
+                .const_label("node", &node),
             &["journal"],
         )?;
         let persistence_last_seq = IntGaugeVec::new(
-            Opts::new(
-                "persistence_last_sequence_nr",
-                "Highest observed sequence_nr per journal",
-            )
-            .namespace(ns)
-            .const_label("node", &node),
+            Opts::new("persistence_last_sequence_nr", "Highest observed sequence_nr per journal")
+                .namespace(ns)
+                .const_label("node", &node),
             &["journal"],
         )?;
 
@@ -154,12 +146,9 @@ impl PrometheusExporter {
                 .const_label("node", &node),
         )?;
         let remote_association_events_total = IntCounterVec::new(
-            Opts::new(
-                "remote_association_events_total",
-                "Remote association state changes",
-            )
-            .namespace(ns)
-            .const_label("node", &node),
+            Opts::new("remote_association_events_total", "Remote association state changes")
+                .namespace(ns)
+                .const_label("node", &node),
             &["state"],
         )?;
         let remote_bytes = GaugeVec::new(
@@ -315,20 +304,11 @@ impl Exporter for PrometheusExporter {
                     .inc_by(diff.became_reachable.len() as u64);
             }
             TelemetryEvent::ShardingChanged(ev) => {
-                self.inner
-                    .sharding_events_total
-                    .with_label_values(&[&ev.region_id, &ev.event])
-                    .inc();
+                self.inner.sharding_events_total.with_label_values(&[&ev.region_id, &ev.event]).inc();
             }
             TelemetryEvent::JournalWrite(info) => {
-                self.inner
-                    .persistence_events_written_total
-                    .with_label_values(&[&info.journal])
-                    .inc();
-                if let Ok(g) = self
-                    .inner
-                    .persistence_last_seq
-                    .get_metric_with_label_values(&[&info.journal])
+                self.inner.persistence_events_written_total.with_label_values(&[&info.journal]).inc();
+                if let Ok(g) = self.inner.persistence_last_seq.get_metric_with_label_values(&[&info.journal])
                 {
                     if info.sequence_nr as i64 > g.get() {
                         g.set(info.sequence_nr as i64);
@@ -336,21 +316,14 @@ impl Exporter for PrometheusExporter {
                 }
             }
             TelemetryEvent::RemoteAssociation(info) => {
-                self.inner
-                    .remote_association_events_total
-                    .with_label_values(&[&info.state])
-                    .inc();
-                if let Ok(g) = self
-                    .inner
-                    .remote_bytes
-                    .get_metric_with_label_values(&[&info.remote_address, "inbound"])
+                self.inner.remote_association_events_total.with_label_values(&[&info.state]).inc();
+                if let Ok(g) =
+                    self.inner.remote_bytes.get_metric_with_label_values(&[&info.remote_address, "inbound"])
                 {
                     g.set(info.inbound_bytes as f64);
                 }
-                if let Ok(g) = self
-                    .inner
-                    .remote_bytes
-                    .get_metric_with_label_values(&[&info.remote_address, "outbound"])
+                if let Ok(g) =
+                    self.inner.remote_bytes.get_metric_with_label_values(&[&info.remote_address, "outbound"])
                 {
                     g.set(info.outbound_bytes as f64);
                 }
@@ -377,23 +350,14 @@ impl PrometheusExporter {
     /// Seed gauges from a full snapshot. Call after building probes (e.g.
     /// after the dashboard starts) to avoid zero-reads on scrape.
     pub fn seed_from_snapshot(&self, snap: &crate::dto::NodeSnapshot) {
-        self.inner.cluster_members_up.set(
-            snap.cluster
-                .members
-                .iter()
-                .filter(|m| m.status.eq_ignore_ascii_case("up"))
-                .count() as i64,
-        );
         self.inner
-            .cluster_unreachable
-            .set(snap.cluster.unreachable.len() as i64);
+            .cluster_members_up
+            .set(snap.cluster.members.iter().filter(|m| m.status.eq_ignore_ascii_case("up")).count() as i64);
+        self.inner.cluster_unreachable.set(snap.cluster.unreachable.len() as i64);
         self.inner.remote_endpoints.set(snap.remote.associations.len() as i64);
         self.inner.streams_running.set(snap.streams.running_graphs as i64);
         for reg in &snap.sharding.regions {
-            self.inner
-                .sharding_allocations
-                .with_label_values(&[&reg.region_id])
-                .set(reg.shard_count as i64);
+            self.inner.sharding_allocations.with_label_values(&[&reg.region_id]).set(reg.shard_count as i64);
         }
         self.inner.actors_live.set(snap.actors.total as i64);
     }
@@ -414,10 +378,7 @@ mod tests {
             mailbox_depth: 0,
             spawned_at: "now".into(),
         }));
-        exp.on_event(&TelemetryEvent::MailboxSampled {
-            path: "/user/a".into(),
-            depth: 5,
-        });
+        exp.on_event(&TelemetryEvent::MailboxSampled { path: "/user/a".into(), depth: 5 });
         exp.on_event(&TelemetryEvent::DeadLetter(DeadLetterRecord {
             seq: 1,
             recipient: "/user/x".into(),

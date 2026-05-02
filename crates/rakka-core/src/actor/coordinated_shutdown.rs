@@ -25,10 +25,11 @@ pub enum Phase {
 }
 
 type Hook = Arc<dyn Fn() -> BoxFuture<'static, ()> + Send + Sync>;
+type PhaseHooks = BTreeMap<Phase, Vec<(String, Hook)>>;
 
 #[derive(Default, Clone)]
 pub struct CoordinatedShutdown {
-    inner: Arc<Mutex<BTreeMap<Phase, Vec<(String, Hook)>>>>,
+    inner: Arc<Mutex<PhaseHooks>>,
 }
 
 impl CoordinatedShutdown {

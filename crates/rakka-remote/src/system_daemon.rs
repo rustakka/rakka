@@ -18,8 +18,7 @@ use crate::endpoint_manager::EndpointManager;
 use crate::serialization::{SerializeError, SerializerRegistry};
 
 /// Function that dispatches a decoded user-message payload to a local actor.
-pub type LocalDispatch =
-    Arc<dyn Fn(&ActorPath, &str, Box<dyn std::any::Any + Send>) + Send + Sync>;
+pub type LocalDispatch = Arc<dyn Fn(&ActorPath, &str, Box<dyn std::any::Any + Send>) + Send + Sync>;
 
 #[derive(Clone)]
 pub struct RemoteSystemDaemon {
@@ -65,17 +64,11 @@ impl RemoteSystemDaemon {
 
     /// Register a dispatcher for inbound messages addressed to `path`.
     pub fn register(&self, path: ActorPath, dispatch: LocalDispatch) {
-        self.inner
-            .routes
-            .write()
-            .insert(path.to_string_without_address(), dispatch);
+        self.inner.routes.write().insert(path.to_string_without_address(), dispatch);
     }
 
     pub fn unregister(&self, path: &ActorPath) {
-        self.inner
-            .routes
-            .write()
-            .remove(&path.to_string_without_address());
+        self.inner.routes.write().remove(&path.to_string_without_address());
     }
 
     pub fn clear(&self) {

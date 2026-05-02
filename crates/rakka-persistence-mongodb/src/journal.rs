@@ -36,9 +36,7 @@ impl MongoJournal {
     }
 
     fn collection(&self) -> Collection<EventDoc> {
-        self.client
-            .database(&self.cfg.database)
-            .collection::<EventDoc>(&self.cfg.journal_collection)
+        self.client.database(&self.cfg.database).collection::<EventDoc>(&self.cfg.journal_collection)
     }
 
     async fn ensure_indexes(&self) -> Result<(), JournalError> {
@@ -47,18 +45,13 @@ impl MongoJournal {
             .options(IndexOptions::builder().unique(true).build())
             .build();
         self.collection().create_index(model).await.map_err(JournalError::backend)?;
-        let tag_model = IndexModel::builder()
-            .keys(doc! { "tags": 1, "sequence_nr": 1 })
-            .build();
+        let tag_model = IndexModel::builder().keys(doc! { "tags": 1, "sequence_nr": 1 }).build();
         self.collection().create_index(tag_model).await.map_err(JournalError::backend)?;
         Ok(())
     }
 
     async fn current_max(&self, pid: &str) -> Result<i64, JournalError> {
-        let opts = FindOptions::builder()
-            .sort(doc! { "sequence_nr": -1 })
-            .limit(1i64)
-            .build();
+        let opts = FindOptions::builder().sort(doc! { "sequence_nr": -1 }).limit(1i64).build();
         let mut cur = self
             .collection()
             .find(doc! { "persistence_id": pid })
@@ -87,10 +80,7 @@ impl Journal for MongoJournal {
             let mut docs = Vec::with_capacity(batch.len());
             for msg in batch {
                 if msg.sequence_nr != expected {
-                    return Err(JournalError::SequenceOutOfOrder {
-                        expected,
-                        got: msg.sequence_nr,
-                    });
+                    return Err(JournalError::SequenceOutOfOrder { expected, got: msg.sequence_nr });
                 }
                 expected += 1;
                 docs.push(EventDoc::from_repr(&msg, now));
@@ -123,10 +113,7 @@ impl Journal for MongoJournal {
         max: u64,
     ) -> Result<Vec<PersistentRepr>, JournalError> {
         let limit = if max > i64::MAX as u64 { i64::MAX } else { max as i64 };
-        let opts = FindOptions::builder()
-            .sort(doc! { "sequence_nr": 1 })
-            .limit(limit)
-            .build();
+        let opts = FindOptions::builder().sort(doc! { "sequence_nr": 1 }).limit(limit).build();
         let mut cur = self
             .collection()
             .find(doc! {
@@ -144,11 +131,7 @@ impl Journal for MongoJournal {
         Ok(out)
     }
 
-    async fn highest_sequence_nr(
-        &self,
-        persistence_id: &str,
-        _from: u64,
-    ) -> Result<u64, JournalError> {
+    async fn highest_sequence_nr(&self, persistence_id: &str, _from: u64) -> Result<u64, JournalError> {
         Ok(self.current_max(persistence_id).await? as u64)
     }
 
@@ -159,10 +142,8 @@ impl Journal for MongoJournal {
         max: u64,
     ) -> Result<Vec<PersistentRepr>, JournalError> {
         let limit = if max > i64::MAX as u64 { i64::MAX } else { max as i64 };
-        let opts = FindOptions::builder()
-            .sort(doc! { "persistence_id": 1, "sequence_nr": 1 })
-            .limit(limit)
-            .build();
+        let opts =
+            FindOptions::builder().sort(doc! { "persistence_id": 1, "sequence_nr": 1 }).limit(limit).build();
         let mut cur = self
             .collection()
             .find(doc! {

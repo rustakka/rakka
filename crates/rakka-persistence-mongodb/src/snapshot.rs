@@ -36,9 +36,7 @@ impl MongoSnapshotStore {
     }
 
     fn collection(&self) -> Collection<SnapshotDoc> {
-        self.client
-            .database(&self.cfg.database)
-            .collection::<SnapshotDoc>(&self.cfg.snapshot_collection)
+        self.client.database(&self.cfg.database).collection::<SnapshotDoc>(&self.cfg.snapshot_collection)
     }
 
     async fn ensure_indexes(&self) -> Result<(), JournalError> {
@@ -60,10 +58,7 @@ impl SnapshotStore for MongoSnapshotStore {
     }
 
     async fn load(&self, persistence_id: &str) -> Option<(SnapshotMetadata, Vec<u8>)> {
-        let opts = FindOptions::builder()
-            .sort(doc! { "sequence_nr": -1 })
-            .limit(1i64)
-            .build();
+        let opts = FindOptions::builder().sort(doc! { "sequence_nr": -1 }).limit(1i64).build();
         let mut cur = self
             .collection()
             .find(doc! { "persistence_id": persistence_id })

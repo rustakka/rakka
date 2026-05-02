@@ -37,6 +37,7 @@ pub struct RemoteEnvelope {
 }
 
 impl RemoteEnvelope {
+    #[allow(clippy::too_many_arguments)]
     pub fn user(
         recipient: impl Into<String>,
         sender: Option<String>,

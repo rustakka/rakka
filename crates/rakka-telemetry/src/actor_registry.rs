@@ -21,12 +21,7 @@ pub struct ActorRegistry {
 
 impl ActorRegistry {
     pub fn new(bus: TelemetryBus) -> Self {
-        Self {
-            entries: DashMap::new(),
-            bus,
-            spawned: AtomicU64::new(0),
-            stopped: AtomicU64::new(0),
-        }
+        Self { entries: DashMap::new(), bus, spawned: AtomicU64::new(0), stopped: AtomicU64::new(0) }
     }
 
     pub fn record_spawn(&self, status: ActorStatus) {
@@ -62,8 +57,7 @@ impl ActorRegistry {
     }
 
     pub fn snapshot(&self) -> ActorSnapshot {
-        let flat: Vec<ActorStatus> =
-            self.entries.iter().map(|e| e.value().clone()).collect();
+        let flat: Vec<ActorStatus> = self.entries.iter().map(|e| e.value().clone()).collect();
         let roots = build_tree(&flat);
         ActorSnapshot { total: flat.len() as u64, roots, flat }
     }

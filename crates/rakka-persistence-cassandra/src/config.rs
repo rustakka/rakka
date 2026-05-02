@@ -48,8 +48,7 @@ impl CassandraConfig {
             .or_else(|_| env::var("RAKKA_IT_CASSANDRA_NODES"))
             .or_else(|_| env::var("CASSANDRA_NODES"))
             .unwrap_or_else(|_| "127.0.0.1:9042".to_string());
-        let keyspace = env::var("RAKKA_PERSISTENCE_CASSANDRA_KEYSPACE")
-            .unwrap_or_else(|_| "rakka".into());
+        let keyspace = env::var("RAKKA_PERSISTENCE_CASSANDRA_KEYSPACE").unwrap_or_else(|_| "rakka".into());
         let nodes = nodes.split(',').map(|s| s.trim().to_string()).collect();
         Self::new(nodes, keyspace)
     }

@@ -23,11 +23,7 @@ async fn render_metrics(State(state): State<AppState>) -> Response {
     };
     exp.seed_from_snapshot(&state.telemetry.snapshot());
     match exp.render() {
-        Ok(body) => (
-            [(header::CONTENT_TYPE, "text/plain; version=0.0.4")],
-            body,
-        )
-            .into_response(),
+        Ok(body) => ([(header::CONTENT_TYPE, "text/plain; version=0.0.4")], body).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, format!("{e}")).into_response(),
     }
 }

@@ -68,24 +68,15 @@ impl SnapshotStore for SqlSnapshotStore {
         .ok()
         .flatten();
         row.map(|(pid, seq, payload, ts)| {
-            (
-                SnapshotMetadata {
-                    persistence_id: pid,
-                    sequence_nr: seq as u64,
-                    timestamp: ts as u64,
-                },
-                payload,
-            )
+            (SnapshotMetadata { persistence_id: pid, sequence_nr: seq as u64, timestamp: ts as u64 }, payload)
         })
     }
 
     async fn delete(&self, persistence_id: &str, to_sequence_nr: u64) {
-        let _ = sqlx::query(
-            "DELETE FROM snapshot_store WHERE persistence_id = ? AND sequence_nr <= ?",
-        )
-        .bind(persistence_id)
-        .bind(to_sequence_nr as i64)
-        .execute(&self.pool)
-        .await;
+        let _ = sqlx::query("DELETE FROM snapshot_store WHERE persistence_id = ? AND sequence_nr <= ?")
+            .bind(persistence_id)
+            .bind(to_sequence_nr as i64)
+            .execute(&self.pool)
+            .await;
     }
 }

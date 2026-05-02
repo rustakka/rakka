@@ -13,7 +13,9 @@ pub struct PyServiceContainer {
 #[pymethods]
 impl PyServiceContainer {
     #[new]
-    fn new() -> Self { Self { services: RwLock::new(HashMap::new()) } }
+    fn new() -> Self {
+        Self { services: RwLock::new(HashMap::new()) }
+    }
 
     fn register(&self, key: String, value: Py<PyAny>) {
         self.services.write().insert(key, value);
@@ -25,7 +27,9 @@ impl PyServiceContainer {
 
     fn keys(&self, py: Python<'_>) -> PyResult<Py<pyo3::types::PyList>> {
         let list = pyo3::types::PyList::empty_bound(py);
-        for k in self.services.read().keys() { list.append(k)?; }
+        for k in self.services.read().keys() {
+            list.append(k)?;
+        }
         Ok(list.unbind())
     }
 }

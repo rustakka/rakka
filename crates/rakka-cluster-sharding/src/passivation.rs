@@ -45,13 +45,7 @@ impl PassivationTracker {
         let g = self.inner.read();
         let now = Instant::now();
         g.iter()
-            .filter_map(|(id, t)| {
-                if now.duration_since(*t) >= idle_for {
-                    Some(id.clone())
-                } else {
-                    None
-                }
-            })
+            .filter_map(|(id, t)| if now.duration_since(*t) >= idle_for { Some(id.clone()) } else { None })
             .collect()
     }
 
@@ -63,9 +57,7 @@ impl PassivationTracker {
     pub fn snapshot(&self) -> Vec<(String, Duration)> {
         let g = self.inner.read();
         let now = Instant::now();
-        g.iter()
-            .map(|(id, t)| (id.clone(), now.duration_since(*t)))
-            .collect()
+        g.iter().map(|(id, t)| (id.clone(), now.duration_since(*t))).collect()
     }
 }
 

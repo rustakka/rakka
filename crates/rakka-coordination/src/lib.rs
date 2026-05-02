@@ -75,11 +75,7 @@ impl LeaseRegistry {
     }
 
     pub fn get_or_create(&self, name: &str) -> Arc<InMemoryLease> {
-        self.leases
-            .lock()
-            .entry(name.to_string())
-            .or_insert_with(InMemoryLease::new)
-            .clone()
+        self.leases.lock().entry(name.to_string()).or_default().clone()
     }
 }
 

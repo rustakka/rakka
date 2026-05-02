@@ -31,7 +31,9 @@ impl<T> BoundedQueue<T> {
     }
 
     pub fn push(&mut self, item: T) -> Result<(), T> {
-        if self.is_full() { Err(item) } else {
+        if self.is_full() {
+            Err(item)
+        } else {
             self.inner.push_back(item);
             Ok(())
         }
@@ -42,7 +44,9 @@ impl<T> BoundedQueue<T> {
     }
 
     pub fn push_front(&mut self, item: T) -> Result<(), T> {
-        if self.is_full() { Err(item) } else {
+        if self.is_full() {
+            Err(item)
+        } else {
             self.inner.push_front(item);
             Ok(())
         }

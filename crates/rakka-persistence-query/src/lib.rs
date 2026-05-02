@@ -13,16 +13,12 @@ use rakka_persistence::{Journal, JournalError, PersistentRepr};
 /// means "from the start."
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
+#[derive(Default)]
 pub enum Offset {
+    #[default]
     NoOffset,
     Sequence(u64),
     TimeBased(u128),
-}
-
-impl Default for Offset {
-    fn default() -> Self {
-        Self::NoOffset
-    }
 }
 
 impl Offset {
@@ -85,11 +81,7 @@ pub trait ReadJournal: Send + Sync + 'static {
     /// All events with a given tag, returned in offset order.
     /// Default impl is empty so backends without tag indexing don't
     /// silently mis-behave.
-    async fn events_by_tag(
-        &self,
-        _tag: &str,
-        _offset: Offset,
-    ) -> Result<Vec<EventEnvelope>, JournalError> {
+    async fn events_by_tag(&self, _tag: &str, _offset: Offset) -> Result<Vec<EventEnvelope>, JournalError> {
         Ok(Vec::new())
     }
 
@@ -130,16 +122,11 @@ impl<J: Journal> ReadJournal for SimpleReadJournal<J> {
         from: u64,
         to: u64,
     ) -> Result<Vec<EventEnvelope>, JournalError> {
-        let reprs =
-            self.journal.replay_messages(persistence_id, from, to, u64::MAX).await?;
+        let reprs = self.journal.replay_messages(persistence_id, from, to, u64::MAX).await?;
         Ok(reprs.into_iter().map(Into::into).collect())
     }
 
-    async fn events_by_tag(
-        &self,
-        tag: &str,
-        offset: Offset,
-    ) -> Result<Vec<EventEnvelope>, JournalError> {
+    async fn events_by_tag(&self, tag: &str, offset: Offset) -> Result<Vec<EventEnvelope>, JournalError> {
         let from_seq = offset.as_sequence().unwrap_or(0);
         // For backends that don't have a tag index, we have to fall
         // back to scanning known persistence ids. The Journal trait
@@ -183,9 +170,7 @@ mod tests {
     #[tokio::test]
     async fn events_by_persistence_id_replays_range() {
         let j = Arc::new(InMemoryJournal::default());
-        j.write_messages(vec![repr("a", 1, &[]), repr("a", 2, &[]), repr("a", 3, &[])])
-            .await
-            .unwrap();
+        j.write_messages(vec![repr("a", 1, &[]), repr("a", 2, &[]), repr("a", 3, &[])]).await.unwrap();
         let q = SimpleReadJournal::new(j);
         let evs = q.events_by_persistence_id("a", 1, 2).await.unwrap();
         assert_eq!(evs.len(), 2);

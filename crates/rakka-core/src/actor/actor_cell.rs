@@ -113,10 +113,8 @@ async fn run_cell<A: Actor>(
             Either::User(Some(env)) => {
                 ctx.current_sender = env.sender;
                 if let Err(panic_msg) = run_handle(actor, ctx, env.message).await {
-                    let directive = supervisor_ref
-                        .as_ref()
-                        .map(|s| s.decide(&panic_msg))
-                        .unwrap_or(Directive::Restart);
+                    let directive =
+                        supervisor_ref.as_ref().map(|s| s.decide(&panic_msg)).unwrap_or(Directive::Restart);
                     match directive {
                         Directive::Resume => {}
                         Directive::Restart => {

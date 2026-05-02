@@ -82,10 +82,7 @@ impl<T: Send + 'static> Default for MergeHub<T> {
 impl<T: Send + 'static> MergeHub<T> {
     pub fn new() -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
-        Self {
-            sender: tx,
-            receiver: parking_lot::Mutex::new(Some(rx)),
-        }
+        Self { sender: tx, receiver: parking_lot::Mutex::new(Some(rx)) }
     }
 
     /// Attach a producer source — pumped into the merged stream.
@@ -126,6 +123,10 @@ mod tests {
         // Attach AFTER subscribers so they don't miss elements.
         hub.attach(Source::from_iter(vec![1, 2, 3]));
 
+        // Drop the hub so its retained sender is released — otherwise
+        // consumers never observe `Closed` and would hang forever.
+        drop(hub);
+
         // Both consumers see the same elements.
         let (a, b) = tokio::join!(Sink::collect(c1), Sink::collect(c2));
         assert_eq!(a, vec![1, 2, 3]);
@@ -139,17 +140,29 @@ mod tests {
         // before we measure the late subscriber.
         let c_pre = hub.consumer();
         hub.attach(Source::from_iter(vec![1, 2, 3]));
-        // Drain the pre-existing consumer so the channel makes
-        // forward progress.
-        let pre = Sink::collect(c_pre).await;
+        // The hub keeps a sender alive, so `Sink::collect` would never
+        // observe `Closed` — bound it with a timeout and check that we
+        // received all three items.
+        let pre = tokio::time::timeout(Duration::from_millis(200), async move {
+            let mut got = Vec::new();
+            let mut s = c_pre.into_boxed();
+            while got.len() < 3 {
+                match s.next().await {
+                    Some(v) => got.push(v),
+                    None => break,
+                }
+            }
+            got
+        })
+        .await
+        .unwrap_or_default();
         assert_eq!(pre, vec![1, 2, 3]);
 
-        // Late consumer attaches after the source is exhausted →
-        // sees nothing.
+        // Late consumer attaches after the source is exhausted → sees
+        // nothing within the deadline.
         let c_late = hub.consumer();
-        let late = tokio::time::timeout(Duration::from_millis(50), Sink::collect(c_late))
-            .await
-            .unwrap_or_default();
+        let late =
+            tokio::time::timeout(Duration::from_millis(50), Sink::collect(c_late)).await.unwrap_or_default();
         assert!(late.is_empty());
     }
 
@@ -168,13 +181,11 @@ mod tests {
         hub.attach(Source::from_iter(vec![1, 2, 3]));
         hub.attach(Source::from_iter(vec![10, 20, 30]));
         let merged = hub.source();
+        // Drop the hub so the merged channel closes once attach tasks
+        // finish — without this, `Sink::collect` waits forever.
+        drop(hub);
 
-        let mut got = tokio::time::timeout(
-            Duration::from_millis(200),
-            Sink::collect(merged),
-        )
-        .await
-        .unwrap_or_default();
+        let mut got = Sink::collect(merged).await;
         got.sort();
         assert_eq!(got, vec![1, 2, 3, 10, 20, 30]);
     }
@@ -185,9 +196,7 @@ mod tests {
         hub.attach(Source::from_iter(vec![1]));
         let _ = hub.source();
         let s2 = hub.source();
-        let v = tokio::time::timeout(Duration::from_millis(50), Sink::collect(s2))
-            .await
-            .unwrap_or_default();
+        let v = tokio::time::timeout(Duration::from_millis(50), Sink::collect(s2)).await.unwrap_or_default();
         assert!(v.is_empty());
     }
 }

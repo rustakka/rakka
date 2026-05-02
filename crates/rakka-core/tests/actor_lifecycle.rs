@@ -4,8 +4,8 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use rakka_core::actor::{Actor, ActorSystem, Context, Inbox, Props};
 use rakka_config::Config;
+use rakka_core::actor::{Actor, ActorSystem, Context, Inbox, Props};
 use tokio::sync::{oneshot, Mutex};
 
 #[derive(Default)]

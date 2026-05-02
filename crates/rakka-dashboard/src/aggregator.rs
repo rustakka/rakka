@@ -7,9 +7,9 @@
 #[cfg(feature = "aggregator")]
 mod imp {
     use rakka_telemetry::dto::{
-        ActorSnapshot, ActorStatus, ClusterMemberInfo, ClusterStateInfo, DDataSnapshot,
-        DeadLetterRecord, NodeSnapshot, OverviewSnapshot, PersistenceSnapshot, RemoteSnapshot,
-        ShardingSnapshot, StreamsSnapshot,
+        ActorSnapshot, ActorStatus, ClusterMemberInfo, ClusterStateInfo, DDataSnapshot, DeadLetterRecord,
+        NodeSnapshot, OverviewSnapshot, PersistenceSnapshot, RemoteSnapshot, ShardingSnapshot,
+        StreamsSnapshot,
     };
 
     #[derive(Clone, Debug)]
@@ -98,16 +98,8 @@ mod imp {
             generated_at: chrono::Utc::now().to_rfc3339(),
             actor_count: items.iter().map(|i| i.actor_count).sum(),
             dead_letter_count: items.iter().map(|i| i.dead_letter_count).sum(),
-            cluster_member_count: items
-                .iter()
-                .map(|i| i.cluster_member_count)
-                .max()
-                .unwrap_or(0),
-            cluster_unreachable_count: items
-                .iter()
-                .map(|i| i.cluster_unreachable_count)
-                .max()
-                .unwrap_or(0),
+            cluster_member_count: items.iter().map(|i| i.cluster_member_count).max().unwrap_or(0),
+            cluster_unreachable_count: items.iter().map(|i| i.cluster_unreachable_count).max().unwrap_or(0),
             remote_association_count: items.iter().map(|i| i.remote_association_count).sum(),
             running_graphs: items.iter().map(|i| i.running_graphs).sum(),
             persistence_event_count: items.iter().map(|i| i.persistence_event_count).sum(),
@@ -117,9 +109,7 @@ mod imp {
 
     /// Merge per-node actor snapshots into a single flat + synthetic-roots
     /// snapshot where each root is `/node/<name>`.
-    pub fn merge_actor_snapshots(
-        per_node: &[(String, ActorSnapshot)],
-    ) -> ActorSnapshot {
+    pub fn merge_actor_snapshots(per_node: &[(String, ActorSnapshot)]) -> ActorSnapshot {
         let mut flat: Vec<ActorStatus> = Vec::new();
         let mut roots = Vec::with_capacity(per_node.len());
         let mut total = 0u64;
@@ -155,10 +145,7 @@ mod imp {
             leader: items.iter().find_map(|s| s.leader.clone()),
             members: members_by_addr.into_values().collect(),
             unreachable: unreachable.into_iter().collect(),
-            reachability_records: items
-                .iter()
-                .flat_map(|s| s.reachability_records.clone())
-                .collect(),
+            reachability_records: items.iter().flat_map(|s| s.reachability_records.clone()).collect(),
             gossip_version: items.iter().flat_map(|s| s.gossip_version.clone()).collect(),
         }
     }

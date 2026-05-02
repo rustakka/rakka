@@ -32,11 +32,7 @@ pub struct RebalanceRunner<'a, S: ShardAllocationStrategy> {
 }
 
 impl<'a, S: ShardAllocationStrategy> RebalanceRunner<'a, S> {
-    pub fn new(
-        coordinator: &'a ShardCoordinator,
-        handoff: &'a HandoffCoordinator,
-        strategy: &'a S,
-    ) -> Self {
+    pub fn new(coordinator: &'a ShardCoordinator, handoff: &'a HandoffCoordinator, strategy: &'a S) -> Self {
         Self { coordinator, handoff, strategy }
     }
 
@@ -65,13 +61,12 @@ impl<'a, S: ShardAllocationStrategy> RebalanceRunner<'a, S> {
         // (2) Pick fresh shards to begin handing off.
         for shard_id in self.coordinator.rebalance_with_strategy(self.strategy) {
             let cur_state = self.handoff.state(&shard_id);
-            if !matches!(
-                cur_state,
-                HandoffState::Idle | HandoffState::Started { .. }
-            ) {
+            if !matches!(cur_state, HandoffState::Idle | HandoffState::Started { .. }) {
                 continue; // already in flight
             }
-            let Some(source_region) = self.coordinator.region_for(&shard_id) else { continue; };
+            let Some(source_region) = self.coordinator.region_for(&shard_id) else {
+                continue;
+            };
             actions.push(RebalanceAction::BeginHandoff { shard_id, source_region });
         }
 
@@ -92,17 +87,12 @@ mod tests {
         }
         coord.allocate("s6", "r2");
         let handoff = HandoffCoordinator::new();
-        let strat = LeastShardAllocationStrategy {
-            max_simultaneous_rebalance: 2,
-            rebalance_threshold: 2,
-        };
+        let strat = LeastShardAllocationStrategy { max_simultaneous_rebalance: 2, rebalance_threshold: 2 };
         let runner = RebalanceRunner::new(&coord, &handoff, &strat);
         let actions = runner.step();
         // 2 shards from r1 should be flagged to begin handoff.
-        let begins: Vec<_> = actions
-            .iter()
-            .filter(|a| matches!(a, RebalanceAction::BeginHandoff { .. }))
-            .collect();
+        let begins: Vec<_> =
+            actions.iter().filter(|a| matches!(a, RebalanceAction::BeginHandoff { .. })).collect();
         assert_eq!(begins.len(), 2);
         for a in begins {
             if let RebalanceAction::BeginHandoff { source_region, .. } = a {
@@ -119,10 +109,7 @@ mod tests {
         }
         coord.allocate("s6", "r2");
         let handoff = HandoffCoordinator::new();
-        let strat = LeastShardAllocationStrategy {
-            max_simultaneous_rebalance: 2,
-            rebalance_threshold: 2,
-        };
+        let strat = LeastShardAllocationStrategy { max_simultaneous_rebalance: 2, rebalance_threshold: 2 };
         let runner = RebalanceRunner::new(&coord, &handoff, &strat);
         // First tick begins handoff for two shards.
         let first = runner.step();
@@ -135,10 +122,7 @@ mod tests {
         }
         // Second tick should NOT re-emit them.
         let second = runner.step();
-        assert_eq!(
-            second.iter().filter(|a| matches!(a, RebalanceAction::BeginHandoff { .. })).count(),
-            0
-        );
+        assert_eq!(second.iter().filter(|a| matches!(a, RebalanceAction::BeginHandoff { .. })).count(), 0);
     }
 
     #[test]
@@ -151,7 +135,7 @@ mod tests {
         handoff.begin("s1", "r1").unwrap();
         handoff.ack_begin("s1", 0).unwrap();
         handoff.entity_stopped("s1").ok(); // count was 0 → already Stopped
-        // After ack_begin(0), state is HandingOff{remaining:0}; force to Stopped.
+                                           // After ack_begin(0), state is HandingOff{remaining:0}; force to Stopped.
         if let HandoffState::HandingOff { source_region, .. } = handoff.state("s1") {
             // entity_stopped at 0 won't fire; simulate by re-driving via
             // a 1-entity round so we exercise the runner predicate.
@@ -164,10 +148,8 @@ mod tests {
         let strat = LeastShardAllocationStrategy::default();
         let runner = RebalanceRunner::new(&coord, &handoff, &strat);
         let actions = runner.step();
-        let allocates: Vec<_> = actions
-            .iter()
-            .filter(|a| matches!(a, RebalanceAction::Allocate { .. }))
-            .collect();
+        let allocates: Vec<_> =
+            actions.iter().filter(|a| matches!(a, RebalanceAction::Allocate { .. })).collect();
         assert_eq!(allocates.len(), 1);
     }
 }

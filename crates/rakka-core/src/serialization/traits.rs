@@ -18,5 +18,6 @@ pub trait Serializer<T>: Send + Sync {
     fn identifier(&self) -> u32;
     fn manifest(&self) -> &'static str;
     fn to_bytes(&self, value: &T) -> Result<Vec<u8>, SerializerError>;
+    #[allow(clippy::wrong_self_convention)]
     fn from_bytes(&self, bytes: &[u8]) -> Result<T, SerializerError>;
 }

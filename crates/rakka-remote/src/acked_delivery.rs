@@ -15,7 +15,7 @@ use crate::pdu::AckInfo;
 pub struct SeqNo(pub u64);
 
 impl SeqNo {
-    pub fn next(&mut self) -> u64 {
+    pub fn advance(&mut self) -> u64 {
         self.0 = self.0.wrapping_add(1);
         self.0
     }
@@ -48,9 +48,9 @@ impl AckedSendBuffer {
         self.pending.len() >= self.capacity as usize
     }
 
-    pub fn push(&mut self, env: RemoteEnvelope) -> Result<(), RemoteEnvelope> {
+    pub fn push(&mut self, env: RemoteEnvelope) -> Result<(), Box<RemoteEnvelope>> {
         if self.is_full() {
-            return Err(env);
+            return Err(Box::new(env));
         }
         self.pending.insert(env.seq_no, env);
         Ok(())

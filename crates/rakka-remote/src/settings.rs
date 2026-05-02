@@ -71,6 +71,26 @@ pub struct RemoteSettings {
     /// Maximum payload bytes per wire frame. Larger payloads are
     /// fragmented via `chunking::Chunker`. Phase 5.F.
     pub maximum_payload_size: usize,
+
+    /// Bounded send-queue capacity per peer (Phase 5.G). When the
+    /// queue hits the cap the configured [`SendQueueOverflow`] policy
+    /// decides whether to drop, fail, or block the caller.
+    pub send_queue_capacity: usize,
+    /// What to do when the bounded send queue is full.
+    pub send_queue_overflow: SendQueueOverflow,
+}
+
+/// Overflow policy for the bounded outbound send queue. akka.net parity:
+/// the equivalent strategies in `Akka.Remote.SendBufferOverflowStrategy`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum SendQueueOverflow {
+    /// Drop the message that triggered the overflow (oldest stays).
+    DropNew,
+    /// Drop the oldest message; enqueue the new one.
+    DropOld,
+    /// Surface a `RemoteError::SendQueueFull` to the caller.
+    Fail,
 }
 
 impl Default for RemoteSettings {
@@ -100,6 +120,8 @@ impl Default for RemoteSettings {
             phi_acceptable_heartbeat_pause: Duration::from_secs(3),
             tls: crate::tls::TlsConfig::default(),
             maximum_payload_size: 256 * 1024,
+            send_queue_capacity: 4096,
+            send_queue_overflow: SendQueueOverflow::Fail,
         }
     }
 }
@@ -161,6 +183,18 @@ impl RemoteSettings {
     /// Override the chunking threshold (default 256 KiB).
     pub fn with_maximum_payload_size(mut self, n: usize) -> Self {
         self.maximum_payload_size = n;
+        self
+    }
+
+    /// Set the bounded send-queue capacity (Phase 5.G).
+    pub fn with_send_queue_capacity(mut self, n: usize) -> Self {
+        self.send_queue_capacity = n;
+        self
+    }
+
+    /// Set the overflow policy for the bounded send queue (Phase 5.G).
+    pub fn with_send_queue_overflow(mut self, p: SendQueueOverflow) -> Self {
+        self.send_queue_overflow = p;
         self
     }
 }

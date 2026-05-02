@@ -6,10 +6,8 @@ use scylla::client::session::Session;
 use crate::config::CassandraConfig;
 
 pub async fn ensure_schema(session: &Session, cfg: &CassandraConfig) -> Result<(), JournalError> {
-    let create_ks = format!(
-        "CREATE KEYSPACE IF NOT EXISTS {} WITH REPLICATION = {};",
-        cfg.keyspace, cfg.replication
-    );
+    let create_ks =
+        format!("CREATE KEYSPACE IF NOT EXISTS {} WITH REPLICATION = {};", cfg.keyspace, cfg.replication);
     session.query_unpaged(create_ks, &[]).await.map_err(JournalError::backend)?;
 
     let create_journal = format!(

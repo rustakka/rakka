@@ -4,6 +4,7 @@
 //! - partition key `pid` (S) = persistence id
 //! - sort key `sk` (S) = prefixed sequence number, zero-padded so
 //!   lexicographic ordering matches numeric ordering.
+//!
 //! Events use the `E#` prefix, snapshots use `S#`.
 
 mod config;

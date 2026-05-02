@@ -53,10 +53,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Broadcast to the room.
     for i in 1..=3 {
-        let n = bus.publish_msg(
-            "room1",
-            ChatMsg { from: "host".into(), text: format!("hello #{i}") },
-        );
+        let n = bus.publish_msg("room1", ChatMsg { from: "host".into(), text: format!("hello #{i}") });
         println!("(broadcast delivered to {n} subscribers)");
     }
 

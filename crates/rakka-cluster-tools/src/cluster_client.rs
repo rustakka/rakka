@@ -99,15 +99,8 @@ impl ClusterClient {
         Self::with_settings(receptionist, ClusterClientSettings::default())
     }
 
-    pub fn with_settings(
-        receptionist: Arc<ClusterReceptionist>,
-        settings: ClusterClientSettings,
-    ) -> Self {
-        Self {
-            receptionist,
-            settings,
-            contact_cursor: AtomicUsize::new(0),
-        }
+    pub fn with_settings(receptionist: Arc<ClusterReceptionist>, settings: ClusterClientSettings) -> Self {
+        Self { receptionist, settings, contact_cursor: AtomicUsize::new(0) }
     }
 
     /// Direct receptionist lookup (in-process / single-node case).
@@ -121,18 +114,14 @@ impl ClusterClient {
         if self.settings.initial_contacts.is_empty() {
             return None;
         }
-        let i = self.contact_cursor.fetch_add(1, Ordering::Relaxed)
-            % self.settings.initial_contacts.len();
+        let i = self.contact_cursor.fetch_add(1, Ordering::Relaxed) % self.settings.initial_contacts.len();
         Some(self.settings.initial_contacts[i].clone())
     }
 
     /// `establish` — drive contact-point discovery using `try_resolve`
     /// until it returns `Some(_)` or `max_attempts` is exhausted.
     /// Sleeps `establishing_get_contacts_interval` between attempts.
-    pub async fn establish<F>(
-        &self,
-        mut try_resolve: F,
-    ) -> Result<UntypedActorRef, ClusterClientError>
+    pub async fn establish<F>(&self, mut try_resolve: F) -> Result<UntypedActorRef, ClusterClientError>
     where
         F: FnMut(&str) -> Option<UntypedActorRef>,
     {
@@ -140,7 +129,9 @@ impl ClusterClient {
             return Err(ClusterClientError::NoContacts);
         }
         for attempt in 0..self.settings.max_attempts {
-            let Some(contact) = self.next_contact() else { break; };
+            let Some(contact) = self.next_contact() else {
+                break;
+            };
             if let Some(r) = try_resolve(&contact) {
                 return Ok(r);
             }
@@ -148,9 +139,7 @@ impl ClusterClient {
                 tokio::time::sleep(self.settings.establishing_get_contacts_interval).await;
             }
         }
-        Err(ClusterClientError::Exhausted {
-            attempts: self.settings.max_attempts,
-        })
+        Err(ClusterClientError::Exhausted { attempts: self.settings.max_attempts })
     }
 }
 
@@ -181,8 +170,7 @@ mod tests {
     #[test]
     fn next_contact_round_robins() {
         let rec = ClusterReceptionist::new();
-        let s = ClusterClientSettings::default()
-            .with_initial_contacts(vec!["a", "b", "c"]);
+        let s = ClusterClientSettings::default().with_initial_contacts(vec!["a", "b", "c"]);
         let c = ClusterClient::with_settings(rec, s);
         assert_eq!(c.next_contact().as_deref(), Some("a"));
         assert_eq!(c.next_contact().as_deref(), Some("b"));
@@ -196,15 +184,17 @@ mod tests {
         let inbox = Inbox::<u32>::new("svc");
         let target = inbox.actor_ref().as_untyped();
         let target_clone = target.clone();
-        let s = ClusterClientSettings::default()
-            .with_initial_contacts(vec!["a", "b"])
-            .with_max_attempts(3);
+        let s = ClusterClientSettings::default().with_initial_contacts(vec!["a", "b"]).with_max_attempts(3);
         let c = ClusterClient::with_settings(rec, s);
         let calls = AtomicU32::new(0);
         let result = c
             .establish(|contact| {
                 calls.fetch_add(1, Ordering::SeqCst);
-                if contact == "b" { Some(target_clone.clone()) } else { None }
+                if contact == "b" {
+                    Some(target_clone.clone())
+                } else {
+                    None
+                }
             })
             .await
             .unwrap();

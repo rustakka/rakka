@@ -37,9 +37,7 @@ impl AddressUid {
         // Mix in a small entropy seed so two systems started in the same
         // nanosecond on the same machine still differ.
         let mixed = nanos.wrapping_mul(2862933555777941757).wrapping_add(3037000493);
-        Self {
-            inner: Arc::new(AddressUidInner { value: AtomicU64::new(mixed) }),
-        }
+        Self { inner: Arc::new(AddressUidInner { value: AtomicU64::new(mixed) }) }
     }
 
     pub fn get(&self) -> u64 {

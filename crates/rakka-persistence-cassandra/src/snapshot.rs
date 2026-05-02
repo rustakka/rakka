@@ -51,12 +51,7 @@ impl SnapshotStore for CassandraSnapshotStore {
             .session
             .query_unpaged(
                 cql,
-                (
-                    &meta.persistence_id,
-                    meta.sequence_nr as i64,
-                    payload,
-                    meta.timestamp as i64,
-                ),
+                (&meta.persistence_id, meta.sequence_nr as i64, payload, meta.timestamp as i64),
             )
             .await;
     }
@@ -111,13 +106,8 @@ impl SnapshotStore for CassandraSnapshotStore {
             Ok(i) => i,
             Err(_) => return,
         };
-        for row in iter {
-            if let Ok((seq,)) = row {
-                let _ = self
-                    .session
-                    .query_unpaged(cql.as_str(), (persistence_id, seq))
-                    .await;
-            }
+        for (seq,) in iter.flatten() {
+            let _ = self.session.query_unpaged(cql.as_str(), (persistence_id, seq)).await;
         }
     }
 }

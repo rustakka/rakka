@@ -10,12 +10,16 @@ use rakka_discovery::{ResolvedTarget, ServiceDiscovery, StaticDiscovery};
 use crate::runtime::runtime;
 
 #[pyclass(name = "StaticDiscovery", module = "rakka._native.discovery")]
-pub struct PyStaticDiscovery { inner: Arc<StaticDiscovery> }
+pub struct PyStaticDiscovery {
+    inner: Arc<StaticDiscovery>,
+}
 
 #[pymethods]
 impl PyStaticDiscovery {
     #[new]
-    fn new() -> Self { Self { inner: StaticDiscovery::new() } }
+    fn new() -> Self {
+        Self { inner: StaticDiscovery::new() }
+    }
 
     #[pyo3(signature = (service, host, port=None))]
     fn register(&self, service: String, host: String, port: Option<u16>) {

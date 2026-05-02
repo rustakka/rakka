@@ -17,9 +17,7 @@ pub struct RedisJournal {
 impl RedisJournal {
     /// Connect to Redis using `cfg.url` and return a ready journal.
     pub async fn connect(cfg: RedisConfig) -> Result<Arc<Self>, JournalError> {
-        let mut builder = Builder::from_config(
-            Config::from_url(&cfg.url).map_err(JournalError::backend)?,
-        );
+        let mut builder = Builder::from_config(Config::from_url(&cfg.url).map_err(JournalError::backend)?);
         let pool = builder
             .set_policy(ReconnectPolicy::new_constant(0, 500))
             .build_pool(cfg.pool_size)
@@ -65,15 +63,10 @@ impl Journal for RedisJournal {
         for (pid, batch) in by_pid {
             let key = self.cfg.journal_key(&pid);
             let current: i64 = self.client.zcard(&key).await.map_err(JournalError::backend)?;
-            let mut expected = current as u64 + 1;
-            for msg in &batch {
+            for (expected, msg) in (current as u64 + 1..).zip(batch.iter()) {
                 if msg.sequence_nr != expected {
-                    return Err(JournalError::SequenceOutOfOrder {
-                        expected,
-                        got: msg.sequence_nr,
-                    });
+                    return Err(JournalError::SequenceOutOfOrder { expected, got: msg.sequence_nr });
                 }
-                expected += 1;
             }
             let tx = self.client.next().multi();
             for msg in &batch {
@@ -127,21 +120,10 @@ impl Journal for RedisJournal {
             let new_payload = encode(&repr)?;
             let _: () = self
                 .client
-                .zadd(
-                    &key,
-                    Some(SetOptions::XX),
-                    None,
-                    false,
-                    false,
-                    (repr.sequence_nr as f64, new_payload),
-                )
+                .zadd(&key, Some(SetOptions::XX), None, false, false, (repr.sequence_nr as f64, new_payload))
                 .await
                 .map_err(JournalError::backend)?;
-            let _: () = self
-                .client
-                .zrem(&key, raw)
-                .await
-                .map_err(JournalError::backend)?;
+            let _: () = self.client.zrem(&key, raw).await.map_err(JournalError::backend)?;
         }
         Ok(())
     }
@@ -170,17 +152,10 @@ impl Journal for RedisJournal {
         Ok(out)
     }
 
-    async fn highest_sequence_nr(
-        &self,
-        persistence_id: &str,
-        _from: u64,
-    ) -> Result<u64, JournalError> {
+    async fn highest_sequence_nr(&self, persistence_id: &str, _from: u64) -> Result<u64, JournalError> {
         let key = self.cfg.journal_key(persistence_id);
-        let members: Vec<(String, f64)> = self
-            .client
-            .zrange(&key, -1, -1, None, false, None, true)
-            .await
-            .map_err(JournalError::backend)?;
+        let members: Vec<(String, f64)> =
+            self.client.zrange(&key, -1, -1, None, false, None, true).await.map_err(JournalError::backend)?;
         Ok(members.into_iter().next().map(|(_, s)| s as u64).unwrap_or(0))
     }
 

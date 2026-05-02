@@ -25,12 +25,7 @@ async fn capturing_exporter_sees_probe_activity() {
         mailbox_depth: 0,
         spawned_at: "now".into(),
     });
-    telemetry.dead_letters.record(
-        "/user/a".into(),
-        None,
-        "String".into(),
-        "hi".into(),
-    );
+    telemetry.dead_letters.record("/user/a".into(), None, "String".into(), "hi".into());
 
     let events = capture.events.lock().clone();
     assert!(events.iter().any(|e| matches!(e, TelemetryEvent::ActorSpawned(_))));

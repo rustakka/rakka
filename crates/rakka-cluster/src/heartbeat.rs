@@ -6,14 +6,9 @@ use rakka_core::actor::Address;
 
 use rakka_remote::PhiAccrualFailureDetector;
 
+#[derive(Default)]
 pub struct HeartbeatState {
     pub detectors: HashMap<Address, PhiAccrualFailureDetector>,
-}
-
-impl Default for HeartbeatState {
-    fn default() -> Self {
-        Self { detectors: HashMap::new() }
-    }
 }
 
 impl HeartbeatState {

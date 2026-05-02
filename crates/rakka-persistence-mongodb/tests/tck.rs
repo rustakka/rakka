@@ -4,7 +4,9 @@
 use std::env;
 
 use rakka_persistence_mongodb::{MongoConfig, MongoJournal, MongoSnapshotStore};
-use rakka_persistence_tck::{journal_suite, snapshot_round_trip, snapshot_suite};
+use rakka_persistence_tck::{
+    journal_concurrent_suite, journal_extended_suite, journal_suite, snapshot_round_trip, snapshot_suite,
+};
 
 fn it_url() -> Option<String> {
     env::var("RAKKA_IT_MONGO_URL").ok()
@@ -24,7 +26,9 @@ async fn mongo_journal_passes_tck() {
     };
     let cfg = MongoConfig::new(url, unique_db());
     let j = MongoJournal::connect(cfg).await.expect("mongo journal");
-    journal_suite(j, "mongo-j").await;
+    journal_suite(j.clone(), "mongo-j").await;
+    journal_extended_suite(j.clone(), "mongo-j").await;
+    journal_concurrent_suite(j, "mongo-j").await;
 }
 
 #[tokio::test]

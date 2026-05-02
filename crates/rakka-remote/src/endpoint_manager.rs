@@ -216,9 +216,7 @@ impl EndpointManager {
                 if p.state == AssociationState::Quarantined
                     && p.state_since.elapsed() < self.inner.settings.quarantine_duration
                 {
-                    return Err(TransportError::HandshakeRejected(format!(
-                        "{key} is quarantined"
-                    )));
+                    return Err(TransportError::HandshakeRejected(format!("{key} is quarantined")));
                 }
                 if p.state == AssociationState::Tombstoned {
                     return Err(TransportError::HandshakeRejected(format!("{key} is tombstoned")));
@@ -232,16 +230,8 @@ impl EndpointManager {
             e.transition(AssociationState::Pending);
             e.attempt = e.attempt.saturating_add(1);
         }
-        let local = self
-            .inner
-            .local_address
-            .read()
-            .clone()
-            .ok_or(TransportError::Closed)?;
-        self.inner
-            .protocol
-            .associate(target, &local)
-            .await?;
+        let local = self.inner.local_address.read().clone().ok_or(TransportError::Closed)?;
+        self.inner.protocol.associate(target, &local).await?;
 
         // Wait briefly for the protocol pump to flip to Connected. If it
         // doesn't, return a synthetic handle that will become real on the
@@ -256,9 +246,7 @@ impl EndpointManager {
                 if let Some(e) = peers.get_mut(&key) {
                     e.transition(AssociationState::Idle);
                 }
-                return Err(TransportError::HandshakeRejected(format!(
-                    "handshake timeout to {target}"
-                )));
+                return Err(TransportError::HandshakeRejected(format!("handshake timeout to {target}")));
             }
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
@@ -271,11 +259,7 @@ impl EndpointManager {
         if let Some((_, h)) = self.inner.endpoints.remove(&key) {
             h.shutdown(DisassociateReason::Quarantined);
         }
-        let _ = self
-            .inner
-            .protocol
-            .disassociate(target, DisassociateReason::Quarantined)
-            .await;
+        let _ = self.inner.protocol.disassociate(target, DisassociateReason::Quarantined).await;
         let mut peers = self.inner.peers.write();
         let e = peers.entry(key).or_insert_with(PeerEntry::new);
         e.transition(AssociationState::Quarantined);
@@ -308,35 +292,22 @@ impl EndpointManager {
     /// Current state for a single peer (`None` if no association
     /// has ever been attempted).
     pub fn peer_state(&self, target: &Address) -> Option<AssociationState> {
-        self.inner
-            .peers
-            .read()
-            .get(&target.to_string())
-            .map(|e| e.state)
+        self.inner.peers.read().get(&target.to_string()).map(|e| e.state)
     }
 
     /// Take the inbound stream of decoded user/system envelopes. Calling
     /// more than once returns an empty channel — the first taker is
     /// responsible for fan-out (typically the [`provider::InboundDispatcher`]).
     pub fn take_inbound(&self) -> mpsc::UnboundedReceiver<InboundEnvelope> {
-        self.inner
-            .inbound_rx
-            .lock()
-            .take()
-            .unwrap_or_else(|| {
-                let (_t, r) = mpsc::unbounded_channel();
-                r
-            })
+        self.inner.inbound_rx.lock().take().unwrap_or_else(|| {
+            let (_t, r) = mpsc::unbounded_channel();
+            r
+        })
     }
 
     /// Snapshot of all known peers and their states (for telemetry).
     pub fn peer_states(&self) -> Vec<(String, &'static str, u32)> {
-        self.inner
-            .peers
-            .read()
-            .iter()
-            .map(|(k, p)| (k.clone(), state_name(p.state), p.attempt))
-            .collect()
+        self.inner.peers.read().iter().map(|(k, p)| (k.clone(), state_name(p.state), p.attempt)).collect()
     }
 
     pub async fn shutdown(&self) -> Result<(), TransportError> {

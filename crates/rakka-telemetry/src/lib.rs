@@ -18,8 +18,8 @@
 pub mod actor_registry;
 pub mod bus;
 pub mod cluster;
-pub mod dead_letters;
 pub mod ddata;
+pub mod dead_letters;
 pub mod dto;
 pub mod exporters;
 pub mod persistence;

@@ -80,23 +80,16 @@ impl Journal for SqlJournal {
             by_pid.entry(m.persistence_id.clone()).or_default().push(m);
         }
         for (pid, batch) in by_pid {
-            let row: Option<(Option<i64>,)> = sqlx::query_as(
-                "SELECT MAX(sequence_nr) FROM event_journal WHERE persistence_id = ?",
-            )
-            .bind(&pid)
-            .fetch_optional(&mut *tx)
-            .await
-            .map_err(JournalError::backend)?;
-            let mut expected = row
-                .and_then(|(v,)| v)
-                .map(|v| v as u64 + 1)
-                .unwrap_or(1);
-            for msg in batch {
+            let row: Option<(Option<i64>,)> =
+                sqlx::query_as("SELECT MAX(sequence_nr) FROM event_journal WHERE persistence_id = ?")
+                    .bind(&pid)
+                    .fetch_optional(&mut *tx)
+                    .await
+                    .map_err(JournalError::backend)?;
+            let start = row.and_then(|(v,)| v).map(|v| v as u64 + 1).unwrap_or(1);
+            for (expected, msg) in (start..).zip(batch) {
                 if msg.sequence_nr != expected {
-                    return Err(JournalError::SequenceOutOfOrder {
-                        expected,
-                        got: msg.sequence_nr,
-                    });
+                    return Err(JournalError::SequenceOutOfOrder { expected, got: msg.sequence_nr });
                 }
                 let created_at = chrono::Utc::now().timestamp_millis();
                 sqlx::query(
@@ -113,17 +106,14 @@ impl Journal for SqlJournal {
                 .await
                 .map_err(JournalError::backend)?;
                 for tag in &msg.tags {
-                    sqlx::query(
-                        "INSERT INTO event_tags (persistence_id, sequence_nr, tag) VALUES (?, ?, ?)",
-                    )
-                    .bind(&msg.persistence_id)
-                    .bind(msg.sequence_nr as i64)
-                    .bind(tag)
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(JournalError::backend)?;
+                    sqlx::query("INSERT INTO event_tags (persistence_id, sequence_nr, tag) VALUES (?, ?, ?)")
+                        .bind(&msg.persistence_id)
+                        .bind(msg.sequence_nr as i64)
+                        .bind(tag)
+                        .execute(&mut *tx)
+                        .await
+                        .map_err(JournalError::backend)?;
                 }
-                expected += 1;
             }
         }
         tx.commit().await.map_err(JournalError::backend)?;
@@ -135,14 +125,12 @@ impl Journal for SqlJournal {
         persistence_id: &str,
         to_sequence_nr: u64,
     ) -> Result<(), JournalError> {
-        sqlx::query(
-            "UPDATE event_journal SET deleted = 1 WHERE persistence_id = ? AND sequence_nr <= ?",
-        )
-        .bind(persistence_id)
-        .bind(to_sequence_nr as i64)
-        .execute(&self.pool)
-        .await
-        .map_err(JournalError::backend)?;
+        sqlx::query("UPDATE event_journal SET deleted = 1 WHERE persistence_id = ? AND sequence_nr <= ?")
+            .bind(persistence_id)
+            .bind(to_sequence_nr as i64)
+            .execute(&self.pool)
+            .await
+            .map_err(JournalError::backend)?;
         Ok(())
     }
 
@@ -170,14 +158,13 @@ impl Journal for SqlJournal {
         .map_err(JournalError::backend)?;
         let mut out = Vec::with_capacity(rows.len());
         for (pid, seq, payload, manifest, writer, deleted) in rows {
-            let tags: Vec<(String,)> = sqlx::query_as(
-                "SELECT tag FROM event_tags WHERE persistence_id = ? AND sequence_nr = ?",
-            )
-            .bind(&pid)
-            .bind(seq)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(JournalError::backend)?;
+            let tags: Vec<(String,)> =
+                sqlx::query_as("SELECT tag FROM event_tags WHERE persistence_id = ? AND sequence_nr = ?")
+                    .bind(&pid)
+                    .bind(seq)
+                    .fetch_all(&self.pool)
+                    .await
+                    .map_err(JournalError::backend)?;
             out.push(PersistentRepr {
                 persistence_id: pid,
                 sequence_nr: seq as u64,

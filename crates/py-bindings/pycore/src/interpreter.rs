@@ -276,10 +276,7 @@ impl InterpreterRegistry {
         quota: InterpreterQuota,
     ) -> Arc<InterpreterInstance> {
         let mut pools = self.pools.lock();
-        pools
-            .entry(label.to_string())
-            .or_insert_with(|| InterpreterInstance::new(label, kind, quota))
-            .clone()
+        pools.entry(label.to_string()).or_insert_with(|| InterpreterInstance::new(label, kind, quota)).clone()
     }
 
     pub fn get(&self, label: &str) -> Option<Arc<InterpreterInstance>> {

@@ -48,10 +48,7 @@ impl DynamoJournal {
         av.insert("writer_uuid".into(), AttributeValue::S(repr.writer_uuid.clone()));
         av.insert("deleted".into(), AttributeValue::Bool(repr.deleted));
         if !repr.tags.is_empty() {
-            av.insert(
-                "tags".into(),
-                AttributeValue::Ss(repr.tags.clone()),
-            );
+            av.insert("tags".into(), AttributeValue::Ss(repr.tags.clone()));
         }
         av
     }
@@ -75,11 +72,7 @@ impl DynamoJournal {
         if items.is_empty() {
             return Ok(0);
         }
-        let sk = items[0]
-            .get("sk")
-            .and_then(|v| v.as_s().ok())
-            .cloned()
-            .unwrap_or_default();
+        let sk = items[0].get("sk").and_then(|v| v.as_s().ok()).cloned().unwrap_or_default();
         Ok(parse_sequence(&sk).unwrap_or(0))
     }
 }
@@ -112,10 +105,7 @@ impl Journal for DynamoJournal {
             let mut expected = self.current_max(&pid).await? + 1;
             for msg in batch {
                 if msg.sequence_nr != expected {
-                    return Err(JournalError::SequenceOutOfOrder {
-                        expected,
-                        got: msg.sequence_nr,
-                    });
+                    return Err(JournalError::SequenceOutOfOrder { expected, got: msg.sequence_nr });
                 }
                 expected += 1;
                 let item = self.to_av(&msg);
@@ -186,31 +176,17 @@ impl Journal for DynamoJournal {
             if deleted {
                 continue;
             }
-            let seq = item
-                .get("seq")
-                .and_then(|v| v.as_n().ok())
-                .and_then(|s| s.parse::<u64>().ok())
-                .unwrap_or(0);
+            let seq =
+                item.get("seq").and_then(|v| v.as_n().ok()).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
             let payload = item
                 .get("payload")
                 .and_then(|v| v.as_b().ok())
                 .map(|b| b.as_ref().to_vec())
                 .unwrap_or_default();
-            let manifest = item
-                .get("manifest")
-                .and_then(|v| v.as_s().ok())
-                .cloned()
-                .unwrap_or_default();
-            let writer_uuid = item
-                .get("writer_uuid")
-                .and_then(|v| v.as_s().ok())
-                .cloned()
-                .unwrap_or_default();
-            let tags = item
-                .get("tags")
-                .and_then(|v| v.as_ss().ok())
-                .map(|v| v.clone())
-                .unwrap_or_default();
+            let manifest = item.get("manifest").and_then(|v| v.as_s().ok()).cloned().unwrap_or_default();
+            let writer_uuid =
+                item.get("writer_uuid").and_then(|v| v.as_s().ok()).cloned().unwrap_or_default();
+            let tags = item.get("tags").and_then(|v| v.as_ss().ok()).cloned().unwrap_or_default();
             results.push(PersistentRepr {
                 persistence_id: persistence_id.to_string(),
                 sequence_nr: seq,
@@ -224,11 +200,7 @@ impl Journal for DynamoJournal {
         Ok(results)
     }
 
-    async fn highest_sequence_nr(
-        &self,
-        persistence_id: &str,
-        _from: u64,
-    ) -> Result<u64, JournalError> {
+    async fn highest_sequence_nr(&self, persistence_id: &str, _from: u64) -> Result<u64, JournalError> {
         self.current_max(persistence_id).await
     }
 }

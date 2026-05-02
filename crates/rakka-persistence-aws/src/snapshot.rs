@@ -61,13 +61,7 @@ impl SnapshotStore for DynamoSnapshotStore {
         item.insert("seq".into(), AttributeValue::N(meta.sequence_nr.to_string()));
         item.insert("payload".into(), AttributeValue::B(Blob::new(payload)));
         item.insert("timestamp".into(), AttributeValue::N(meta.timestamp.to_string()));
-        let _ = self
-            .client
-            .put_item()
-            .table_name(&self.cfg.table_name)
-            .set_item(Some(item))
-            .send()
-            .await;
+        let _ = self.client.put_item().table_name(&self.cfg.table_name).set_item(Some(item)).send().await;
     }
 
     async fn load(&self, persistence_id: &str) -> Option<(SnapshotMetadata, Vec<u8>)> {
@@ -95,11 +89,7 @@ impl SnapshotStore for DynamoSnapshotStore {
             .and_then(|s| s.parse::<u64>().ok())
             .unwrap_or(0);
         Some((
-            SnapshotMetadata {
-                persistence_id: persistence_id.to_string(),
-                sequence_nr: seq,
-                timestamp,
-            },
+            SnapshotMetadata { persistence_id: persistence_id.to_string(), sequence_nr: seq, timestamp },
             payload,
         ))
     }
@@ -109,13 +99,8 @@ impl SnapshotStore for DynamoSnapshotStore {
             let mut key = HashMap::new();
             key.insert("pid".into(), AttributeValue::S(persistence_id.into()));
             key.insert("sk".into(), AttributeValue::S(snapshot_sk(seq)));
-            let _ = self
-                .client
-                .delete_item()
-                .table_name(&self.cfg.table_name)
-                .set_key(Some(key))
-                .send()
-                .await;
+            let _ =
+                self.client.delete_item().table_name(&self.cfg.table_name).set_key(Some(key)).send().await;
         }
     }
 }

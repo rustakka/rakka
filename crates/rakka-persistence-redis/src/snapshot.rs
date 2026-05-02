@@ -16,12 +16,8 @@ pub struct RedisSnapshotStore {
 
 impl RedisSnapshotStore {
     pub async fn connect(cfg: RedisConfig) -> Result<Arc<Self>, JournalError> {
-        let builder = Builder::from_config(
-            Config::from_url(&cfg.url).map_err(JournalError::backend)?,
-        );
-        let pool = builder
-            .build_pool(cfg.pool_size)
-            .map_err(JournalError::backend)?;
+        let builder = Builder::from_config(Config::from_url(&cfg.url).map_err(JournalError::backend)?);
+        let pool = builder.build_pool(cfg.pool_size).map_err(JournalError::backend)?;
         pool.init().await.map_err(JournalError::backend)?;
         Ok(Arc::new(Self { client: pool, cfg }))
     }
@@ -51,25 +47,14 @@ impl SnapshotStore for RedisSnapshotStore {
                 return;
             }
         };
-        let _: Result<(), _> = self
-            .client
-            .zadd(
-                &key,
-                None,
-                None,
-                false,
-                false,
-                (meta.sequence_nr as f64, raw),
-            )
-            .await;
+        let _: Result<(), _> =
+            self.client.zadd(&key, None, None, false, false, (meta.sequence_nr as f64, raw)).await;
     }
 
     async fn load(&self, persistence_id: &str) -> Option<(SnapshotMetadata, Vec<u8>)> {
         let key = self.cfg.snapshot_key(persistence_id);
-        let res: Result<Vec<(String, f64)>, _> = self
-            .client
-            .zrange(&key, -1, -1, None, false, None, true)
-            .await;
+        let res: Result<Vec<(String, f64)>, _> =
+            self.client.zrange(&key, -1, -1, None, false, None, true).await;
         let members = res.ok()?;
         let (raw, _) = members.into_iter().next()?;
         let stored: StoredSnapshot = serde_json::from_str(&raw).ok()?;
@@ -78,9 +63,6 @@ impl SnapshotStore for RedisSnapshotStore {
 
     async fn delete(&self, persistence_id: &str, to_sequence_nr: u64) {
         let key = self.cfg.snapshot_key(persistence_id);
-        let _: Result<i64, _> = self
-            .client
-            .zremrangebyscore(&key, 0.0, to_sequence_nr as f64)
-            .await;
+        let _: Result<i64, _> = self.client.zremrangebyscore(&key, 0.0, to_sequence_nr as f64).await;
     }
 }

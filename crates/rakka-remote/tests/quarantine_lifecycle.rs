@@ -12,9 +12,7 @@ use rakka_remote::{AssociationState, RemoteSettings, RemoteSystem};
 
 async fn boot(name: &str) -> RemoteSystem {
     let sys = ActorSystem::create(name, Config::reference()).await.unwrap();
-    RemoteSystem::start(sys, "127.0.0.1:0".parse().unwrap(), RemoteSettings::default())
-        .await
-        .unwrap()
+    RemoteSystem::start(sys, "127.0.0.1:0".parse().unwrap(), RemoteSettings::default()).await.unwrap()
 }
 
 #[tokio::test]

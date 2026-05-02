@@ -207,8 +207,9 @@ mod tests {
 
     #[test]
     fn custom_decider_runs() {
-        let s: SupervisorStrategy =
-            OneForOneStrategy::new().with_decider(|e| if e == "stop" { Directive::Stop } else { Directive::Resume }).into();
+        let s: SupervisorStrategy = OneForOneStrategy::new()
+            .with_decider(|e| if e == "stop" { Directive::Stop } else { Directive::Resume })
+            .into();
         assert_eq!(s.decide("stop"), Directive::Stop);
         assert_eq!(s.decide("keep"), Directive::Resume);
     }

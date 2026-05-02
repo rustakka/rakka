@@ -21,11 +21,7 @@ use crate::source::Source;
 /// are open, additional keys' elements are dropped.
 ///
 /// Akka.NET: `Source.GroupBy(maxSubstreams, key)`.
-pub fn group_by<T, K, F>(
-    src: Source<T>,
-    max_substreams: usize,
-    mut key_fn: F,
-) -> Source<(K, Source<T>)>
+pub fn group_by<T, K, F>(src: Source<T>, max_substreams: usize, mut key_fn: F) -> Source<(K, Source<T>)>
 where
     T: Send + 'static,
     K: Eq + Hash + Clone + Send + 'static,

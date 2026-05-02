@@ -24,10 +24,7 @@ fn repr(pid: &str, nr: u64) -> PersistentRepr {
 #[tokio::test]
 async fn snapshot_async_reports_live_journal_state() {
     let journal = InMemoryJournal::new();
-    journal
-        .write_messages(vec![repr("orders", 1), repr("orders", 2), repr("orders", 3)])
-        .await
-        .unwrap();
+    journal.write_messages(vec![repr("orders", 1), repr("orders", 2), repr("orders", 3)]).await.unwrap();
     journal.write_messages(vec![repr("payments", 1)]).await.unwrap();
 
     let probe = PersistenceProbe::new(TelemetryBus::new(8));

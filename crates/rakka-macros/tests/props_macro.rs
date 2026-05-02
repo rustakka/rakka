@@ -31,17 +31,10 @@ impl Actor for Greeter {
 
 #[tokio::test]
 async fn props_macro_creates_actor() {
-    let sys = ActorSystem::create("PropsMacro", Config::reference())
-        .await
-        .unwrap();
-    let greeter = sys
-        .actor_of(props!(Greeter { prefix: "hi".into() }), "g")
-        .unwrap();
+    let sys = ActorSystem::create("PropsMacro", Config::reference()).await.unwrap();
+    let greeter = sys.actor_of(props!(Greeter { prefix: "hi".into() }), "g").unwrap();
     let reply = greeter
-        .ask_with(
-            |tx| GreeterMsg::Hello("world".into(), tx),
-            Duration::from_millis(200),
-        )
+        .ask_with(|tx| GreeterMsg::Hello("world".into(), tx), Duration::from_millis(200))
         .await
         .unwrap();
     assert_eq!(reply, "hi, world");

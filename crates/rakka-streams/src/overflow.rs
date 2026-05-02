@@ -96,27 +96,24 @@ pub(crate) fn apply<T: Send + 'static>(
         notify_p.notify_waiters();
     });
 
-    let out = futures::stream::unfold(
-        (state, notify),
-        |(state, notify)| async move {
-            loop {
-                {
-                    let mut guard = state.lock();
-                    if guard.failed {
-                        return None;
-                    }
-                    if let Some(v) = guard.items.pop_front() {
-                        notify.notify_one();
-                        return Some((v, (state.clone(), notify.clone())));
-                    }
-                    if guard.complete {
-                        return None;
-                    }
+    let out = futures::stream::unfold((state, notify), |(state, notify)| async move {
+        loop {
+            {
+                let mut guard = state.lock();
+                if guard.failed {
+                    return None;
                 }
-                notify.notified().await;
+                if let Some(v) = guard.items.pop_front() {
+                    notify.notify_one();
+                    return Some((v, (state.clone(), notify.clone())));
+                }
+                if guard.complete {
+                    return None;
+                }
             }
-        },
-    )
+            notify.notified().await;
+        }
+    })
     .boxed();
     Source { inner: out }
 }
@@ -158,7 +155,7 @@ mod tests {
         let out = buffered.into_boxed();
         use futures::StreamExt;
         tokio::pin!(out);
-        while let Some(_) = out.next().await {
+        while out.next().await.is_some() {
             count += 1;
         }
         assert!(count <= 1_000);

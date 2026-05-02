@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rakka dashboard — demo</title>
+  <meta name="description" content="Interactive demo of the rakka actor system dashboard with mock telemetry data" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="demo.css" />
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <div class="sidebar-brand"><span class="brand-accent">rust</span>akka</div>
+      <div class="sidebar-subtitle">dashboard demo</div>
+      <nav id="sidebar-nav"></nav>
+      <div class="sidebar-footer">
+        <button id="theme-toggle" class="icon-btn" aria-label="Toggle theme">🌙</button>
+        <span class="badge badge-outline" id="demo-badge">DEMO MODE</span>
+      </div>
+    </aside>
+    <div id="main-area">
+      <header id="topbar">
+        <div class="topbar-left">
+          <button id="mobile-menu-btn" class="icon-btn md-hidden">☰</button>
+          <span class="topbar-brand md-hidden"><span class="brand-accent">rust</span>akka</span>
+        </div>
+        <div class="topbar-right">
+          <span class="badge badge-primary pulse-badge">● LIVE</span>
+          <span class="badge badge-outline">node-alpha-01</span>
+          <span class="badge badge-outline">demo</span>
+        </div>
+      </header>
+      <main id="content"></main>
+    </div>
+  </div>
+  <div id="mobile-overlay" class="hidden"></div>
+  <script src="demo.js"></script>
+</body>
+</html>

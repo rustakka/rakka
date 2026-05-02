@@ -1,4 +1,7 @@
 //! Finite state machine DSL. akka.net: `Actor/FSM.cs`.
+//!
+//! See also the [`fsm!`](crate::fsm) macro for a terse table-style
+//! `FiniteStateMachine` impl.
 
 use std::time::Duration;
 

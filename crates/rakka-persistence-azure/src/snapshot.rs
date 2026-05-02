@@ -50,11 +50,8 @@ impl SnapshotStore for AzureSnapshotStore {
     async fn load(&self, persistence_id: &str) -> Option<(SnapshotMetadata, Vec<u8>)> {
         let pk = escape_pk(persistence_id);
         let filter = format!("PartitionKey eq '{pk}'");
-        let mut entities: Vec<SnapshotEntity> = self
-            .client
-            .query_entities(&self.cfg.snapshot_table, &filter, None)
-            .await
-            .ok()?;
+        let mut entities: Vec<SnapshotEntity> =
+            self.client.query_entities(&self.cfg.snapshot_table, &filter, None).await.ok()?;
         entities.sort_by_key(|e| std::cmp::Reverse(e.sequence_nr));
         let entity = entities.into_iter().next()?;
         Some(entity.into_parts())
@@ -62,26 +59,16 @@ impl SnapshotStore for AzureSnapshotStore {
 
     async fn delete(&self, persistence_id: &str, to_sequence_nr: u64) {
         let pk = escape_pk(persistence_id);
-        let filter = format!(
-            "PartitionKey eq '{pk}' and SequenceNr le {to}",
-            to = to_sequence_nr as i64,
-        );
-        let entities: Vec<SnapshotEntity> = match self
-            .client
-            .query_entities(&self.cfg.snapshot_table, &filter, None)
-            .await
-        {
-            Ok(e) => e,
-            Err(_) => return,
-        };
+        let filter = format!("PartitionKey eq '{pk}' and SequenceNr le {to}", to = to_sequence_nr as i64,);
+        let entities: Vec<SnapshotEntity> =
+            match self.client.query_entities(&self.cfg.snapshot_table, &filter, None).await {
+                Ok(e) => e,
+                Err(_) => return,
+            };
         for entity in entities {
             let _ = self
                 .client
-                .delete_entity(
-                    &self.cfg.snapshot_table,
-                    &entity.partition_key,
-                    &entity.row_key,
-                )
+                .delete_entity(&self.cfg.snapshot_table, &entity.partition_key, &entity.row_key)
                 .await;
         }
     }

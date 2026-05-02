@@ -139,9 +139,7 @@ impl DashboardServer {
         let mut state = AppState::new(self.telemetry.clone(), self.config.mode.clone());
         state.exporters = handles;
         let router = routes::build_router(state, self.config.ws_channel_capacity);
-        let listener = tokio::net::TcpListener::bind(self.config.bind)
-            .await
-            .map_err(ServerError::Bind)?;
+        let listener = tokio::net::TcpListener::bind(self.config.bind).await.map_err(ServerError::Bind)?;
         let bound = listener.local_addr().map_err(ServerError::Bind)?;
         let (tx, rx) = oneshot::channel::<()>();
         let join = tokio::spawn(async move {

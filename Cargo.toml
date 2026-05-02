@@ -36,6 +36,7 @@ members = [
     "examples/fault-tolerance",
     "examples/event-sourced-counter",
     "examples/cluster-pubsub-chat",
+    "examples/sharded-keyvalue",
     "benches/ping_throughput",
     "crates/rakka-profiler",
     "crates/py-bindings/pycore",

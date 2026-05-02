@@ -10,7 +10,7 @@ use std::net::SocketAddr;
 
 use bytes::{Bytes, BytesMut};
 use futures::stream::StreamExt;
-use tokio::io::{AsyncReadExt, AsyncWriteExt, split};
+use tokio::io::{split, AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
 use crate::source::Source;
@@ -51,34 +51,31 @@ impl Tcp {
     pub async fn bind(addr: SocketAddr) -> io::Result<Source<io::Result<IncomingConnection>>> {
         let listener = TcpListener::bind(addr).await?;
         let local = listener.local_addr()?;
-        let s = futures::stream::unfold(
-            AcceptState { listener, local },
-            |state| async move {
-                match state.listener.accept().await {
-                    Ok((stream, remote)) => {
-                        let (rd, mut wr) = split(stream);
-                        let (w_tx, mut w_rx) = tokio::sync::mpsc::unbounded_channel::<Bytes>();
-                        tokio::spawn(async move {
-                            while let Some(b) = w_rx.recv().await {
-                                if wr.write_all(&b).await.is_err() {
-                                    break;
-                                }
+        let s = futures::stream::unfold(AcceptState { listener, local }, |state| async move {
+            match state.listener.accept().await {
+                Ok((stream, remote)) => {
+                    let (rd, mut wr) = split(stream);
+                    let (w_tx, mut w_rx) = tokio::sync::mpsc::unbounded_channel::<Bytes>();
+                    tokio::spawn(async move {
+                        while let Some(b) = w_rx.recv().await {
+                            if wr.write_all(&b).await.is_err() {
+                                break;
                             }
-                            let _ = wr.shutdown().await;
-                        });
-                        let reader = read_stream(rd);
-                        let ic = IncomingConnection {
-                            reader,
-                            writer: w_tx,
-                            remote_addr: remote,
-                            local_addr: state.local,
-                        };
-                        Some((Ok(ic), state))
-                    }
-                    Err(e) => Some((Err(e), state)),
+                        }
+                        let _ = wr.shutdown().await;
+                    });
+                    let reader = read_stream(rd);
+                    let ic = IncomingConnection {
+                        reader,
+                        writer: w_tx,
+                        remote_addr: remote,
+                        local_addr: state.local,
+                    };
+                    Some((Ok(ic), state))
                 }
-            },
-        )
+                Err(e) => Some((Err(e), state)),
+            }
+        })
         .boxed();
         Ok(Source { inner: s })
     }
@@ -137,10 +134,8 @@ mod tests {
             if let Some(Ok(conn)) = stream.next().await {
                 let collected = Sink::collect(conn.reader).await;
                 let mut ok = Vec::new();
-                for r in collected {
-                    if let Ok(b) = r {
-                        ok.push(b);
-                    }
+                for b in collected.into_iter().flatten() {
+                    ok.push(b);
                 }
                 let _ = tx_done.send(ok);
             }

@@ -39,9 +39,7 @@ impl TelemetryEvent {
     /// the event stream.
     pub fn topic(&self) -> &'static str {
         match self {
-            Self::ActorSpawned(_) | Self::ActorStopped { .. } | Self::MailboxSampled { .. } => {
-                "actors"
-            }
+            Self::ActorSpawned(_) | Self::ActorStopped { .. } | Self::MailboxSampled { .. } => "actors",
             Self::DeadLetter(_) => "dead_letters",
             Self::ClusterChanged(_) => "cluster",
             Self::ShardingChanged(_) => "sharding",

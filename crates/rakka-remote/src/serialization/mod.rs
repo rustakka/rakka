@@ -43,6 +43,9 @@ pub enum SerializeError {
     Downcast(String),
 }
 
+type EncodeFn = Arc<dyn Fn(&dyn Any) -> Result<Vec<u8>, SerializeError> + Send + Sync>;
+type DecodeFn = Arc<dyn Fn(&[u8]) -> Result<Box<dyn Any + Send>, SerializeError> + Send + Sync>;
+
 /// Closure pair that knows how to encode/decode one Rust type to/from
 /// wire bytes. The registry maps a `manifest` (type name) to one of these.
 #[derive(Clone)]
@@ -50,8 +53,8 @@ pub struct TypeCodec {
     pub serializer_id: u32,
     pub manifest: String,
     pub type_id: TypeId,
-    pub encode: Arc<dyn Fn(&dyn Any) -> Result<Vec<u8>, SerializeError> + Send + Sync>,
-    pub decode: Arc<dyn Fn(&[u8]) -> Result<Box<dyn Any + Send>, SerializeError> + Send + Sync>,
+    pub encode: EncodeFn,
+    pub decode: DecodeFn,
 }
 
 /// Per-system registry mapping a `manifest` to a [`TypeCodec`].
@@ -146,13 +149,10 @@ impl SerializerRegistry {
     /// Encode a typed value, looking up its codec by `TypeId`. Returns
     /// `(serializer_id, manifest, bytes)` so the caller can fill the
     /// envelope.
-    pub fn encode_typed<T: Any + Send>(
-        &self,
-        value: &T,
-    ) -> Result<(u32, String, Vec<u8>), SerializeError> {
-        let codec = self.codec_for_type::<T>().ok_or_else(|| {
-            SerializeError::UnknownManifest(std::any::type_name::<T>().to_string())
-        })?;
+    pub fn encode_typed<T: Any + Send>(&self, value: &T) -> Result<(u32, String, Vec<u8>), SerializeError> {
+        let codec = self
+            .codec_for_type::<T>()
+            .ok_or_else(|| SerializeError::UnknownManifest(std::any::type_name::<T>().to_string()))?;
         let bytes = (codec.encode)(value as &dyn Any)?;
         Ok((codec.serializer_id, codec.manifest.clone(), bytes))
     }

@@ -25,11 +25,8 @@ pub enum RemotePropsError {
 /// Boxed factory closure: given the serialized payload, produce the
 /// reconstructed actor handle as `Arc<dyn std::any::Any + Send + Sync>`
 /// (downcast on the receiving side).
-type Factory = Arc<
-    dyn Fn(&[u8]) -> Result<Arc<dyn std::any::Any + Send + Sync>, RemotePropsError>
-        + Send
-        + Sync,
->;
+type Factory =
+    Arc<dyn Fn(&[u8]) -> Result<Arc<dyn std::any::Any + Send + Sync>, RemotePropsError> + Send + Sync>;
 
 /// Per-system registry of `(manifest, factory)` pairs.
 #[derive(Default, Clone)]

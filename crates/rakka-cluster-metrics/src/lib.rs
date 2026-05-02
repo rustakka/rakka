@@ -117,20 +117,14 @@ impl AdaptiveLoadBalancer {
             return None;
         }
         let snapshot = self.metrics.snapshot();
-        let lookup: HashMap<&str, &NodeMetrics> = snapshot
-            .iter()
-            .map(|m| (m.address.as_str(), m))
-            .collect();
+        let lookup: HashMap<&str, &NodeMetrics> = snapshot.iter().map(|m| (m.address.as_str(), m)).collect();
         let mut sorted: Vec<&&str> = candidates.iter().collect();
         sorted.sort_by(|a, b| {
             let load_a = lookup.get(*a).map(|m| m.cpu_load).unwrap_or(f64::INFINITY);
             let load_b = lookup.get(*b).map(|m| m.cpu_load).unwrap_or(f64::INFINITY);
-            load_a
-                .partial_cmp(&load_b)
-                .unwrap_or(std::cmp::Ordering::Equal)
-                .then_with(|| a.cmp(b))
+            load_a.partial_cmp(&load_b).unwrap_or(std::cmp::Ordering::Equal).then_with(|| a.cmp(b))
         });
-        sorted.first().copied().copied().map(|s| s)
+        sorted.first().copied().copied()
     }
 }
 
@@ -166,23 +160,14 @@ mod tests {
 
     #[test]
     fn memory_usage_handles_zero_max() {
-        let m = NodeMetrics {
-            address: "a".into(),
-            timestamp: 0,
-            cpu_load: 0.0,
-            memory_used: 0,
-            memory_max: 0,
-        };
+        let m =
+            NodeMetrics { address: "a".into(), timestamp: 0, cpu_load: 0.0, memory_used: 0, memory_max: 0 };
         assert_eq!(m.memory_usage(), 0.0);
     }
 
     #[test]
     fn static_probe_returns_configured_values() {
-        let probe = StaticProbe {
-            cpu_load: 0.7,
-            memory_used: 5,
-            memory_max: 10,
-        };
+        let probe = StaticProbe { cpu_load: 0.7, memory_used: 5, memory_max: 10 };
         let m = probe.sample("nodeA", 42);
         assert_eq!(m.address, "nodeA");
         assert_eq!(m.timestamp, 42);
@@ -194,16 +179,25 @@ mod tests {
     fn adaptive_picks_lowest_load() {
         let m = Arc::new(ClusterMetrics::new());
         m.publish(NodeMetrics {
-            address: "a".into(), timestamp: 0, cpu_load: 0.9,
-            memory_used: 0, memory_max: 1,
+            address: "a".into(),
+            timestamp: 0,
+            cpu_load: 0.9,
+            memory_used: 0,
+            memory_max: 1,
         });
         m.publish(NodeMetrics {
-            address: "b".into(), timestamp: 0, cpu_load: 0.1,
-            memory_used: 0, memory_max: 1,
+            address: "b".into(),
+            timestamp: 0,
+            cpu_load: 0.1,
+            memory_used: 0,
+            memory_max: 1,
         });
         m.publish(NodeMetrics {
-            address: "c".into(), timestamp: 0, cpu_load: 0.5,
-            memory_used: 0, memory_max: 1,
+            address: "c".into(),
+            timestamp: 0,
+            cpu_load: 0.5,
+            memory_used: 0,
+            memory_max: 1,
         });
         let lb = AdaptiveLoadBalancer::new(m);
         assert_eq!(lb.pick(&["a", "b", "c"]), Some("b"));
@@ -221,5 +215,185 @@ mod tests {
         let m = Arc::new(ClusterMetrics::new());
         let lb = AdaptiveLoadBalancer::new(m);
         assert_eq!(lb.pick(&[]), None);
+    }
+}
+
+// -- Phase 10.B: optional sysinfo-backed probe -----------------------
+
+#[cfg(feature = "sysinfo-probe")]
+pub mod sys {
+    //! `sysinfo`-backed [`super::MetricsProbe`]. Enabled with the
+    //! `sysinfo-probe` feature.
+    use super::{MetricsProbe, NodeMetrics};
+    use std::sync::Mutex;
+    use sysinfo::System;
+
+    pub struct SysinfoProbe {
+        sys: Mutex<System>,
+    }
+
+    impl Default for SysinfoProbe {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
+    impl SysinfoProbe {
+        pub fn new() -> Self {
+            Self { sys: Mutex::new(System::new_all()) }
+        }
+    }
+
+    impl MetricsProbe for SysinfoProbe {
+        fn sample(&self, address: &str, timestamp: u64) -> NodeMetrics {
+            let mut sys = self.sys.lock().unwrap();
+            sys.refresh_cpu_usage();
+            sys.refresh_memory();
+            // global_cpu_info().cpu_usage() is in [0..100]; normalize to [0..1].
+            let cpu_load = (sys.global_cpu_info().cpu_usage() as f64 / 100.0).clamp(0.0, 1.0);
+            let memory_max = sys.total_memory();
+            let memory_used = sys.used_memory();
+            NodeMetrics { address: address.into(), timestamp, cpu_load, memory_used, memory_max }
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn sysinfo_probe_returns_finite_load() {
+            let p = SysinfoProbe::new();
+            let m = p.sample("a", 1);
+            assert!(m.cpu_load.is_finite());
+            assert!(m.memory_max >= m.memory_used);
+        }
+    }
+}
+
+// -- Phase 10.C: metrics gossip --------------------------------------
+
+/// Wire shape for cross-node metric exchange.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum MetricsPdu {
+    /// Push the sender's latest sample.
+    Push(NodeMetrics),
+    /// Push a batch of samples (e.g. for catch-up sync).
+    PushBatch(Vec<NodeMetrics>),
+}
+
+/// Pluggable transport for metrics gossip. Mirrors
+/// [`rakka_cluster::GossipTransport`] in spirit but works on raw addresses.
+pub trait MetricsTransport: Send + Sync + 'static {
+    fn send(&self, target_node: &str, pdu: MetricsPdu);
+}
+
+/// Apply an inbound `MetricsPdu` into a [`ClusterMetrics`].
+pub fn apply_metrics_pdu(metrics: &ClusterMetrics, pdu: MetricsPdu) {
+    match pdu {
+        MetricsPdu::Push(m) => metrics.publish(m),
+        MetricsPdu::PushBatch(v) => {
+            for m in v {
+                metrics.publish(m);
+            }
+        }
+    }
+}
+
+/// Push the local probe sample to a peer. Caller drives this on a tick.
+pub fn gossip_local_metrics<P: MetricsProbe + ?Sized>(
+    probe: &P,
+    self_address: &str,
+    target_node: &str,
+    transport: &dyn MetricsTransport,
+    now: u64,
+) {
+    let m = probe.sample(self_address, now);
+    transport.send(target_node, MetricsPdu::Push(m));
+}
+
+#[cfg(test)]
+mod gossip_tests {
+    use super::*;
+    use std::sync::Mutex;
+
+    #[derive(Default)]
+    struct CaptureTransport {
+        sent: Mutex<Vec<(String, MetricsPdu)>>,
+    }
+    impl MetricsTransport for CaptureTransport {
+        fn send(&self, target: &str, pdu: MetricsPdu) {
+            self.sent.lock().unwrap().push((target.to_string(), pdu));
+        }
+    }
+
+    #[test]
+    fn gossip_pushes_local_sample_to_target() {
+        let probe = StaticProbe { cpu_load: 0.3, memory_used: 1, memory_max: 4 };
+        let net = CaptureTransport::default();
+        gossip_local_metrics(&probe, "self", "peer", &net, 1);
+        let sent = net.sent.lock().unwrap();
+        assert_eq!(sent.len(), 1);
+        match &sent[0].1 {
+            MetricsPdu::Push(m) => assert_eq!(m.address, "self"),
+            _ => panic!("expected Push"),
+        }
+    }
+
+    #[test]
+    fn apply_pdu_merges_into_metrics() {
+        let m = ClusterMetrics::new();
+        let pdu = MetricsPdu::Push(NodeMetrics {
+            address: "x".into(),
+            timestamp: 7,
+            cpu_load: 0.1,
+            memory_used: 1,
+            memory_max: 2,
+        });
+        apply_metrics_pdu(&m, pdu);
+        assert_eq!(m.node_count(), 1);
+        assert_eq!(m.get("x").unwrap().timestamp, 7);
+    }
+
+    #[test]
+    fn adaptive_balancer_can_be_used_as_picker_closure() {
+        let m = Arc::new(ClusterMetrics::new());
+        m.publish(NodeMetrics {
+            address: "akka.tcp://Sys@a:1".into(),
+            timestamp: 0,
+            cpu_load: 0.9,
+            memory_used: 0,
+            memory_max: 1,
+        });
+        m.publish(NodeMetrics {
+            address: "akka.tcp://Sys@b:1".into(),
+            timestamp: 0,
+            cpu_load: 0.1,
+            memory_used: 0,
+            memory_max: 1,
+        });
+        let lb = Arc::new(AdaptiveLoadBalancer::new(m));
+        type Picker = Arc<dyn Fn(&[String]) -> Option<String> + Send + Sync>;
+        let picker: Picker = {
+            let lb = lb.clone();
+            Arc::new(move |cands| {
+                let refs: Vec<&str> = cands.iter().map(String::as_str).collect();
+                lb.pick(&refs).map(|s| s.to_string())
+            })
+        };
+        let chosen = picker(&["akka.tcp://Sys@a:1".to_string(), "akka.tcp://Sys@b:1".to_string()]).unwrap();
+        assert_eq!(chosen, "akka.tcp://Sys@b:1");
+    }
+
+    #[test]
+    fn batch_pdu_merges_each() {
+        let m = ClusterMetrics::new();
+        let pdu = MetricsPdu::PushBatch(vec![
+            NodeMetrics { address: "a".into(), timestamp: 1, cpu_load: 0.0, memory_used: 0, memory_max: 0 },
+            NodeMetrics { address: "b".into(), timestamp: 2, cpu_load: 0.0, memory_used: 0, memory_max: 0 },
+        ]);
+        apply_metrics_pdu(&m, pdu);
+        assert_eq!(m.node_count(), 2);
     }
 }

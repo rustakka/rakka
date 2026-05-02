@@ -30,12 +30,14 @@ use super::remote::RemoteRef;
 ///   `IActorRef.NoSender`).
 #[derive(Clone)]
 #[non_exhaustive]
+#[derive(Default)]
 pub enum Sender {
     Local(UntypedActorRef),
     Remote {
         path: ActorPath,
         handle: Arc<dyn RemoteRef>,
     },
+    #[default]
     None,
 }
 
@@ -73,17 +75,9 @@ impl std::fmt::Debug for Sender {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Sender::Local(r) => f.debug_tuple("Local").field(&r.path().to_string()).finish(),
-            Sender::Remote { path, .. } => {
-                f.debug_struct("Remote").field("path", &path.to_string()).finish()
-            }
+            Sender::Remote { path, .. } => f.debug_struct("Remote").field("path", &path.to_string()).finish(),
             Sender::None => f.write_str("None"),
         }
-    }
-}
-
-impl Default for Sender {
-    fn default() -> Self {
-        Sender::None
     }
 }
 

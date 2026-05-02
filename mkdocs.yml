@@ -21,6 +21,7 @@ nav:
   - Profiler: profiler.md
   - Dashboard: dashboard.md
   - Observability exporters: observability.md
+  - Release pipeline: release-pipeline.md
 markdown_extensions:
   - admonition
   - codehilite

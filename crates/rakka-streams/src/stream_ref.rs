@@ -44,10 +44,7 @@ impl<T: Send + 'static> SourceRefHandle<T> {
                 }
             }
         });
-        Self {
-            id,
-            receiver: parking_lot::Mutex::new(Some(rx)),
-        }
+        Self { id, receiver: parking_lot::Mutex::new(Some(rx)) }
     }
 
     /// Take the consumer source. Calling more than once yields
@@ -60,13 +57,8 @@ impl<T: Send + 'static> SourceRefHandle<T> {
     }
 }
 
-fn rx_to_stream<T: Send + 'static>(
-    rx: mpsc::Receiver<T>,
-) -> futures::stream::BoxStream<'static, T> {
-    futures::stream::unfold(rx, |mut rx| async move {
-        rx.recv().await.map(|item| (item, rx))
-    })
-    .boxed()
+fn rx_to_stream<T: Send + 'static>(rx: mpsc::Receiver<T>) -> futures::stream::BoxStream<'static, T> {
+    futures::stream::unfold(rx, |mut rx| async move { rx.recv().await.map(|item| (item, rx)) }).boxed()
 }
 
 /// Consumer-side advertisement of a `Sink<T>`. The producer attaches
@@ -82,11 +74,7 @@ impl<T: Send + 'static> SinkRefHandle<T> {
     pub fn new(buffer: usize) -> Self {
         let buffer = buffer.max(1);
         let (tx, rx) = mpsc::channel::<T>(buffer);
-        Self {
-            id: next_ref_id(),
-            sender: tx,
-            receiver: parking_lot::Mutex::new(Some(rx)),
-        }
+        Self { id: next_ref_id(), sender: tx, receiver: parking_lot::Mutex::new(Some(rx)) }
     }
 
     /// Producer-side: attach `source` so its elements drain into the
@@ -152,22 +140,19 @@ mod tests {
         let sink: SinkRef<i32> = Arc::new(SinkRefHandle::new(16));
         sink.attach(Source::from_iter(vec![1, 2, 3]));
         sink.attach(Source::from_iter(vec![10, 20]));
-        let mut got = tokio::time::timeout(
-            Duration::from_millis(200),
-            Sink::collect(sink.take_source()),
-        )
-        .await
-        .unwrap_or_default();
+        let merged = sink.take_source();
+        // Drop the handle so its retained sender is released — without
+        // this the merged source never sees `Closed` and we'd hang.
+        drop(sink);
+        let mut got = Sink::collect(merged).await;
         got.sort();
         assert_eq!(got, vec![1, 2, 3, 10, 20]);
     }
 
-    #[test]
-    fn ref_ids_are_unique_per_node() {
-        let s1: SourceRef<i32> =
-            Arc::new(SourceRefHandle::advertise(Source::from_iter(vec![1]), 1));
-        let s2: SourceRef<i32> =
-            Arc::new(SourceRefHandle::advertise(Source::from_iter(vec![1]), 1));
+    #[tokio::test]
+    async fn ref_ids_are_unique_per_node() {
+        let s1: SourceRef<i32> = Arc::new(SourceRefHandle::advertise(Source::from_iter(vec![1]), 1));
+        let s2: SourceRef<i32> = Arc::new(SourceRefHandle::advertise(Source::from_iter(vec![1]), 1));
         assert_ne!(s1.id, s2.id);
     }
 }

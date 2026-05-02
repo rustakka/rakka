@@ -11,8 +11,7 @@ use std::time::Duration;
 use futures::stream::{BoxStream, StreamExt};
 
 pub struct Flow<In, Out> {
-    pub(crate) transform:
-        Box<dyn FnOnce(BoxStream<'static, In>) -> BoxStream<'static, Out> + Send + 'static>,
+    pub(crate) transform: Box<dyn FnOnce(BoxStream<'static, In>) -> BoxStream<'static, Out> + Send + 'static>,
 }
 
 impl<T: Send + 'static> Flow<T, T> {
@@ -23,28 +22,22 @@ impl<T: Send + 'static> Flow<T, T> {
 
 impl<In: Send + 'static, Out: Send + 'static> Flow<In, Out> {
     /// Pure synchronous mapping. akka.net: `Flow.FromFunction` / `Select`.
-    pub fn from_fn<F>(mut f: F) -> Self
+    pub fn from_fn<F>(f: F) -> Self
     where
         F: FnMut(In) -> Out + Send + 'static,
     {
-        Flow {
-            transform: Box::new(move |s: BoxStream<'static, In>| s.map(move |x| f(x)).boxed()),
-        }
+        Flow { transform: Box::new(move |s: BoxStream<'static, In>| s.map(f).boxed()) }
     }
 
     /// Asynchronous mapping with ordered bounded parallelism.
     /// akka.net: `SelectAsync(parallelism, mapper)`.
-    pub fn map_async<F, Fut>(parallelism: usize, mut f: F) -> Self
+    pub fn map_async<F, Fut>(parallelism: usize, f: F) -> Self
     where
         F: FnMut(In) -> Fut + Send + 'static,
         Fut: Future<Output = Out> + Send + 'static,
     {
         let p = parallelism.max(1);
-        Flow {
-            transform: Box::new(move |s: BoxStream<'static, In>| {
-                s.map(move |x| f(x)).buffered(p).boxed()
-            }),
-        }
+        Flow { transform: Box::new(move |s: BoxStream<'static, In>| s.map(f).buffered(p).boxed()) }
     }
 
     /// Chain another flow after this one. akka.net: `Flow.Via`.
@@ -58,7 +51,7 @@ impl<In: Send + 'static, Out: Send + 'static> Flow<In, Out> {
     }
 
     /// Compose with a post-processing closure. akka.net: `Then` / `Select`.
-    pub fn then<Out2, F>(self, mut g: F) -> Flow<In, Out2>
+    pub fn then<Out2, F>(self, g: F) -> Flow<In, Out2>
     where
         Out2: Send + 'static,
         F: FnMut(Out) -> Out2 + Send + 'static,
@@ -66,7 +59,7 @@ impl<In: Send + 'static, Out: Send + 'static> Flow<In, Out> {
         Flow {
             transform: Box::new(move |s: BoxStream<'static, In>| {
                 let out = (self.transform)(s);
-                out.map(move |x| g(x)).boxed()
+                out.map(g).boxed()
             }),
         }
     }
@@ -85,15 +78,11 @@ impl<In: Send + 'static> Flow<In, In> {
     }
 
     pub fn take(n: usize) -> Self {
-        Flow {
-            transform: Box::new(move |s: BoxStream<'static, In>| s.take(n).boxed()),
-        }
+        Flow { transform: Box::new(move |s: BoxStream<'static, In>| s.take(n).boxed()) }
     }
 
     pub fn skip(n: usize) -> Self {
-        Flow {
-            transform: Box::new(move |s: BoxStream<'static, In>| s.skip(n).boxed()),
-        }
+        Flow { transform: Box::new(move |s: BoxStream<'static, In>| s.skip(n).boxed()) }
     }
 
     /// akka.net: `Throttle`.

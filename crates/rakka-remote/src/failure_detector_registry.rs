@@ -42,18 +42,12 @@ impl FailureDetectorRegistry {
 
     pub fn heartbeat(&self, from: &Address) {
         let key = from.to_string();
-        let entry = self
-            .detectors
-            .entry(key)
-            .or_insert_with(|| (self.factory)());
+        let entry = self.detectors.entry(key).or_insert_with(|| (self.factory)());
         entry.heartbeat();
     }
 
     pub fn is_available(&self, address: &Address) -> bool {
-        self.detectors
-            .get(&address.to_string())
-            .map(|d| d.is_available())
-            .unwrap_or(true)
+        self.detectors.get(&address.to_string()).map(|d| d.is_available()).unwrap_or(true)
     }
 
     pub fn remove(&self, address: &Address) {

@@ -59,14 +59,11 @@ impl ClusterRemoteAdapter {
         let state = Arc::new(RwLock::new(Gossip::new()));
         let state_for_actor = state.clone();
         let cluster_ref = system
-            .actor_of(
-                Props::create(move || ClusterActor { state: state_for_actor.clone() }),
-                "cluster",
-            )
+            .actor_of(Props::create(move || ClusterActor { state: state_for_actor.clone() }), "cluster")
             .map_err(|e| rakka_remote::TransportError::Other(e.to_string()))?;
         remote.expose_actor(cluster_ref.clone());
 
-        let cluster_path = format!("/user/cluster");
+        let cluster_path = "/user/cluster".to_string();
         let self_address = remote.local_address.clone();
 
         Ok(Self {
@@ -89,10 +86,7 @@ impl ClusterRemoteAdapter {
     }
 
     /// Push our current gossip state at `peer`.
-    pub async fn send_gossip(
-        &self,
-        peer: &Address,
-    ) -> Result<(), rakka_remote::TransportError> {
+    pub async fn send_gossip(&self, peer: &Address) -> Result<(), rakka_remote::TransportError> {
         let target = format!("{}{}", peer, self.inner.cluster_path);
         let Some(handle) = self.inner.remote.actor_selection::<Gossip>(&target) else {
             return Err(rakka_remote::TransportError::NotAssociated(target));
@@ -121,10 +115,10 @@ impl ClusterRemoteAdapter {
     /// [`EndpointManager`].
     pub fn mark_unreachable(&self, observer: &Address, peer: &Address) {
         let mut g = self.inner.state.write();
-        g.state.reachability.records.insert(
-            (observer.clone(), peer.clone()),
-            ReachabilityStatus::Unreachable,
-        );
+        g.state
+            .reachability
+            .records
+            .insert((observer.clone(), peer.clone()), ReachabilityStatus::Unreachable);
     }
 
     /// Periodic heartbeat: poll the remote failure detector registry and
@@ -152,9 +146,7 @@ mod tests {
     use std::time::Duration;
 
     async fn boot(name: &str) -> ClusterRemoteAdapter {
-        let sys = ActorSystem::create(name, rakka_config::Config::reference())
-            .await
-            .unwrap();
+        let sys = ActorSystem::create(name, rakka_config::Config::reference()).await.unwrap();
         ClusterRemoteAdapter::start(sys, "127.0.0.1:0".parse().unwrap(), RemoteSettings::default())
             .await
             .unwrap()
@@ -167,13 +159,11 @@ mod tests {
 
         a.update_local(|g| {
             g.tick("ClusterA");
-            g.state
-                .add_or_update(Member::new(a.self_address().clone(), vec![]));
+            g.state.add_or_update(Member::new(a.self_address().clone(), vec![]));
         });
         b.update_local(|g| {
             g.tick("ClusterB");
-            g.state
-                .add_or_update(Member::new(b.self_address().clone(), vec![]));
+            g.state.add_or_update(Member::new(b.self_address().clone(), vec![]));
         });
 
         a.send_gossip(b.self_address()).await.unwrap();

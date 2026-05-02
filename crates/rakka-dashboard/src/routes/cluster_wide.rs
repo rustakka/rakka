@@ -8,13 +8,11 @@ use axum::routing::get;
 use axum::{Json, Router};
 
 use rakka_telemetry::dto::{
-    ActorSnapshot, ClusterStateInfo, DDataSnapshot, DeadLetterRecord, NodeSnapshot,
-    OverviewSnapshot, PersistenceSnapshot, RemoteSnapshot, ShardingSnapshot, StreamsSnapshot,
+    ActorSnapshot, ClusterStateInfo, DDataSnapshot, DeadLetterRecord, NodeSnapshot, OverviewSnapshot,
+    PersistenceSnapshot, RemoteSnapshot, ShardingSnapshot, StreamsSnapshot,
 };
 
-use crate::aggregator::{
-    merge_actor_snapshots, merge_cluster_states, merge_overviews, ClusterAggregator,
-};
+use crate::aggregator::{merge_actor_snapshots, merge_cluster_states, merge_overviews, ClusterAggregator};
 use crate::{AppState, DashboardMode};
 
 pub fn router(state: AppState) -> Router {
@@ -34,9 +32,7 @@ pub fn router(state: AppState) -> Router {
 
 fn aggregator_for(state: &AppState) -> Option<ClusterAggregator> {
     match &state.mode {
-        DashboardMode::Cluster { peers } if !peers.is_empty() => {
-            Some(ClusterAggregator::new(peers.clone()))
-        }
+        DashboardMode::Cluster { peers } if !peers.is_empty() => Some(ClusterAggregator::new(peers.clone())),
         _ => None,
     }
 }

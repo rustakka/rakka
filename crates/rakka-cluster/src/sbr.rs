@@ -156,8 +156,8 @@ mod tests {
 
     #[test]
     fn keep_majority_prefers_larger_side() {
-        let r = vec![up(1), up(2), up(3)];
-        let u = vec![up(4)];
+        let r = [up(1), up(2), up(3)];
+        let u = [up(4)];
         let r_ref: Vec<&Member> = r.iter().collect();
         let u_ref: Vec<&Member> = u.iter().collect();
         assert_eq!(KeepMajorityStrategy.decide(&r_ref, &u_ref), DowningDecision::DownUnreachable);
@@ -165,8 +165,8 @@ mod tests {
 
     #[test]
     fn static_quorum_enforces_size() {
-        let r = vec![up(1)];
-        let u = vec![up(2)];
+        let r = [up(1)];
+        let u = [up(2)];
         let r_ref: Vec<&Member> = r.iter().collect();
         let u_ref: Vec<&Member> = u.iter().collect();
         assert_eq!(StaticQuorumStrategy { quorum_size: 2 }.decide(&r_ref, &u_ref), DowningDecision::DownSelf);
@@ -174,8 +174,8 @@ mod tests {
 
     #[test]
     fn keep_oldest_picks_lowest_up_number() {
-        let r = vec![up(1)];
-        let u = vec![up(2), up(3)];
+        let r = [up(1)];
+        let u = [up(2), up(3)];
         let r_ref: Vec<&Member> = r.iter().collect();
         let u_ref: Vec<&Member> = u.iter().collect();
         assert_eq!(KeepOldestStrategy::default().decide(&r_ref, &u_ref), DowningDecision::DownUnreachable);

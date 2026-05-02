@@ -32,10 +32,14 @@ pub struct PyActorSystem {
 impl PyActorSystem {
     #[staticmethod]
     #[pyo3(signature = (name, config=None))]
-    fn create<'py>(py: Python<'py>, name: String, config: Option<Py<PyConfig>>) -> PyResult<Bound<'py, PyAny>> {
-        let cfg = config.map(|c| {
-            Python::with_gil(|py| c.borrow(py).inner.clone())
-        }).unwrap_or_else(rakka_config::Config::empty);
+    fn create<'py>(
+        py: Python<'py>,
+        name: String,
+        config: Option<Py<PyConfig>>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let cfg = config
+            .map(|c| Python::with_gil(|py| c.borrow(py).inner.clone()))
+            .unwrap_or_else(rakka_config::Config::empty);
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let inner = RustSystem::create(name, cfg).await.map_err(errors::map)?;
             Python::with_gil(|py| Py::new(py, PyActorSystem { inner }).map(|p| p.into_any()))
@@ -48,8 +52,7 @@ impl PyActorSystem {
     pub fn create_blocking(py: Python<'_>, name: String, config: Option<Py<PyConfig>>) -> PyResult<Py<Self>> {
         let cfg = config.map(|c| c.borrow(py).inner.clone()).unwrap_or_else(rakka_config::Config::empty);
         let rt = runtime();
-        let inner = py.allow_threads(|| rt.block_on(RustSystem::create(name, cfg)))
-            .map_err(errors::map)?;
+        let inner = py.allow_threads(|| rt.block_on(RustSystem::create(name, cfg))).map_err(errors::map)?;
         Py::new(py, PyActorSystem { inner })
     }
 
@@ -68,9 +71,7 @@ impl PyActorSystem {
         quota: Option<Py<InterpreterQuota>>,
     ) -> PyResult<()> {
         let kind = dispatcher::parse(&dispatcher, count);
-        let quota = quota
-            .map(|q| Python::with_gil(|py| q.borrow(py).clone()))
-            .unwrap_or_default();
+        let quota = quota.map(|q| Python::with_gil(|py| q.borrow(py).clone())).unwrap_or_default();
         REGISTRY.get_or_create(&label, kind, quota);
         Ok(())
     }

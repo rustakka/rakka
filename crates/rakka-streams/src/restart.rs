@@ -52,10 +52,7 @@ impl RestartSource {
                     // Completed; check restart policy.
                     let maybe_next = state.next_stream().await;
                     match maybe_next {
-                        Some(mut s) => match s.next().await {
-                            Some(v) => Some((v, (state, Some(s)))),
-                            None => None,
-                        },
+                        Some(mut s) => s.next().await.map(|v| (v, (state, Some(s)))),
                         None => None,
                     }
                 }
@@ -80,9 +77,7 @@ where
     T: Send + 'static,
     F: FnMut() -> Source<T> + Send + 'static,
 {
-    async fn next_stream(
-        &mut self,
-    ) -> Option<futures::stream::BoxStream<'static, T>> {
+    async fn next_stream(&mut self) -> Option<futures::stream::BoxStream<'static, T>> {
         if let Some(limit) = self.settings.max_restarts {
             if self.attempts >= limit {
                 return None;

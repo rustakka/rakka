@@ -55,25 +55,16 @@ impl<S: SnapshotStore + ?Sized> AsyncSnapshotter<S> {
     pub fn should_snapshot(&self, sequence_nr: u64) -> bool {
         match self.policy {
             SnapshotPolicy::Manual => false,
-            SnapshotPolicy::Periodic { every } if every == 0 => false,
+            SnapshotPolicy::Periodic { every: 0 } => false,
             SnapshotPolicy::Periodic { every } => sequence_nr > 0 && sequence_nr % every == 0,
         }
     }
 
     /// Persist `payload` as the snapshot for `(persistence_id,
     /// sequence_nr)` and prune older snapshots beyond `keep_last`.
-    pub async fn save(
-        &self,
-        persistence_id: impl Into<String>,
-        sequence_nr: u64,
-        payload: Vec<u8>,
-    ) {
+    pub async fn save(&self, persistence_id: impl Into<String>, sequence_nr: u64, payload: Vec<u8>) {
         let pid = persistence_id.into();
-        let meta = SnapshotMetadata {
-            persistence_id: pid.clone(),
-            sequence_nr,
-            timestamp: now_ms(),
-        };
+        let meta = SnapshotMetadata { persistence_id: pid.clone(), sequence_nr, timestamp: now_ms() };
         self.store.save(meta, payload).await;
         if self.keep_last >= 1 && sequence_nr >= self.keep_last as u64 {
             // Prune snapshots whose sequence_nr is `keep_last` or more
@@ -133,8 +124,7 @@ mod tests {
     #[tokio::test]
     async fn keep_last_prunes_old_snapshots() {
         let store = InMemorySnapshotStore::new();
-        let s = AsyncSnapshotter::new(store.clone(), SnapshotPolicy::Periodic { every: 1 })
-            .with_keep_last(2);
+        let s = AsyncSnapshotter::new(store.clone(), SnapshotPolicy::Periodic { every: 1 }).with_keep_last(2);
         for n in 1..=5 {
             s.save("a", n, vec![n as u8]).await;
         }

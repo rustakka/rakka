@@ -26,17 +26,11 @@ pub enum HandoffState {
     /// Source region has been told to begin draining.
     Beginning { source_region: String },
     /// Entities are stopping; new messages buffer at the source.
-    HandingOff {
-        source_region: String,
-        remaining_entities: usize,
-    },
+    HandingOff { source_region: String, remaining_entities: usize },
     /// All entities stopped; awaiting reassignment.
     Stopped { source_region: String },
     /// Shard re-allocated to `target_region`.
-    Started {
-        source_region: String,
-        target_region: String,
-    },
+    Started { source_region: String, target_region: String },
 }
 
 #[derive(Debug, Error)]
@@ -58,11 +52,7 @@ impl HandoffCoordinator {
     }
 
     pub fn state(&self, shard_id: &str) -> HandoffState {
-        self.states
-            .read()
-            .get(shard_id)
-            .cloned()
-            .unwrap_or(HandoffState::Idle)
+        self.states.read().get(shard_id).cloned().unwrap_or(HandoffState::Idle)
     }
 
     /// Phase 1: tell `source_region` to start draining `shard_id`.
@@ -72,20 +62,13 @@ impl HandoffCoordinator {
         if !matches!(cur, HandoffState::Idle | HandoffState::Started { .. }) {
             return Err(HandoffError::InvalidTransition(shard_id.into()));
         }
-        g.insert(
-            shard_id.into(),
-            HandoffState::Beginning { source_region: source_region.into() },
-        );
+        g.insert(shard_id.into(), HandoffState::Beginning { source_region: source_region.into() });
         Ok(())
     }
 
     /// Phase 2a: source region has acknowledged the begin and is now
     /// stopping `entity_count` entities.
-    pub fn ack_begin(
-        &self,
-        shard_id: &str,
-        entity_count: usize,
-    ) -> Result<(), HandoffError> {
+    pub fn ack_begin(&self, shard_id: &str, entity_count: usize) -> Result<(), HandoffError> {
         let mut g = self.states.write();
         let cur = g.get(shard_id).cloned().unwrap_or(HandoffState::Idle);
         let HandoffState::Beginning { source_region } = cur else {
@@ -93,10 +76,7 @@ impl HandoffCoordinator {
         };
         g.insert(
             shard_id.into(),
-            HandoffState::HandingOff {
-                source_region,
-                remaining_entities: entity_count,
-            },
+            HandoffState::HandingOff { source_region, remaining_entities: entity_count },
         );
         Ok(())
     }
@@ -112,21 +92,14 @@ impl HandoffCoordinator {
         let next = if remaining_entities <= 1 {
             HandoffState::Stopped { source_region }
         } else {
-            HandoffState::HandingOff {
-                source_region,
-                remaining_entities: remaining_entities - 1,
-            }
+            HandoffState::HandingOff { source_region, remaining_entities: remaining_entities - 1 }
         };
         g.insert(shard_id.into(), next);
         Ok(())
     }
 
     /// Phase 3: coordinator allocated the shard to `target_region`.
-    pub fn start_elsewhere(
-        &self,
-        shard_id: &str,
-        target_region: &str,
-    ) -> Result<(), HandoffError> {
+    pub fn start_elsewhere(&self, shard_id: &str, target_region: &str) -> Result<(), HandoffError> {
         let mut g = self.states.write();
         let cur = g.get(shard_id).cloned().unwrap_or(HandoffState::Idle);
         let HandoffState::Stopped { source_region } = cur else {
@@ -134,10 +107,7 @@ impl HandoffCoordinator {
         };
         g.insert(
             shard_id.into(),
-            HandoffState::Started {
-                source_region,
-                target_region: target_region.into(),
-            },
+            HandoffState::Started { source_region, target_region: target_region.into() },
         );
         Ok(())
     }
@@ -149,12 +119,8 @@ impl HandoffCoordinator {
 
     /// Snapshot for telemetry — `(shard_id, state)` pairs.
     pub fn snapshot(&self) -> Vec<(String, HandoffState)> {
-        let mut v: Vec<(String, HandoffState)> = self
-            .states
-            .read()
-            .iter()
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect();
+        let mut v: Vec<(String, HandoffState)> =
+            self.states.read().iter().map(|(k, v)| (k.clone(), v.clone())).collect();
         v.sort_by(|a, b| a.0.cmp(&b.0));
         v
     }
@@ -172,10 +138,7 @@ mod tests {
         h.ack_begin("s1", 3).unwrap();
         h.entity_stopped("s1").unwrap();
         h.entity_stopped("s1").unwrap();
-        assert!(matches!(
-            h.state("s1"),
-            HandoffState::HandingOff { remaining_entities: 1, .. }
-        ));
+        assert!(matches!(h.state("s1"), HandoffState::HandingOff { remaining_entities: 1, .. }));
         h.entity_stopped("s1").unwrap();
         assert!(matches!(h.state("s1"), HandoffState::Stopped { .. }));
         h.start_elsewhere("s1", "r2").unwrap();

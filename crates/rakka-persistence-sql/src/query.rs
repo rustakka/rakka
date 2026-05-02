@@ -37,8 +37,7 @@ impl ReadJournal for SqlReadJournal {
         from: u64,
         to: u64,
     ) -> Result<Vec<EventEnvelope>, JournalError> {
-        let reprs =
-            self.journal.replay_messages(persistence_id, from, to, u64::MAX).await?;
+        let reprs = self.journal.replay_messages(persistence_id, from, to, u64::MAX).await?;
         Ok(reprs.into_iter().map(Into::into).collect())
     }
 }

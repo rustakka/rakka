@@ -6,19 +6,14 @@
 
 use std::time::Duration;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum MailboxKind {
+    #[default]
     Unbounded,
     Bounded,
     UnboundedDeque,
     UnboundedPriority,
     UnboundedStablePriority,
-}
-
-impl Default for MailboxKind {
-    fn default() -> Self {
-        Self::Unbounded
-    }
 }
 
 #[derive(Debug, Clone)]

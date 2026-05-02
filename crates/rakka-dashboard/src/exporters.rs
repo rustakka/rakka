@@ -15,9 +15,7 @@ use crate::ServerError;
 #[derive(Default, Clone)]
 pub struct ExporterHandles {
     #[cfg(feature = "metrics-prometheus")]
-    pub prometheus: Option<
-        Arc<rakka_telemetry::exporters::prometheus::PrometheusExporter>,
-    >,
+    pub prometheus: Option<Arc<rakka_telemetry::exporters::prometheus::PrometheusExporter>>,
 }
 
 pub fn apply(
@@ -63,8 +61,7 @@ fn apply_prometheus(
     _handles: &mut ExporterHandles,
 ) -> Result<(), ServerError> {
     Err(ServerError::Exporter(
-        "prometheus exporter requested but the `metrics-prometheus` feature is disabled"
-            .into(),
+        "prometheus exporter requested but the `metrics-prometheus` feature is disabled".into(),
     ))
 }
 
@@ -73,11 +70,9 @@ fn apply_otlp(
     telemetry: &Arc<TelemetryExtension>,
     cfg: &rakka_telemetry::exporters::config::OtlpConfig,
 ) -> Result<(), ServerError> {
-    let exporter = rakka_telemetry::exporters::otel::OtelExporter::new_with_node(
-        cfg.clone(),
-        telemetry.node.clone(),
-    )
-    .map_err(|e| ServerError::Exporter(format!("otel init: {e}")))?;
+    let exporter =
+        rakka_telemetry::exporters::otel::OtelExporter::new_with_node(cfg.clone(), telemetry.node.clone())
+            .map_err(|e| ServerError::Exporter(format!("otel init: {e}")))?;
     telemetry.add_exporter(Arc::new(exporter));
     Ok(())
 }
@@ -87,7 +82,5 @@ fn apply_otlp(
     _telemetry: &Arc<TelemetryExtension>,
     _cfg: &rakka_telemetry::exporters::config::OtlpConfig,
 ) -> Result<(), ServerError> {
-    Err(ServerError::Exporter(
-        "otlp exporter requested but the `metrics-otel` feature is disabled".into(),
-    ))
+    Err(ServerError::Exporter("otlp exporter requested but the `metrics-otel` feature is disabled".into()))
 }

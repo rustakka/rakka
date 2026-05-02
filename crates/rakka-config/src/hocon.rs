@@ -34,6 +34,7 @@ use thiserror::Error;
 use crate::value::ConfigValue;
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum HoconError {
     #[error("unexpected character `{ch}` at line {line}, col {col}")]
     Unexpected { ch: char, line: usize, col: usize },
@@ -50,11 +51,7 @@ pub enum HoconError {
         source: std::io::Error,
     },
     #[error("expected {expected}, found `{found}` at line {line}")]
-    Expected {
-        expected: &'static str,
-        found: String,
-        line: usize,
-    },
+    Expected { expected: &'static str, found: String, line: usize },
 }
 
 /// Parse a HOCON document and return the merged root object.
@@ -72,10 +69,8 @@ pub fn parse(text: &str, base_dir: &Path) -> Result<ConfigValue, HoconError> {
 /// Parse a HOCON file from disk, resolving `include` relative to its
 /// parent directory.
 pub fn parse_file(path: &Path) -> Result<ConfigValue, HoconError> {
-    let text = std::fs::read_to_string(path).map_err(|e| HoconError::Io {
-        path: path.display().to_string(),
-        source: e,
-    })?;
+    let text = std::fs::read_to_string(path)
+        .map_err(|e| HoconError::Io { path: path.display().to_string(), source: e })?;
     let base = path.parent().unwrap_or(Path::new(".")).to_path_buf();
     parse(&text, &base)
 }
@@ -92,13 +87,7 @@ struct Parser<'a> {
 
 impl<'a> Parser<'a> {
     fn new(src: &'a str, base_dir: PathBuf) -> Self {
-        Self {
-            src: src.as_bytes(),
-            pos: 0,
-            line: 1,
-            col: 1,
-            base_dir,
-        }
+        Self { src: src.as_bytes(), pos: 0, line: 1, col: 1, base_dir }
     }
 
     fn parse_root(&mut self) -> Result<ConfigValue, HoconError> {
@@ -134,10 +123,7 @@ impl<'a> Parser<'a> {
             match self.peek() {
                 None => {
                     if terminator != 0 {
-                        return Err(HoconError::Unterminated {
-                            kind: "object",
-                            line: self.line,
-                        });
+                        return Err(HoconError::Unterminated { kind: "object", line: self.line });
                     }
                     return Ok(obj);
                 }
@@ -190,12 +176,7 @@ impl<'a> Parser<'a> {
                         line: self.line,
                     })
                 }
-                None => {
-                    return Err(HoconError::Unterminated {
-                        kind: "assignment",
-                        line: self.line,
-                    })
-                }
+                None => return Err(HoconError::Unterminated { kind: "assignment", line: self.line }),
             };
             insert_dotted(&mut obj, &key, value);
         }
@@ -251,10 +232,7 @@ impl<'a> Parser<'a> {
                 Ok(sub)
             }
             Some(_) => self.parse_unquoted_scalar(),
-            None => Err(HoconError::Unterminated {
-                kind: "value",
-                line: self.line,
-            }),
+            None => Err(HoconError::Unterminated { kind: "value", line: self.line }),
         }
     }
 
@@ -263,9 +241,7 @@ impl<'a> Parser<'a> {
         if self.starts_with(b"\"\"\"") {
             self.advance(3);
             let start = self.pos;
-            while self.pos + 2 < self.src.len()
-                && &self.src[self.pos..self.pos + 3] != b"\"\"\""
-            {
+            while self.pos + 2 < self.src.len() && &self.src[self.pos..self.pos + 3] != b"\"\"\"" {
                 if self.src[self.pos] == b'\n' {
                     self.line += 1;
                     self.col = 1;
@@ -304,18 +280,36 @@ impl<'a> Parser<'a> {
                 Some(b'\\') => {
                     self.advance(1);
                     match self.peek() {
-                        Some(b'n') => { out.push('\n'); self.advance(1); }
-                        Some(b't') => { out.push('\t'); self.advance(1); }
-                        Some(b'r') => { out.push('\r'); self.advance(1); }
-                        Some(b'"') => { out.push('"'); self.advance(1); }
-                        Some(b'\\') => { out.push('\\'); self.advance(1); }
-                        Some(b'/') => { out.push('/'); self.advance(1); }
-                        Some(c) => { out.push(c as char); self.advance(1); }
+                        Some(b'n') => {
+                            out.push('\n');
+                            self.advance(1);
+                        }
+                        Some(b't') => {
+                            out.push('\t');
+                            self.advance(1);
+                        }
+                        Some(b'r') => {
+                            out.push('\r');
+                            self.advance(1);
+                        }
+                        Some(b'"') => {
+                            out.push('"');
+                            self.advance(1);
+                        }
+                        Some(b'\\') => {
+                            out.push('\\');
+                            self.advance(1);
+                        }
+                        Some(b'/') => {
+                            out.push('/');
+                            self.advance(1);
+                        }
+                        Some(c) => {
+                            out.push(c as char);
+                            self.advance(1);
+                        }
                         None => {
-                            return Err(HoconError::Unterminated {
-                                kind: "string-escape",
-                                line: self.line,
-                            })
+                            return Err(HoconError::Unterminated { kind: "string-escape", line: self.line })
                         }
                     }
                 }
@@ -376,11 +370,7 @@ impl<'a> Parser<'a> {
             .to_string();
         self.advance(1);
         // Stash as a placeholder; resolver replaces in pass 2.
-        let marker = if optional {
-            format!("__rakka_sub_opt::{key}")
-        } else {
-            format!("__rakka_sub::{key}")
-        };
+        let marker = if optional { format!("__rakka_sub_opt::{key}") } else { format!("__rakka_sub::{key}") };
         Ok(ConfigValue::String(marker))
     }
 
@@ -399,11 +389,7 @@ impl<'a> Parser<'a> {
             .map_err(|_| HoconError::Unexpected { ch: '\0', line: self.line, col: self.col })?
             .trim();
         if raw.is_empty() {
-            return Err(HoconError::Expected {
-                expected: "value",
-                found: String::new(),
-                line: self.line,
-            });
+            return Err(HoconError::Expected { expected: "value", found: String::new(), line: self.line });
         }
         Ok(scalar_from_str(raw))
     }
@@ -518,20 +504,16 @@ fn insert_dotted(obj: &mut BTreeMap<String, ConfigValue>, key: &[String], value:
         return;
     }
     if key.len() == 1 {
-        match obj.get_mut(&key[0]) {
-            Some(ConfigValue::Object(existing)) => {
-                if let ConfigValue::Object(new_obj) = value {
-                    deep_merge(existing, new_obj);
-                    return;
-                }
+        if let Some(ConfigValue::Object(existing)) = obj.get_mut(&key[0]) {
+            if let ConfigValue::Object(new_obj) = value {
+                deep_merge(existing, new_obj);
+                return;
             }
-            _ => {}
         }
         obj.insert(key[0].clone(), value);
         return;
     }
-    let entry = obj.entry(key[0].clone())
-        .or_insert_with(|| ConfigValue::Object(BTreeMap::new()));
+    let entry = obj.entry(key[0].clone()).or_insert_with(|| ConfigValue::Object(BTreeMap::new()));
     if let ConfigValue::Object(child) = entry {
         insert_dotted(child, &key[1..], value);
     } else {
@@ -570,9 +552,7 @@ fn resolve_in(v: ConfigValue, root: &ConfigValue) -> Result<ConfigValue, HoconEr
                 let lookup = lookup_path(root, rest);
                 lookup.ok_or_else(|| HoconError::MissingSubstitution { key: rest.to_string() })
             } else if let Some(rest) = s.strip_prefix("__rakka_sub_opt::") {
-                Ok(env::var(rest)
-                    .map(ConfigValue::String)
-                    .unwrap_or(ConfigValue::Null))
+                Ok(env::var(rest).map(ConfigValue::String).unwrap_or(ConfigValue::Null))
             } else {
                 Ok(ConfigValue::String(s))
             }
@@ -706,22 +686,13 @@ mod tests {
     #[test]
     fn dotted_assignment_does_not_clobber_sibling() {
         let v = parse_str("akka.actor.provider = \"local\"\nakka.actor.dispatcher = \"default\"");
-        assert_eq!(
-            lookup_path(&v, "akka.actor.provider"),
-            Some(ConfigValue::String("local".into()))
-        );
-        assert_eq!(
-            lookup_path(&v, "akka.actor.dispatcher"),
-            Some(ConfigValue::String("default".into()))
-        );
+        assert_eq!(lookup_path(&v, "akka.actor.provider"), Some(ConfigValue::String("local".into())));
+        assert_eq!(lookup_path(&v, "akka.actor.dispatcher"), Some(ConfigValue::String("default".into())));
     }
 
     #[test]
     fn triple_quoted_string() {
         let v = parse_str("x = \"\"\"line1\nline2\"\"\"");
-        assert_eq!(
-            lookup_path(&v, "x"),
-            Some(ConfigValue::String("line1\nline2".into()))
-        );
+        assert_eq!(lookup_path(&v, "x"), Some(ConfigValue::String("line1\nline2".into())));
     }
 }

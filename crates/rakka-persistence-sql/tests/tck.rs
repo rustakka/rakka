@@ -9,7 +9,8 @@ use std::sync::Arc;
 use rakka_persistence::SnapshotStore as _;
 use rakka_persistence_sql::{SqlConfig, SqlJournal, SqlReadJournal, SqlSnapshotStore};
 use rakka_persistence_tck::{
-    journal_suite, journal_tag_suite, snapshot_round_trip, snapshot_suite,
+    journal_concurrent_suite, journal_extended_suite, journal_suite, journal_tag_suite, snapshot_round_trip,
+    snapshot_suite,
 };
 
 async fn new_journal() -> Arc<SqlJournal> {
@@ -21,7 +22,9 @@ async fn new_journal() -> Arc<SqlJournal> {
 async fn sqlite_journal_passes_tck() {
     let j = new_journal().await;
     journal_suite(j.clone(), "sql-j").await;
-    journal_tag_suite(j, "sql-j").await;
+    journal_tag_suite(j.clone(), "sql-j").await;
+    journal_extended_suite(j.clone(), "sql-j").await;
+    journal_concurrent_suite(j, "sql-j").await;
 }
 
 #[tokio::test]

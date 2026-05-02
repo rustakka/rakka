@@ -91,12 +91,8 @@ pub fn parse_pem_blocks(text: &str, expected_label: &str) -> Result<Vec<Vec<u8>>
         let Some(end_idx) = block.find(&end[..]) else {
             return Err(TlsError::Pem(format!("missing {end}")));
         };
-        let body: String = block[..end_idx]
-            .chars()
-            .filter(|c| !c.is_whitespace())
-            .collect();
-        let bytes = base64_decode(&body)
-            .map_err(|e| TlsError::Pem(format!("base64: {e}")))?;
+        let body: String = block[..end_idx].chars().filter(|c| !c.is_whitespace()).collect();
+        let bytes = base64_decode(&body).map_err(|e| TlsError::Pem(format!("base64: {e}")))?;
         out.push(bytes);
     }
     Ok(out)

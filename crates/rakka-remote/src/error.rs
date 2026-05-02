@@ -28,6 +28,10 @@ pub enum RemoteErrorKind {
     Transport,
     Closed,
     Timeout,
+    /// Back-pressure: bounded send queue rejected the enqueue (Phase 5.G).
+    BackPressure,
+    /// Catch-all for less-frequent error sites.
+    Other,
 }
 
 impl RemoteErrorKind {
@@ -41,6 +45,8 @@ impl RemoteErrorKind {
             Self::Transport => "transport",
             Self::Closed => "closed",
             Self::Timeout => "timeout",
+            Self::BackPressure => "back_pressure",
+            Self::Other => "other",
         }
     }
 }
@@ -66,10 +72,7 @@ impl RemoteError {
     /// place of `panic!("unexpected pdu …")` so production code never
     /// crashes on a protocol mismatch.
     pub fn unknown_pdu(pdu: &AkkaPdu) -> Self {
-        Self::new(
-            RemoteErrorKind::UnknownPdu,
-            format!("unexpected PDU: {pdu:?}"),
-        )
+        Self::new(RemoteErrorKind::UnknownPdu, format!("unexpected PDU: {pdu:?}"))
     }
 
     pub fn quarantined(target: impl std::fmt::Display) -> Self {

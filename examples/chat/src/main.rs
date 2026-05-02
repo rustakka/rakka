@@ -42,11 +42,7 @@ async fn main() -> anyhow::Result<()> {
     let alice = sys.actor_of(
         Props::create({
             let bus = bus.clone();
-            move || Participant {
-                name: "alice".into(),
-                bus: bus.clone(),
-                topic: "room1".into(),
-            }
+            move || Participant { name: "alice".into(), bus: bus.clone(), topic: "room1".into() }
         }),
         "alice",
     )?;
@@ -54,11 +50,7 @@ async fn main() -> anyhow::Result<()> {
     let _bob = sys.actor_of(
         Props::create({
             let bus = bus.clone();
-            move || Participant {
-                name: "bob".into(),
-                bus: bus.clone(),
-                topic: "room1".into(),
-            }
+            move || Participant { name: "bob".into(), bus: bus.clone(), topic: "room1".into() }
         }),
         "bob",
     )?;

@@ -27,9 +27,7 @@ impl<M: Send + 'static> ScatterGatherFirstCompletedRouter<M> {
         for r in &self.routees {
             let (tx, rx) = oneshot::channel::<R>();
             r.tell(build(tx));
-            joins.push(async move {
-                tokio::time::timeout(self.within, rx).await
-            });
+            joins.push(async move { tokio::time::timeout(self.within, rx).await });
         }
         use futures_util::StreamExt;
         while let Some(res) = joins.next().await {

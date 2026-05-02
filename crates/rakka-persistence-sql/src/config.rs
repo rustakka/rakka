@@ -40,8 +40,8 @@ impl SqlConfig {
         // caller sees the same database; we also keep connections low by default
         // because most event-sourced workloads are write-heavy through a small
         // pool.
-        let is_memory_sqlite = dialect == SqlDialect::Sqlite
-            && (url.contains(":memory:") || url.ends_with(":memory:"));
+        let is_memory_sqlite =
+            dialect == SqlDialect::Sqlite && (url.contains(":memory:") || url.ends_with(":memory:"));
         let max_connections = if is_memory_sqlite { 1 } else { 5 };
         Self { url, dialect, max_connections, auto_migrate: true }
     }
@@ -93,9 +93,7 @@ mod tests {
 
     #[test]
     fn builder_overrides() {
-        let cfg = SqlConfig::new("sqlite::memory:")
-            .with_max_connections(12)
-            .with_auto_migrate(false);
+        let cfg = SqlConfig::new("sqlite::memory:").with_max_connections(12).with_auto_migrate(false);
         assert_eq!(cfg.max_connections, 12);
         assert!(!cfg.auto_migrate);
     }

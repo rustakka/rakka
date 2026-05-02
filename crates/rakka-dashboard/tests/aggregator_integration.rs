@@ -42,10 +42,7 @@ async fn cluster_wide_overview_sums_peers() {
     let cfg = DashboardConfig {
         bind: "127.0.0.1:0".parse().unwrap(),
         mode: DashboardMode::Cluster {
-            peers: vec![
-                format!("http://{}", peer_a.bound_addr),
-                format!("http://{}", peer_b.bound_addr),
-            ],
+            peers: vec![format!("http://{}", peer_a.bound_addr), format!("http://{}", peer_b.bound_addr)],
         },
         ws_channel_capacity: 16,
         exporters: Default::default(),
@@ -53,11 +50,7 @@ async fn cluster_wide_overview_sums_peers() {
     let router = DashboardServer::new(telemetry, cfg).router();
 
     let resp = router
-        .oneshot(
-            Request::get("/api/cluster-wide/overview")
-                .body(Body::empty())
-                .unwrap(),
-        )
+        .oneshot(Request::get("/api/cluster-wide/overview").body(Body::empty()).unwrap())
         .await
         .unwrap();
     assert_eq!(resp.status(), 200);

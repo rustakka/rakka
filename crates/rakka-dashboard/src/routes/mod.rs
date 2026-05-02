@@ -9,8 +9,8 @@ use crate::AppState;
 
 pub mod actors;
 pub mod cluster;
-pub mod dead_letters;
 pub mod ddata;
+pub mod dead_letters;
 pub mod overview;
 pub mod persistence;
 pub mod remote;

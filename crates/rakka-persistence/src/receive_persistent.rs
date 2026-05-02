@@ -117,22 +117,15 @@ where
         journal: Arc<J>,
         permitter: &RecoveryPermitter,
     ) -> Result<u64, EventsourcedError<Err>> {
-        let _permit = permitter
-            .acquire()
-            .await
-            .ok_or(EventsourcedError::PermitDenied)?;
+        let _permit = permitter.acquire().await.ok_or(EventsourcedError::PermitDenied)?;
         let on_event = self
             .on_event
             .as_mut()
             .ok_or_else(|| EventsourcedError::Codec("on_event handler not registered".into()))?;
-        let decode = self
-            .decode
-            .as_ref()
-            .ok_or_else(|| EventsourcedError::Codec("decoder not registered".into()))?;
+        let decode =
+            self.decode.as_ref().ok_or_else(|| EventsourcedError::Codec("decoder not registered".into()))?;
         let highest = journal.highest_sequence_nr(&self.persistence_id, 0).await?;
-        let events = journal
-            .replay_messages(&self.persistence_id, 1, highest, u64::MAX)
-            .await?;
+        let events = journal.replay_messages(&self.persistence_id, 1, highest, u64::MAX).await?;
         for e in &events {
             let evt = decode(&e.payload).map_err(EventsourcedError::Codec)?;
             on_event(&mut self.state, &evt);
@@ -159,10 +152,8 @@ where
             .on_event
             .as_mut()
             .ok_or_else(|| EventsourcedError::Codec("on_event handler not registered".into()))?;
-        let encode = self
-            .encode
-            .as_ref()
-            .ok_or_else(|| EventsourcedError::Codec("encoder not registered".into()))?;
+        let encode =
+            self.encode.as_ref().ok_or_else(|| EventsourcedError::Codec("encoder not registered".into()))?;
         let mut reprs = Vec::with_capacity(events.len());
         for e in &events {
             self.next_seq += 1;
@@ -190,10 +181,7 @@ fn uuid_v4_simple() -> String {
     // dedup purposes — the journal only uses this to disambiguate
     // concurrent writers.
     use std::time::{SystemTime, UNIX_EPOCH};
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
+    let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
     format!("{nanos:x}")
 }
 
@@ -213,7 +201,9 @@ mod tests {
 
         let mut rp: ReceivePersistent<i64, i64, DummyErr> = ReceivePersistent::new("pid-1")
             .on_command(|_state, cmd| Ok(vec![cmd]))
-            .on_event(|state, evt| { *state += evt; })
+            .on_event(|state, evt| {
+                *state += evt;
+            })
             .with_codec(
                 |e: &i64| Ok(e.to_le_bytes().to_vec()),
                 |b: &[u8]| {
@@ -230,7 +220,9 @@ mod tests {
         // Fresh replay reaches the same state.
         let mut rp2: ReceivePersistent<i64, i64, DummyErr> = ReceivePersistent::new("pid-1")
             .on_command(|_state, cmd| Ok(vec![cmd]))
-            .on_event(|state, evt| { *state += evt; })
+            .on_event(|state, evt| {
+                *state += evt;
+            })
             .with_codec(
                 |e: &i64| Ok(e.to_le_bytes().to_vec()),
                 |b: &[u8]| {
@@ -245,9 +237,10 @@ mod tests {
     #[tokio::test]
     async fn missing_codec_is_a_typed_error() {
         let journal = Arc::new(InMemoryJournal::default());
-        let mut rp: ReceivePersistent<i64, i64, DummyErr> = ReceivePersistent::new("pid-2")
-            .on_command(|_, c| Ok(vec![c]))
-            .on_event(|s, e| { *s += e; });
+        let mut rp: ReceivePersistent<i64, i64, DummyErr> =
+            ReceivePersistent::new("pid-2").on_command(|_, c| Ok(vec![c])).on_event(|s, e| {
+                *s += e;
+            });
         let r = rp.handle(journal, 1).await;
         assert!(matches!(r, Err(EventsourcedError::Codec(_))));
     }

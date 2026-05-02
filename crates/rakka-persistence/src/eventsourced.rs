@@ -119,9 +119,7 @@ pub trait Eventsourced: Send + 'static {
         writer_uuid: &str,
         cmd: Self::Command,
     ) -> Result<(), EventsourcedError<Self::Error>> {
-        let events = self
-            .command_to_events(state, cmd)
-            .map_err(EventsourcedError::Domain)?;
+        let events = self.command_to_events(state, cmd).map_err(EventsourcedError::Domain)?;
         if events.is_empty() {
             return Ok(());
         }
@@ -147,19 +145,10 @@ pub trait Eventsourced: Send + 'static {
     }
 
     /// Save a snapshot of current state under `sequence_nr`.
-    async fn save_snapshot<S: SnapshotStore>(
-        &self,
-        store: Arc<S>,
-        sequence_nr: u64,
-        payload: Vec<u8>,
-    ) {
+    async fn save_snapshot<S: SnapshotStore>(&self, store: Arc<S>, sequence_nr: u64, payload: Vec<u8>) {
         store
             .save(
-                SnapshotMetadata {
-                    persistence_id: self.persistence_id(),
-                    sequence_nr,
-                    timestamp: 0,
-                },
+                SnapshotMetadata { persistence_id: self.persistence_id(), sequence_nr, timestamp: 0 },
                 payload,
             )
             .await;
@@ -250,18 +239,12 @@ mod tests {
         let permitter = RecoveryPermitter::new(2);
 
         // First incarnation: persist three commands.
-        let mut c = Counter { id: "c-1".into() };
+        let c = Counter { id: "c-1".into() };
         let mut state = CounterState::default();
         let mut seq = 0u64;
-        c.handle_command(journal.clone(), &mut state, &mut seq, "w", CounterCmd::Add(5))
-            .await
-            .unwrap();
-        c.handle_command(journal.clone(), &mut state, &mut seq, "w", CounterCmd::Add(3))
-            .await
-            .unwrap();
-        c.handle_command(journal.clone(), &mut state, &mut seq, "w", CounterCmd::Sub(2))
-            .await
-            .unwrap();
+        c.handle_command(journal.clone(), &mut state, &mut seq, "w", CounterCmd::Add(5)).await.unwrap();
+        c.handle_command(journal.clone(), &mut state, &mut seq, "w", CounterCmd::Add(3)).await.unwrap();
+        c.handle_command(journal.clone(), &mut state, &mut seq, "w", CounterCmd::Sub(2)).await.unwrap();
         assert_eq!(state.n, 6);
         assert_eq!(seq, 3);
         let highest = journal.highest_sequence_nr("c-1", 0).await.unwrap();
@@ -281,9 +264,7 @@ mod tests {
         let c = Counter { id: "c-2".into() };
         let mut state = CounterState::default();
         let mut seq = 0u64;
-        let r = c
-            .handle_command(journal.clone(), &mut state, &mut seq, "w", CounterCmd::Sub(5))
-            .await;
+        let r = c.handle_command(journal.clone(), &mut state, &mut seq, "w", CounterCmd::Sub(5)).await;
         assert!(matches!(r, Err(EventsourcedError::Domain(CounterErr::Underflow))));
         assert_eq!(seq, 0);
         assert_eq!(journal.highest_sequence_nr("c-2", 0).await.unwrap(), 0);
@@ -301,11 +282,19 @@ mod tests {
             type Event = ();
             type State = ();
             type Error = std::io::Error;
-            fn persistence_id(&self) -> String { self.id.clone() }
-            fn command_to_events(&self, _: &(), _: ()) -> Result<Vec<()>, Self::Error> { Ok(vec![]) }
+            fn persistence_id(&self) -> String {
+                self.id.clone()
+            }
+            fn command_to_events(&self, _: &(), _: ()) -> Result<Vec<()>, Self::Error> {
+                Ok(vec![])
+            }
             fn apply_event(_: &mut (), _: &()) {}
-            fn encode_event(_: &()) -> Result<Vec<u8>, String> { Ok(vec![]) }
-            fn decode_event(_: &[u8]) -> Result<(), String> { Ok(()) }
+            fn encode_event(_: &()) -> Result<Vec<u8>, String> {
+                Ok(vec![])
+            }
+            fn decode_event(_: &[u8]) -> Result<(), String> {
+                Ok(())
+            }
             async fn recovery_completed(&mut self, _: &(), _: u64) {
                 self.hook_calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             }

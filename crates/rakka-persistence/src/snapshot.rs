@@ -20,9 +20,11 @@ pub trait SnapshotStore: Send + Sync + 'static {
     async fn delete(&self, persistence_id: &str, to_sequence_nr: u64);
 }
 
+type SnapshotEntries = HashMap<String, Vec<(SnapshotMetadata, Vec<u8>)>>;
+
 #[derive(Default)]
 pub struct InMemorySnapshotStore {
-    snapshots: RwLock<HashMap<String, Vec<(SnapshotMetadata, Vec<u8>)>>>,
+    snapshots: RwLock<SnapshotEntries>,
 }
 
 impl InMemorySnapshotStore {

@@ -14,9 +14,7 @@ pub fn snapshot_sk(sequence_nr: u64) -> String {
 }
 
 pub fn parse_sequence(sk: &str) -> Option<u64> {
-    let stripped = sk
-        .strip_prefix(EVENT_PREFIX)
-        .or_else(|| sk.strip_prefix(SNAPSHOT_PREFIX))?;
+    let stripped = sk.strip_prefix(EVENT_PREFIX).or_else(|| sk.strip_prefix(SNAPSHOT_PREFIX))?;
     stripped.parse().ok()
 }
 

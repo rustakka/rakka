@@ -22,12 +22,7 @@ pub struct DeadLetterFeed {
 impl DeadLetterFeed {
     pub fn new(bus: TelemetryBus, capacity: usize) -> Self {
         let capacity = capacity.max(1);
-        Self {
-            bus,
-            buf: Mutex::new(VecDeque::with_capacity(capacity)),
-            capacity,
-            total: AtomicU64::new(0),
-        }
+        Self { bus, buf: Mutex::new(VecDeque::with_capacity(capacity)), capacity, total: AtomicU64::new(0) }
     }
 
     pub fn record(&self, recipient: String, sender: Option<String>, message_type: String, preview: String) {
@@ -65,12 +60,7 @@ impl DeadLetterFeed {
 }
 
 impl DeadLetterObserver for DeadLetterFeed {
-    fn on_dead_letter(
-        &self,
-        recipient: &ActorPath,
-        sender: Option<&ActorPath>,
-        message_type: &'static str,
-    ) {
+    fn on_dead_letter(&self, recipient: &ActorPath, sender: Option<&ActorPath>, message_type: &'static str) {
         self.record(
             recipient.to_string(),
             sender.map(|p| p.to_string()),

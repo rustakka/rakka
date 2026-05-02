@@ -19,10 +19,8 @@ use crate::report::{Measurement, Scenario};
 pub async fn tell(system: &ActorSystem, n: u64) -> anyhow::Result<Measurement> {
     let counter = Arc::new(AtomicUsize::new(0));
     let counter_actor = counter.clone();
-    let target = system.actor_of(
-        Props::create(move || CountingActor { counter: counter_actor.clone() }),
-        "profiler-tell",
-    )?;
+    let target = system
+        .actor_of(Props::create(move || CountingActor { counter: counter_actor.clone() }), "profiler-tell")?;
 
     let rss_before = rss_bytes();
     let cpu_before = cpu_time();
@@ -53,10 +51,7 @@ pub async fn ask(system: &ActorSystem, n: u64) -> anyhow::Result<Measurement> {
     for i in 0..n {
         let t0 = Instant::now();
         let _reply: u64 = target
-            .ask_with(
-                move |reply: oneshot::Sender<u64>| EchoMsg { value: i, reply },
-                Duration::from_secs(5),
-            )
+            .ask_with(move |reply: oneshot::Sender<u64>| EchoMsg { value: i, reply }, Duration::from_secs(5))
             .await
             .map_err(|e| anyhow::anyhow!("ask failed: {e:?}"))?;
         samples.push(t0.elapsed());
@@ -108,10 +103,7 @@ pub async fn fanout(system: &ActorSystem, n: u64) -> anyhow::Result<Measurement>
 pub async fn cpu(system: &ActorSystem, n: u64) -> anyhow::Result<Measurement> {
     let counter = Arc::new(AtomicUsize::new(0));
     let c = counter.clone();
-    let target = system.actor_of(
-        Props::create(move || CpuActor { counter: c.clone() }),
-        "profiler-cpu",
-    )?;
+    let target = system.actor_of(Props::create(move || CpuActor { counter: c.clone() }), "profiler-cpu")?;
 
     let rss_before = rss_bytes();
     let cpu_before = cpu_time();

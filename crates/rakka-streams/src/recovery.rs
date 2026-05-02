@@ -28,7 +28,7 @@ where
     let stream = inner
         .take_while(move |item| {
             let cont = !errored;
-            if matches!(item, Err(_)) {
+            if item.is_err() {
                 errored = true;
             }
             futures::future::ready(cont)
@@ -66,10 +66,7 @@ where
 /// Akka.NET: `Source.RecoverWithRetries(maxAttempts, …)` with
 /// `maxAttempts = 1` (multi-attempt retry waits on the
 /// `RestartSource` machinery — Phase 12 follow-on).
-pub fn recover_with<T, E>(
-    src: Source<Result<T, E>>,
-    replacement: Source<T>,
-) -> Source<T>
+pub fn recover_with<T, E>(src: Source<Result<T, E>>, replacement: Source<T>) -> Source<T>
 where
     T: Send + 'static,
     E: Send + 'static,
@@ -78,23 +75,22 @@ where
     let mut tripped = false;
     let mut replacement_opt = Some(replacement);
     let inner = src.into_boxed();
-    let stream = inner
-        .flat_map(move |item| {
-            if tripped {
-                return stream::empty().boxed();
-            }
-            match item {
-                Ok(v) => stream::iter(std::iter::once(v)).boxed(),
-                Err(_) => {
-                    tripped = true;
-                    if let Some(rep) = replacement_opt.take() {
-                        rep.into_boxed()
-                    } else {
-                        stream::empty().boxed()
-                    }
+    let stream = inner.flat_map(move |item| {
+        if tripped {
+            return stream::empty().boxed();
+        }
+        match item {
+            Ok(v) => stream::iter(std::iter::once(v)).boxed(),
+            Err(_) => {
+                tripped = true;
+                if let Some(rep) = replacement_opt.take() {
+                    rep.into_boxed()
+                } else {
+                    stream::empty().boxed()
                 }
             }
-        });
+        }
+    });
     Source { inner: stream.boxed() }
 }
 
@@ -105,8 +101,7 @@ mod tests {
 
     #[tokio::test]
     async fn recover_replaces_error_with_value_and_terminates() {
-        let s: Source<Result<i32, &'static str>> =
-            Source::from_iter(vec![Ok(1), Ok(2), Err("oops"), Ok(99)]);
+        let s: Source<Result<i32, &'static str>> = Source::from_iter(vec![Ok(1), Ok(2), Err("oops"), Ok(99)]);
         let recovered = recover(s, |_e| Some(0));
         let collected = Sink::collect(recovered).await;
         assert_eq!(collected, vec![1, 2, 0]);
@@ -114,8 +109,7 @@ mod tests {
 
     #[tokio::test]
     async fn recover_with_none_drops_error() {
-        let s: Source<Result<i32, &'static str>> =
-            Source::from_iter(vec![Ok(1), Err("e"), Ok(2)]);
+        let s: Source<Result<i32, &'static str>> = Source::from_iter(vec![Ok(1), Err("e"), Ok(2)]);
         let recovered = recover(s, |_| None);
         let collected = Sink::collect(recovered).await;
         assert_eq!(collected, vec![1]);
@@ -123,8 +117,7 @@ mod tests {
 
     #[tokio::test]
     async fn recover_passes_through_when_no_error() {
-        let s: Source<Result<i32, &'static str>> =
-            Source::from_iter(vec![Ok(1), Ok(2), Ok(3)]);
+        let s: Source<Result<i32, &'static str>> = Source::from_iter(vec![Ok(1), Ok(2), Ok(3)]);
         let recovered = recover(s, |_| Some(0));
         let collected = Sink::collect(recovered).await;
         assert_eq!(collected, vec![1, 2, 3]);
@@ -134,8 +127,7 @@ mod tests {
     async fn map_error_changes_error_type() {
         #[derive(Debug, PartialEq)]
         struct Wrapped(String);
-        let s: Source<Result<i32, &'static str>> =
-            Source::from_iter(vec![Ok(1), Err("boom")]);
+        let s: Source<Result<i32, &'static str>> = Source::from_iter(vec![Ok(1), Err("boom")]);
         let mapped = map_error(s, |e| Wrapped(e.to_string()));
         let collected = Sink::collect(mapped).await;
         assert_eq!(collected.len(), 2);
@@ -145,8 +137,7 @@ mod tests {
 
     #[tokio::test]
     async fn recover_with_switches_to_replacement_on_error() {
-        let s: Source<Result<i32, &'static str>> =
-            Source::from_iter(vec![Ok(1), Ok(2), Err("e"), Ok(99)]);
+        let s: Source<Result<i32, &'static str>> = Source::from_iter(vec![Ok(1), Ok(2), Err("e"), Ok(99)]);
         let replacement: Source<i32> = Source::from_iter(vec![100, 200]);
         let recovered = recover_with(s, replacement);
         let collected = Sink::collect(recovered).await;
@@ -155,8 +146,7 @@ mod tests {
 
     #[tokio::test]
     async fn recover_with_passes_through_when_no_error() {
-        let s: Source<Result<i32, &'static str>> =
-            Source::from_iter(vec![Ok(1), Ok(2)]);
+        let s: Source<Result<i32, &'static str>> = Source::from_iter(vec![Ok(1), Ok(2)]);
         let replacement: Source<i32> = Source::from_iter(vec![100]);
         let recovered = recover_with(s, replacement);
         let collected = Sink::collect(recovered).await;

@@ -5,8 +5,8 @@
 
 use rakka_cluster::{Gossip, Member, MemberStatus};
 use rakka_core::actor::Address;
-use rakka_telemetry::cluster::{from_cluster_state, from_gossip, ClusterProbe};
 use rakka_telemetry::bus::TelemetryBus;
+use rakka_telemetry::cluster::{from_cluster_state, from_gossip, ClusterProbe};
 
 #[test]
 fn converts_membership_state_and_gossip() {
@@ -16,9 +16,7 @@ fn converts_membership_state_and_gossip() {
     let mut m1 = Member::new(Address::local("A"), vec!["worker".into()]);
     m1.status = MemberStatus::Up;
     gossip.state.add_or_update(m1);
-    gossip
-        .state
-        .add_or_update(Member::new(Address::local("B"), vec!["metrics".into()]));
+    gossip.state.add_or_update(Member::new(Address::local("B"), vec!["metrics".into()]));
 
     let info = from_cluster_state(&gossip.state);
     assert_eq!(info.members.len(), 2);

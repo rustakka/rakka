@@ -56,7 +56,7 @@ impl<M: Send + Clone + 'static> TailChoppingRouter<M> {
             // ceil(within / interval) capped at routee count.
             let nanos = self.within.as_nanos();
             let step = self.interval.as_nanos().max(1);
-            ((nanos + step - 1) / step) as usize
+            nanos.div_ceil(step) as usize
         }
         .min(self.routees.len().max(1))
     }
@@ -88,11 +88,8 @@ mod tests {
 
     #[test]
     fn empty_router_has_no_next_attempt() {
-        let router = TailChoppingRouter::<u32>::new(
-            Vec::new(),
-            Duration::from_millis(10),
-            Duration::from_millis(50),
-        );
+        let router =
+            TailChoppingRouter::<u32>::new(Vec::new(), Duration::from_millis(10), Duration::from_millis(50));
         assert!(router.next_attempt().is_none());
         assert_eq!(router.routee_count(), 0);
     }
@@ -102,11 +99,7 @@ mod tests {
         let r = Inbox::<u32>::new("x").actor_ref().clone();
         let routees = vec![r.clone(); 10];
         // 100ms / 20ms = 5 attempts, capped at routee count (10).
-        let router = TailChoppingRouter::new(
-            routees,
-            Duration::from_millis(20),
-            Duration::from_millis(100),
-        );
+        let router = TailChoppingRouter::new(routees, Duration::from_millis(20), Duration::from_millis(100));
         assert_eq!(router.max_attempts(), 5);
     }
 
@@ -114,11 +107,7 @@ mod tests {
     fn zero_interval_is_scatter_gather() {
         let r = Inbox::<u32>::new("x").actor_ref().clone();
         let routees = vec![r; 4];
-        let router = TailChoppingRouter::new(
-            routees,
-            Duration::ZERO,
-            Duration::from_millis(50),
-        );
+        let router = TailChoppingRouter::new(routees, Duration::ZERO, Duration::from_millis(50));
         assert_eq!(router.max_attempts(), 4);
     }
 }

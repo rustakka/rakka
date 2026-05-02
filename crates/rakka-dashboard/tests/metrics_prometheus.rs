@@ -24,12 +24,7 @@ async fn metrics_endpoint_renders_registry() {
         mailbox_depth: 0,
         spawned_at: "now".into(),
     });
-    telemetry.dead_letters.record(
-        "/user/a".into(),
-        None,
-        "String".into(),
-        "hi".into(),
-    );
+    telemetry.dead_letters.record("/user/a".into(), None, "String".into(), "hi".into());
     let _ = DeadLetterRecord {
         seq: 0,
         recipient: "".into(),
@@ -44,10 +39,7 @@ async fn metrics_endpoint_renders_registry() {
         mode: DashboardMode::Local,
         ws_channel_capacity: 32,
         exporters: ExportersConfig {
-            prometheus: Some(PrometheusConfig {
-                namespace: Some("rakka".into()),
-                enabled: true,
-            }),
+            prometheus: Some(PrometheusConfig { namespace: Some("rakka".into()), enabled: true }),
             otlp: None,
         },
     };
@@ -61,17 +53,9 @@ async fn metrics_endpoint_renders_registry() {
         mailbox_depth: 3,
         spawned_at: "now".into(),
     });
-    telemetry.dead_letters.record(
-        "/user/b".into(),
-        None,
-        "String".into(),
-        "dead".into(),
-    );
+    telemetry.dead_letters.record("/user/b".into(), None, "String".into(), "dead".into());
 
-    let resp = app
-        .oneshot(Request::builder().uri("/metrics").body(Body::empty()).unwrap())
-        .await
-        .unwrap();
+    let resp = app.oneshot(Request::builder().uri("/metrics").body(Body::empty()).unwrap()).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     let bytes = to_bytes(resp.into_body(), 128 * 1024).await.unwrap();
     let body = String::from_utf8(bytes.to_vec()).unwrap();

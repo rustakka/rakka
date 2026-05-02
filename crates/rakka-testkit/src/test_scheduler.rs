@@ -60,11 +60,7 @@ impl Default for TestScheduler {
 impl TestScheduler {
     pub fn new() -> Self {
         Self {
-            inner: Arc::new(Mutex::new(Inner {
-                now: Instant::now(),
-                next_token: 0,
-                entries: Vec::new(),
-            })),
+            inner: Arc::new(Mutex::new(Inner { now: Instant::now(), next_token: 0, entries: Vec::new() })),
         }
     }
 
@@ -82,15 +78,7 @@ impl TestScheduler {
         let token = ScheduledToken(g.next_token);
         g.next_token += 1;
         let fire_at = g.now + delay;
-        g.entries.push((
-            token,
-            Entry {
-                fire_at,
-                cb: Some(Box::new(cb)),
-                fired: false,
-                cancelled: false,
-            },
-        ));
+        g.entries.push((token, Entry { fire_at, cb: Some(Box::new(cb)), fired: false, cancelled: false }));
         token
     }
 
@@ -160,24 +148,13 @@ impl TestScheduler {
 
     /// Has the scheduled callback fired?
     pub fn fired(&self, token: ScheduledToken) -> bool {
-        self.inner
-            .lock()
-            .unwrap()
-            .entries
-            .iter()
-            .any(|(t, e)| *t == token && e.fired)
+        self.inner.lock().unwrap().entries.iter().any(|(t, e)| *t == token && e.fired)
     }
 
     /// How many scheduled entries are still pending (not fired,
     /// not cancelled)?
     pub fn pending(&self) -> usize {
-        self.inner
-            .lock()
-            .unwrap()
-            .entries
-            .iter()
-            .filter(|(_, e)| !e.fired && !e.cancelled)
-            .count()
+        self.inner.lock().unwrap().entries.iter().filter(|(_, e)| !e.fired && !e.cancelled).count()
     }
 }
 

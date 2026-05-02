@@ -140,14 +140,8 @@ mod tests {
         let _h = bus.subscribe(move |e| {
             *c2.lock() = Some(e.clone());
         });
-        bus.publish(ClusterEvent::LeaderChanged {
-            from: None,
-            to: Some(Address::local("a")),
-        });
+        bus.publish(ClusterEvent::LeaderChanged { from: None, to: Some(Address::local("a")) });
         let got = captured.lock().clone();
-        assert!(matches!(
-            got,
-            Some(ClusterEvent::LeaderChanged { from: None, to: Some(_) })
-        ));
+        assert!(matches!(got, Some(ClusterEvent::LeaderChanged { from: None, to: Some(_) })));
     }
 }

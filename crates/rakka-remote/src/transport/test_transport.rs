@@ -49,12 +49,7 @@ impl TestTransport {
     pub fn new(address: Address, registry: Arc<TestRegistry>) -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
         registry.register(&address, tx.clone());
-        Self {
-            local_address: address,
-            inbound_tx: tx,
-            inbound_rx: Arc::new(Mutex::new(Some(rx))),
-            registry,
-        }
+        Self { local_address: address, inbound_tx: tx, inbound_rx: Arc::new(Mutex::new(Some(rx))), registry }
     }
 }
 
@@ -79,8 +74,7 @@ impl Transport for TestTransport {
             .get(&target.to_string())
             .ok_or_else(|| TransportError::NotAssociated(target.to_string()))?
             .clone();
-        sink.send(InboundFrame { from: self.local_address.clone(), pdu })
-            .map_err(|_| TransportError::Closed)
+        sink.send(InboundFrame { from: self.local_address.clone(), pdu }).map_err(|_| TransportError::Closed)
     }
 
     fn inbound(&self) -> mpsc::UnboundedReceiver<InboundFrame> {
@@ -122,10 +116,8 @@ mod tests {
             protocol_version: PROTOCOL_VERSION,
         });
         b.send(&a.local_address, pdu).await.unwrap();
-        let frame = tokio::time::timeout(Duration::from_millis(100), inbound_a.recv())
-            .await
-            .unwrap()
-            .unwrap();
+        let frame =
+            tokio::time::timeout(Duration::from_millis(100), inbound_a.recv()).await.unwrap().unwrap();
         assert_eq!(frame.from, b.local_address);
     }
 }

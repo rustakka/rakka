@@ -80,15 +80,9 @@ impl Chunker {
     /// payload (`total_chunks = 1`, empty payload).
     pub fn split(&self, message_id: u64, payload: &[u8]) -> Vec<Chunk> {
         if payload.is_empty() {
-            return vec![Chunk {
-                message_id,
-                chunk_idx: 0,
-                total_chunks: 1,
-                payload: Vec::new(),
-            }];
+            return vec![Chunk { message_id, chunk_idx: 0, total_chunks: 1, payload: Vec::new() }];
         }
-        let total =
-            (payload.len() + self.chunk_size - 1) / self.chunk_size;
+        let total = payload.len().div_ceil(self.chunk_size);
         let mut out = Vec::with_capacity(total);
         for (i, chunk_payload) in payload.chunks(self.chunk_size).enumerate() {
             out.push(Chunk {
@@ -124,19 +118,13 @@ impl Reassembler {
     /// complete, `None` while still waiting for siblings.
     pub fn push(&mut self, chunk: Chunk) -> Result<Option<Vec<u8>>, ChunkError> {
         if chunk.total_chunks == 0 || chunk.chunk_idx >= chunk.total_chunks {
-            return Err(ChunkError::InvalidIndex {
-                idx: chunk.chunk_idx,
-                total: chunk.total_chunks,
-            });
+            return Err(ChunkError::InvalidIndex { idx: chunk.chunk_idx, total: chunk.total_chunks });
         }
-        let entry = self
-            .pending
-            .entry(chunk.message_id)
-            .or_insert_with(|| Pending {
-                total: chunk.total_chunks,
-                chunks: (0..chunk.total_chunks).map(|_| None).collect(),
-                received: 0,
-            });
+        let entry = self.pending.entry(chunk.message_id).or_insert_with(|| Pending {
+            total: chunk.total_chunks,
+            chunks: (0..chunk.total_chunks).map(|_| None).collect(),
+            received: 0,
+        });
         if entry.total != chunk.total_chunks {
             return Err(ChunkError::SizeMismatch {
                 message_id: chunk.message_id,
@@ -156,10 +144,8 @@ impl Reassembler {
         let pending = self.pending.remove(&chunk.message_id).expect("just present");
         let total_len: usize = pending.chunks.iter().filter_map(|c| c.as_ref()).map(|v| v.len()).sum();
         let mut out = Vec::with_capacity(total_len);
-        for c in pending.chunks {
-            if let Some(buf) = c {
-                out.extend_from_slice(&buf);
-            }
+        for buf in pending.chunks.into_iter().flatten() {
+            out.extend_from_slice(&buf);
         }
         Ok(Some(out))
     }
@@ -178,9 +164,18 @@ mod tests {
         let c = Chunker::new(3);
         let chunks = c.split(42, b"abcdefgh");
         assert_eq!(chunks.len(), 3);
-        assert_eq!(chunks[0], Chunk { message_id: 42, chunk_idx: 0, total_chunks: 3, payload: b"abc".to_vec() });
-        assert_eq!(chunks[1], Chunk { message_id: 42, chunk_idx: 1, total_chunks: 3, payload: b"def".to_vec() });
-        assert_eq!(chunks[2], Chunk { message_id: 42, chunk_idx: 2, total_chunks: 3, payload: b"gh".to_vec() });
+        assert_eq!(
+            chunks[0],
+            Chunk { message_id: 42, chunk_idx: 0, total_chunks: 3, payload: b"abc".to_vec() }
+        );
+        assert_eq!(
+            chunks[1],
+            Chunk { message_id: 42, chunk_idx: 1, total_chunks: 3, payload: b"def".to_vec() }
+        );
+        assert_eq!(
+            chunks[2],
+            Chunk { message_id: 42, chunk_idx: 2, total_chunks: 3, payload: b"gh".to_vec() }
+        );
     }
 
     #[test]
@@ -252,12 +247,7 @@ mod tests {
 
     #[test]
     fn wire_round_trip() {
-        let c = Chunk {
-            message_id: 0xdeadbeef,
-            chunk_idx: 3,
-            total_chunks: 7,
-            payload: b"hello".to_vec(),
-        };
+        let c = Chunk { message_id: 0xdeadbeef, chunk_idx: 3, total_chunks: 7, payload: b"hello".to_vec() };
         let bytes = c.to_wire();
         let parsed = Chunk::from_wire(&bytes).unwrap();
         assert_eq!(parsed, c);

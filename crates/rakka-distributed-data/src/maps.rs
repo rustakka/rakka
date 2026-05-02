@@ -34,11 +34,7 @@ where
 
 impl<K: Eq + Hash + Clone, V: CrdtMerge> Default for ORMap<K, V> {
     fn default() -> Self {
-        Self {
-            entries: HashMap::new(),
-            tombstones: HashMap::new(),
-            counter: 0,
-        }
+        Self { entries: HashMap::new(), tombstones: HashMap::new(), counter: 0 }
     }
 }
 
@@ -84,11 +80,9 @@ impl<K: Eq + Hash + Clone, V: CrdtMerge> ORMap<K, V> {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
-        self.entries.iter().filter_map(|(k, (add, v))| {
-            match self.tombstones.get(k) {
-                Some(tomb) if tomb >= add => None,
-                _ => Some((k, v)),
-            }
+        self.entries.iter().filter_map(|(k, (add, v))| match self.tombstones.get(k) {
+            Some(tomb) if tomb >= add => None,
+            _ => Some((k, v)),
         })
     }
 }
@@ -240,7 +234,7 @@ impl<K: Eq + Hash + Clone, V: Eq + Hash + Clone> ORMultiMap<K, V> {
     }
 
     pub fn add(&mut self, key: K, value: V) {
-        self.entries.entry(key).or_insert_with(OrSet::new).add(value);
+        self.entries.entry(key).or_default().add(value);
     }
 
     pub fn remove(&mut self, key: &K, value: &V) {
@@ -261,10 +255,7 @@ impl<K: Eq + Hash + Clone, V: Eq + Hash + Clone> ORMultiMap<K, V> {
 impl<K: Eq + Hash + Clone, V: Eq + Hash + Clone> CrdtMerge for ORMultiMap<K, V> {
     fn merge(&mut self, other: &Self) {
         for (k, set) in &other.entries {
-            self.entries
-                .entry(k.clone())
-                .or_insert_with(OrSet::new)
-                .merge(set);
+            self.entries.entry(k.clone()).or_default().merge(set);
         }
     }
 }

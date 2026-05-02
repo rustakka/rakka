@@ -20,21 +20,11 @@ use crate::vector_clock::{VectorClock, VectorRelation};
 #[non_exhaustive]
 pub enum GossipPdu {
     /// "Here is my version vector — do you have newer state?"
-    Status {
-        from: String,
-        version: VectorClock,
-    },
+    Status { from: String, version: VectorClock },
     /// "Here's my whole state, merge it in."
-    Envelope {
-        from: String,
-        version: VectorClock,
-        state: MembershipState,
-    },
+    Envelope { from: String, version: VectorClock, state: MembershipState },
     /// "I'm older than you — please send me your envelope."
-    Merge {
-        from: String,
-        version: VectorClock,
-    },
+    Merge { from: String, version: VectorClock },
 }
 
 /// Decision the receiver makes after comparing version vectors.
@@ -59,7 +49,6 @@ pub fn decide(local: &VectorClock, remote: &VectorClock) -> GossipDecision {
         VectorRelation::After => GossipDecision::SendEnvelope,
         VectorRelation::Before => GossipDecision::RequestMerge,
         VectorRelation::Concurrent => GossipDecision::MergeBoth,
-        _ => GossipDecision::Same,
     }
 }
 

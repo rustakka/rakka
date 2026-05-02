@@ -44,9 +44,7 @@ fn parse_args() -> Result<Args, String> {
             "--scenario" => {
                 let v = it.next().ok_or("--scenario needs a value")?;
                 if v != "all" {
-                    a.scenario = Some(
-                        Scenario::parse(&v).ok_or_else(|| format!("unknown scenario: {v}"))?,
-                    );
+                    a.scenario = Some(Scenario::parse(&v).ok_or_else(|| format!("unknown scenario: {v}"))?);
                 }
             }
             "--messages" | "-n" => {

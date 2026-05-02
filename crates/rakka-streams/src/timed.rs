@@ -13,11 +13,7 @@ use crate::source::Source;
 /// `grouped_within(n, dur)` — emit `Vec<T>` chunks of up to `n`
 /// elements; flush early when `dur` elapses since the chunk's first
 /// element. Akka.NET: `Source.GroupedWithin(n, dur)`.
-pub fn grouped_within<T: Send + 'static>(
-    src: Source<T>,
-    n: usize,
-    duration: Duration,
-) -> Source<Vec<T>> {
+pub fn grouped_within<T: Send + 'static>(src: Source<T>, n: usize, duration: Duration) -> Source<Vec<T>> {
     assert!(n >= 1, "grouped_within: n must be >= 1");
 
     struct State<T: Send + 'static> {
@@ -29,14 +25,8 @@ pub fn grouped_within<T: Send + 'static>(
         upstream_done: bool,
     }
 
-    let state = State {
-        inner: src.into_boxed(),
-        buf: Vec::new(),
-        deadline: None,
-        n,
-        duration,
-        upstream_done: false,
-    };
+    let state =
+        State { inner: src.into_boxed(), buf: Vec::new(), deadline: None, n, duration, upstream_done: false };
 
     let stream = stream::unfold(state, |mut s| async move {
         loop {

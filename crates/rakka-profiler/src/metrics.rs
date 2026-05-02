@@ -76,7 +76,11 @@ fn clock_ticks_per_sec() -> Option<u64> {
     unsafe {
         // 2 == _SC_CLK_TCK on glibc/musl.
         let v = libc_sysconf(2);
-        if v > 0 { Some(v as u64) } else { None }
+        if v > 0 {
+            Some(v as u64)
+        } else {
+            None
+        }
     }
 }
 

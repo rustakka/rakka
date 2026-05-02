@@ -33,8 +33,8 @@ impl BackoffOptions {
 
 fn pseudo_random_01(seed: u32) -> f64 {
     // Deterministic stand-in — tests don't depend on true randomness.
-    let x = ((seed.wrapping_mul(2654435761)) % 10_000) as f64 / 10_000.0;
-    x
+
+    ((seed.wrapping_mul(2654435761)) % 10_000) as f64 / 10_000.0
 }
 
 /// Wrapper around the supervisor logic — held by tests and demonstrations.

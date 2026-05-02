@@ -31,10 +31,7 @@ impl RecoveryPermitter {
     /// recoveries.
     pub fn new(max_concurrent: usize) -> Self {
         assert!(max_concurrent >= 1, "max_concurrent must be ≥ 1");
-        Self {
-            sem: Arc::new(Semaphore::new(max_concurrent)),
-            capacity: max_concurrent,
-        }
+        Self { sem: Arc::new(Semaphore::new(max_concurrent)), capacity: max_concurrent }
     }
 
     /// Maximum permits ever issued (i.e. construction-time capacity).

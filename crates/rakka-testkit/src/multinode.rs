@@ -46,11 +46,7 @@ pub enum MultiNodeError {
         source: ActorSystemError,
     },
     #[error("barrier `{name}` timed out (got {got}/{expected})")]
-    BarrierTimeout {
-        name: String,
-        got: usize,
-        expected: usize,
-    },
+    BarrierTimeout { name: String, got: usize, expected: usize },
 }
 
 /// Multi-node test specification.
@@ -111,9 +107,7 @@ impl MultiNodeSpec {
     pub async fn barrier(&self, label: &str, timeout: Duration) -> Result<(), MultiNodeError> {
         let bar = {
             let mut g = self.barriers.lock().unwrap();
-            g.entry(label.to_string())
-                .or_insert_with(|| Arc::new(Barrier::new(self.node_count)))
-                .clone()
+            g.entry(label.to_string()).or_insert_with(|| Arc::new(Barrier::new(self.node_count))).clone()
         };
         {
             let mut a = self.arrivals.lock().unwrap();
@@ -170,9 +164,7 @@ mod tests {
         let _ = spec.boot().await.unwrap();
         // Only 2 of 3 arrive — barrier must time out.
         let s2 = spec.clone();
-        let h = tokio::spawn(async move {
-            s2.barrier("only-two", Duration::from_millis(50)).await
-        });
+        let h = tokio::spawn(async move { s2.barrier("only-two", Duration::from_millis(50)).await });
         spec.barrier("only-two", Duration::from_millis(50)).await.err();
         let r = h.await.unwrap();
         assert!(matches!(r, Err(MultiNodeError::BarrierTimeout { .. })));

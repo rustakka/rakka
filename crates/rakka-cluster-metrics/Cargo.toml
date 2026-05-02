@@ -12,6 +12,12 @@ rakka-core = { workspace = true }
 rakka-cluster = { workspace = true }
 parking_lot = { workspace = true }
 serde = { workspace = true }
+bincode = { workspace = true }
+sysinfo = { version = "0.32", optional = true }
+
+[features]
+default = []
+sysinfo-probe = ["dep:sysinfo"]
 
 [lints]
 workspace = true

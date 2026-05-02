@@ -80,11 +80,7 @@ mod tests {
     #[test]
     fn round_trip_struct() {
         let s = HyperionSerializer::<Payload>::new();
-        let p = Payload {
-            id: 42,
-            name: "rakka".into(),
-            tags: vec!["cluster".into(), "streams".into()],
-        };
+        let p = Payload { id: 42, name: "rakka".into(), tags: vec!["cluster".into(), "streams".into()] };
         let bytes = s.to_bytes(&p).unwrap();
         let back = s.from_bytes(&bytes).unwrap();
         assert_eq!(back, p);

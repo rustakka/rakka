@@ -9,6 +9,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use crate::pdu::AkkaPdu;
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum CodecError {
     #[error("io: {0}")]
     Io(#[from] std::io::Error),
@@ -82,10 +83,7 @@ mod tests {
 
     #[test]
     fn roundtrip_heartbeat_and_disassociate() {
-        for pdu in [
-            AkkaPdu::Heartbeat,
-            AkkaPdu::Disassociate(crate::pdu::DisassociateReason::Normal),
-        ] {
+        for pdu in [AkkaPdu::Heartbeat, AkkaPdu::Disassociate(crate::pdu::DisassociateReason::Normal)] {
             let bytes = encode_pdu(&pdu).unwrap();
             assert_eq!(decode_pdu(&bytes).unwrap(), pdu);
         }

@@ -8,11 +8,13 @@ use rakka_config::Config;
 use rakka_core::actor::ActorSystem;
 use rakka_di::ServiceContainer;
 
+type SetupHook = Box<dyn FnOnce(&ActorSystem) + Send + 'static>;
+
 pub struct ActorSystemBuilder {
     name: String,
     config: Option<Config>,
     container: Arc<ServiceContainer>,
-    setup_hooks: Vec<Box<dyn FnOnce(&ActorSystem) + Send + 'static>>,
+    setup_hooks: Vec<SetupHook>,
 }
 
 impl ActorSystemBuilder {

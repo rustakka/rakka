@@ -125,10 +125,7 @@ pub struct InMemoryJournalAdmin {
 
 #[cfg(feature = "persistence")]
 impl InMemoryJournalAdmin {
-    pub fn new(
-        name: impl Into<String>,
-        journal: Arc<rakka_persistence::InMemoryJournal>,
-    ) -> Self {
+    pub fn new(name: impl Into<String>, journal: Arc<rakka_persistence::InMemoryJournal>) -> Self {
         Self { name: name.into(), inner: journal }
     }
 }

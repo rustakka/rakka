@@ -5,7 +5,9 @@
 use std::env;
 
 use rakka_persistence_azure::{AzureConfig, AzureJournal, AzureSnapshotStore};
-use rakka_persistence_tck::{journal_suite, snapshot_round_trip, snapshot_suite};
+use rakka_persistence_tck::{
+    journal_concurrent_suite, journal_extended_suite, journal_suite, snapshot_round_trip, snapshot_suite,
+};
 
 fn it_cfg() -> Option<AzureConfig> {
     let cs = env::var("RAKKA_IT_AZURE_CONNECTION_STRING").ok()?;
@@ -28,7 +30,9 @@ async fn azure_journal_passes_tck() {
     cfg.journal_table = j;
     cfg.snapshot_table = s;
     let journal = AzureJournal::connect(cfg).await.expect("azure journal");
-    journal_suite(journal, "azure-j").await;
+    journal_suite(journal.clone(), "azure-j").await;
+    journal_extended_suite(journal.clone(), "azure-j").await;
+    journal_concurrent_suite(journal, "azure-j").await;
 }
 
 #[tokio::test]

@@ -13,12 +13,7 @@ pub struct DynamoConfig {
 
 impl DynamoConfig {
     pub fn new(table_name: impl Into<String>) -> Self {
-        Self {
-            table_name: table_name.into(),
-            endpoint_url: None,
-            region: None,
-            auto_create_table: true,
-        }
+        Self { table_name: table_name.into(), endpoint_url: None, region: None, auto_create_table: true }
     }
 
     pub fn with_endpoint(mut self, endpoint: impl Into<String>) -> Self {
@@ -40,8 +35,8 @@ impl DynamoConfig {
     /// via `RAKKA_PERSISTENCE_DYNAMO_ENDPOINT` /
     /// `RAKKA_IT_DYNAMO_ENDPOINT` (dynamodb-local).
     pub fn from_env() -> Self {
-        let table = env::var("RAKKA_PERSISTENCE_DYNAMO_TABLE")
-            .unwrap_or_else(|_| "rakka_persistence".to_string());
+        let table =
+            env::var("RAKKA_PERSISTENCE_DYNAMO_TABLE").unwrap_or_else(|_| "rakka_persistence".to_string());
         let endpoint = env::var("RAKKA_PERSISTENCE_DYNAMO_ENDPOINT")
             .or_else(|_| env::var("RAKKA_IT_DYNAMO_ENDPOINT"))
             .ok();

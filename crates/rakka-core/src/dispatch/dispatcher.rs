@@ -83,6 +83,46 @@ where
     tokio::spawn(f)
 }
 
+/// Multi-thread dedicated runtime sized by `worker_threads`.
+/// akka.net: `ThreadPoolDispatcher`.
+pub struct ThreadPoolDispatcher {
+    rt: Arc<Runtime>,
+    throughput: u32,
+}
+
+impl ThreadPoolDispatcher {
+    pub fn new(worker_threads: usize, throughput: u32) -> std::io::Result<Self> {
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(worker_threads.max(1))
+            .enable_all()
+            .build()?;
+        Ok(Self { rt: Arc::new(rt), throughput })
+    }
+}
+
+impl Dispatcher for ThreadPoolDispatcher {
+    fn spawn_task(&self, task: futures_util::future::BoxFuture<'static, ()>) -> DispatcherHandle {
+        DispatcherHandle(self.rt.spawn(task))
+    }
+    fn throughput(&self) -> u32 {
+        self.throughput
+    }
+}
+
+/// Dispatcher that runs the task immediately on the calling thread by
+/// using `tokio::task::spawn_blocking` to drive the future to completion
+/// inline. akka.net: `CallingThreadDispatcher`. Mostly useful in tests.
+pub struct CallingThreadDispatcher;
+
+impl Dispatcher for CallingThreadDispatcher {
+    fn spawn_task(&self, task: futures_util::future::BoxFuture<'static, ()>) -> DispatcherHandle {
+        DispatcherHandle(tokio::task::spawn(task))
+    }
+    fn throughput(&self) -> u32 {
+        1
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

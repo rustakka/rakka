@@ -49,7 +49,11 @@ impl Reachability {
                 }
             }
         }
-        if any_unreachable { ReachabilityStatus::Unreachable } else { ReachabilityStatus::Reachable }
+        if any_unreachable {
+            ReachabilityStatus::Unreachable
+        } else {
+            ReachabilityStatus::Reachable
+        }
     }
 
     pub fn is_reachable(&self, subject: &Address) -> bool {

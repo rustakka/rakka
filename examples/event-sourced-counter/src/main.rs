@@ -32,6 +32,7 @@ enum CounterEvent {
 
 enum CounterCmd {
     Add(i64),
+    #[allow(dead_code)]
     Sub(i64),
 }
 
@@ -88,13 +89,12 @@ async fn main() -> anyhow::Result<()> {
     let journal = Arc::new(InMemoryJournal::default());
     let snapshots = InMemorySnapshotStore::new();
     let permits = RecoveryPermitter::new(4);
-    let snapshotter =
-        AsyncSnapshotter::new(snapshots.clone(), SnapshotPolicy::Periodic { every: 10 });
+    let snapshotter = AsyncSnapshotter::new(snapshots.clone(), SnapshotPolicy::Periodic { every: 10 });
 
     // Boot 3 actors, run 25 commands each.
     let mut state = CounterState::default();
     let mut seq = 0u64;
-    let mut counter = Counter { id: "demo-1".into() };
+    let counter = Counter { id: "demo-1".into() };
 
     for i in 1..=25i64 {
         counter
@@ -112,7 +112,9 @@ async fn main() -> anyhow::Result<()> {
     // Replay-on-restart.
     let mut counter2 = Counter { id: "demo-1".into() };
     let mut state2 = CounterState::default();
-    let highest = counter2.recover(journal.clone(), &mut state2, &permits).await
+    let highest = counter2
+        .recover(journal.clone(), &mut state2, &permits)
+        .await
         .map_err(|e: EventsourcedError<CounterErr>| anyhow::anyhow!("{}", e))?;
     println!("recovered through seq={highest}, state.n = {}", state2.n);
     assert_eq!(state.n, state2.n);

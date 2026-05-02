@@ -7,17 +7,11 @@ use std::net::SocketAddr;
 
 use clap::Parser;
 use rakka_dashboard::{DashboardConfig, DashboardMode, DashboardServer};
-use rakka_telemetry::exporters::config::{
-    ExportersConfig, OtlpConfig, PrometheusConfig,
-};
+use rakka_telemetry::exporters::config::{ExportersConfig, OtlpConfig, PrometheusConfig};
 use rakka_telemetry::TelemetryExtension;
 
 #[derive(Parser, Debug)]
-#[command(
-    name = "rakka-dashboard",
-    about = "Serve the rakka telemetry dashboard",
-    version
-)]
+#[command(name = "rakka-dashboard", about = "Serve the rakka telemetry dashboard", version)]
 struct Args {
     #[arg(long, default_value = "127.0.0.1:9100")]
     bind: SocketAddr,
@@ -49,9 +43,7 @@ async fn main() -> anyhow::Result<()> {
     let telemetry = TelemetryExtension::new(args.node.clone(), 1024);
 
     let exporters = ExportersConfig {
-        prometheus: args
-            .prometheus
-            .then(|| PrometheusConfig { enabled: true, ..Default::default() }),
+        prometheus: args.prometheus.then(|| PrometheusConfig { enabled: true, ..Default::default() }),
         otlp: args.otlp_endpoint.clone().map(|endpoint| OtlpConfig {
             enabled: true,
             endpoint,

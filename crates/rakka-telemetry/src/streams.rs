@@ -30,11 +30,7 @@ impl StreamsProbe {
     pub fn start_graph(&self, name: impl Into<String>) -> u64 {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let name = name.into();
-        let info = StreamGraphInfo {
-            id,
-            name: name.clone(),
-            started_at: chrono::Utc::now().to_rfc3339(),
-        };
+        let info = StreamGraphInfo { id, name: name.clone(), started_at: chrono::Utc::now().to_rfc3339() };
         self.active.insert(id, info);
         self.started.fetch_add(1, Ordering::Relaxed);
         self.bus.publish(TelemetryEvent::StreamsGraphStarted { id, name });

@@ -53,13 +53,17 @@ pub struct PyMembershipState {
 #[pymethods]
 impl PyMembershipState {
     #[new]
-    fn new() -> Self { Self { inner: Mutex::new(MembershipState::new()) } }
+    fn new() -> Self {
+        Self { inner: Mutex::new(MembershipState::new()) }
+    }
 
     fn add_or_update(&self, m: Py<PyMember>, py: Python<'_>) {
         self.inner.lock().add_or_update(m.borrow(py).inner.clone());
     }
 
-    fn member_count(&self) -> usize { self.inner.lock().member_count() }
+    fn member_count(&self) -> usize {
+        self.inner.lock().member_count()
+    }
 }
 
 #[pyclass(name = "VectorClock", module = "rakka._native.cluster")]
@@ -70,8 +74,12 @@ pub struct PyVectorClock {
 #[pymethods]
 impl PyVectorClock {
     #[new]
-    fn new() -> Self { Self { inner: Mutex::new(VectorClock::new()) } }
-    fn tick(&self, node: String) { self.inner.lock().tick(&node); }
+    fn new() -> Self {
+        Self { inner: Mutex::new(VectorClock::new()) }
+    }
+    fn tick(&self, node: String) {
+        self.inner.lock().tick(&node);
+    }
     fn compare(&self, other: &PyVectorClock) -> String {
         let me = self.inner.lock().clone();
         let them = other.inner.lock().clone();
@@ -81,7 +89,8 @@ impl PyVectorClock {
             VectorRelation::Same => "same",
             VectorRelation::Concurrent => "concurrent",
             _ => "unknown",
-        }.to_string()
+        }
+        .to_string()
     }
 }
 

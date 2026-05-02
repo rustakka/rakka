@@ -55,10 +55,7 @@ impl FileIO {
 
     /// Write every `Bytes` chunk to `path`, truncating any existing file.
     /// akka.net: `FileIO.ToFile`.
-    pub async fn to_path(
-        source: Source<Bytes>,
-        path: impl AsRef<Path>,
-    ) -> io::Result<u64> {
+    pub async fn to_path(source: Source<Bytes>, path: impl AsRef<Path>) -> io::Result<u64> {
         let mut file = File::create(path.as_ref()).await?;
         let mut stream = source.into_boxed();
         let mut written: u64 = 0;
@@ -71,10 +68,7 @@ impl FileIO {
     }
 
     /// Same as `to_path`, but consumes a source of `io::Result<Bytes>`.
-    pub async fn pipe_to_path(
-        source: Source<io::Result<Bytes>>,
-        path: impl AsRef<Path>,
-    ) -> io::Result<u64> {
+    pub async fn pipe_to_path(source: Source<io::Result<Bytes>>, path: impl AsRef<Path>) -> io::Result<u64> {
         let mut file = File::create(path.as_ref()).await?;
         let mut stream = source.into_boxed();
         let mut written: u64 = 0;
@@ -121,11 +115,7 @@ mod tests {
         assert!(wrote > 0);
 
         let mut contents = Vec::new();
-        std::io::Read::read_to_end(
-            &mut std::fs::File::open(&dst_path).unwrap(),
-            &mut contents,
-        )
-        .unwrap();
+        std::io::Read::read_to_end(&mut std::fs::File::open(&dst_path).unwrap(), &mut contents).unwrap();
         assert_eq!(contents, b"hello world, this is streams");
     }
 }

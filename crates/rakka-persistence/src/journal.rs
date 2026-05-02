@@ -39,11 +39,8 @@ impl JournalError {
 pub trait Journal: Send + Sync + 'static {
     async fn write_messages(&self, messages: Vec<PersistentRepr>) -> Result<(), JournalError>;
 
-    async fn delete_messages_to(
-        &self,
-        persistence_id: &str,
-        to_sequence_nr: u64,
-    ) -> Result<(), JournalError>;
+    async fn delete_messages_to(&self, persistence_id: &str, to_sequence_nr: u64)
+        -> Result<(), JournalError>;
 
     async fn replay_messages(
         &self,
@@ -88,10 +85,7 @@ impl Journal for InMemoryJournal {
             let entry = map.entry(msg.persistence_id.clone()).or_default();
             let expected = entry.last().map(|r| r.sequence_nr + 1).unwrap_or(1);
             if msg.sequence_nr != expected {
-                return Err(JournalError::SequenceOutOfOrder {
-                    expected,
-                    got: msg.sequence_nr,
-                });
+                return Err(JournalError::SequenceOutOfOrder { expected, got: msg.sequence_nr });
             }
             entry.push(msg);
         }

@@ -5,6 +5,8 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Weak;
 use std::time::Duration;
 
+use std::marker::PhantomData;
+
 use super::actor_cell::{ChildEntry, SystemMsg};
 use super::actor_ref::{ActorRef, UntypedActorRef};
 use super::path::ActorPath;
@@ -153,6 +155,105 @@ impl<A: Actor> Context<A> {
     #[doc(hidden)]
     pub fn sender_typed(&self) -> &Sender {
         &self.current_sender
+    }
+
+    /// Borrow this context as a phase-typed view. The phase parameter is a
+    /// phantom witness only — call sites typically use one of
+    /// [`Context::starting`], [`Context::running`], or [`Context::stopping`]
+    /// to get a view whose method surface matches the phase.
+    pub fn phased<P: PhaseMarker>(&mut self) -> Option<TypedContext<'_, A, P>> {
+        if P::PHASE == self.phase {
+            Some(TypedContext { inner: self, _phase: PhantomData })
+        } else {
+            None
+        }
+    }
+
+    /// Phase-typed view valid only while the actor is in `Starting`.
+    pub fn starting(&mut self) -> Option<TypedContext<'_, A, Starting>> {
+        self.phased::<Starting>()
+    }
+
+    /// Phase-typed view valid only while the actor is in `Running`.
+    pub fn running(&mut self) -> Option<TypedContext<'_, A, Running>> {
+        self.phased::<Running>()
+    }
+
+    /// Phase-typed view valid only while the actor is in `Stopping`.
+    pub fn stopping_view(&mut self) -> Option<TypedContext<'_, A, Stopping>> {
+        self.phased::<Stopping>()
+    }
+}
+
+/// Phase markers for [`TypedContext`]. Each marker type implements
+/// [`PhaseMarker`] with a const [`LifecyclePhase`] discriminant; the
+/// `PhasedContext` view inspects this at runtime to gate phase-only APIs.
+pub trait PhaseMarker: sealed::Sealed {
+    const PHASE: LifecyclePhase;
+}
+
+/// Marker for the `Starting` lifecycle phase.
+pub struct Starting;
+/// Marker for the `Running` lifecycle phase.
+pub struct Running;
+/// Marker for the `Stopping` lifecycle phase.
+pub struct Stopping;
+
+mod sealed {
+    pub trait Sealed {}
+    impl Sealed for super::Starting {}
+    impl Sealed for super::Running {}
+    impl Sealed for super::Stopping {}
+}
+
+impl PhaseMarker for Starting {
+    const PHASE: LifecyclePhase = LifecyclePhase::Starting;
+}
+impl PhaseMarker for Running {
+    const PHASE: LifecyclePhase = LifecyclePhase::Running;
+}
+impl PhaseMarker for Stopping {
+    const PHASE: LifecyclePhase = LifecyclePhase::Stopping;
+}
+
+/// Phase-typed view over a [`Context`]. The phase parameter is a phantom
+/// witness; only methods valid in that phase are exposed.
+///
+/// `Starting`-only: nothing yet (constructor surface).
+/// `Running` exposes `become_`, `unstash_all`, `set_receive_timeout`.
+/// `Stopping` exposes only inspection (no new state changes).
+pub struct TypedContext<'a, A: Actor, P: PhaseMarker> {
+    inner: &'a mut Context<A>,
+    _phase: PhantomData<P>,
+}
+
+impl<'a, A: Actor, P: PhaseMarker> TypedContext<'a, A, P> {
+    pub fn ctx(&self) -> &Context<A> {
+        self.inner
+    }
+    pub fn ctx_mut(&mut self) -> &mut Context<A> {
+        self.inner
+    }
+    pub fn self_ref(&self) -> &ActorRef<A::Msg> {
+        &self.inner.self_ref
+    }
+}
+
+impl<'a, A: Actor> TypedContext<'a, A, Running> {
+    /// Set the receive-idle timeout. Only callable from a `Running` view.
+    pub fn set_receive_timeout(&mut self, d: Option<Duration>) {
+        self.inner.set_receive_timeout(d);
+    }
+
+    /// Drain stashed messages. Only callable from a `Running` view.
+    pub fn unstash_all(&mut self) -> Vec<A::Msg> {
+        self.inner.unstash_all()
+    }
+
+    /// Begin self-stop. Transitions the underlying context to `Stopping`
+    /// once the cell observes the request.
+    pub fn stop_self(&mut self) {
+        self.inner.stop_self();
     }
 }
 

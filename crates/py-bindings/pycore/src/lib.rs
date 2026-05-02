@@ -12,7 +12,7 @@
     clippy::new_without_default,
     clippy::type_complexity,
     dead_code,
-    unexpected_cfgs,
+    unexpected_cfgs
 )]
 
 use pyo3::prelude::*;

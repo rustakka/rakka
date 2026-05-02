@@ -28,7 +28,7 @@ pub fn elect_leader(state: &MembershipState) -> Option<Address> {
         .filter(|m| matches!(m.status, MemberStatus::Up | MemberStatus::Leaving))
         .filter(|m| state.reachability.is_reachable(&m.address))
         .collect();
-    eligible.sort_by(|a, b| a.address.to_string().cmp(&b.address.to_string()));
+    eligible.sort_by_key(|a| a.address.to_string());
     eligible.first().map(|m| m.address.clone())
 }
 

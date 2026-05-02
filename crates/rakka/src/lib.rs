@@ -5,8 +5,8 @@
 //!
 //! Most users should use the [`prelude`] module.
 
-pub use rakka_core as core;
 pub use rakka_config as config;
+pub use rakka_core as core;
 
 #[cfg(feature = "macros")]
 pub use rakka_macros as macros;

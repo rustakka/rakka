@@ -72,24 +72,21 @@ impl KillSwitch {
     /// Wrap a source so it completes when this switch fires.
     pub fn flow<T: Send + 'static>(&self, source: Source<T>) -> Source<T> {
         let inner = Arc::clone(&self.inner);
-        let s = futures::stream::unfold(
-            (source.into_boxed(), inner),
-            |(mut s, inner)| async move {
-                if inner.state.lock().killed {
-                    return None;
+        let s = futures::stream::unfold((source.into_boxed(), inner), |(mut s, inner)| async move {
+            if inner.state.lock().killed {
+                return None;
+            }
+            let next = {
+                let notified = inner.notify.notified();
+                tokio::pin!(notified);
+                tokio::select! {
+                    biased;
+                    _ = &mut notified => None,
+                    item = s.next() => item,
                 }
-                let next = {
-                    let notified = inner.notify.notified();
-                    tokio::pin!(notified);
-                    tokio::select! {
-                        biased;
-                        _ = &mut notified => None,
-                        item = s.next() => item,
-                    }
-                };
-                next.map(|v| (v, (s, inner)))
-            },
-        )
+            };
+            next.map(|v| (v, (s, inner)))
+        })
         .boxed();
         Source { inner: s }
     }

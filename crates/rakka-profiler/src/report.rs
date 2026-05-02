@@ -50,10 +50,10 @@ impl Scenario {
 /// helpers render them as human-friendly units.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Measurement {
-    pub runtime: String,          // "rust" or "python"
+    pub runtime: String, // "rust" or "python"
     pub scenario: Scenario,
-    pub config: String,           // free-form (dispatcher, pool size, ...)
-    pub messages: u64,            // total messages (or actors for fanout)
+    pub config: String, // free-form (dispatcher, pool size, ...)
+    pub messages: u64,  // total messages (or actors for fanout)
     pub elapsed_ns: u64,
     pub throughput_msgs_per_sec: f64,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -79,11 +79,7 @@ impl Measurement {
         elapsed: Duration,
     ) -> Self {
         let elapsed_ns = elapsed.as_nanos() as u64;
-        let throughput = if elapsed_ns == 0 {
-            0.0
-        } else {
-            (messages as f64) * 1.0e9 / (elapsed_ns as f64)
-        };
+        let throughput = if elapsed_ns == 0 { 0.0 } else { (messages as f64) * 1.0e9 / (elapsed_ns as f64) };
         Self {
             runtime: runtime.to_string(),
             scenario,
@@ -150,9 +146,7 @@ impl ProfilerReport {
             "# rakka profiler — {} ({})\n\nhost: `{}`\n\n",
             self.runtime, self.version, self.host
         ));
-        out.push_str(
-            "| scenario | config | msgs | elapsed | throughput | p50 | p95 | p99 | ΔRSS | CPU |\n",
-        );
+        out.push_str("| scenario | config | msgs | elapsed | throughput | p50 | p95 | p99 | ΔRSS | CPU |\n");
         out.push_str("|---|---|---|---|---|---|---|---|---|---|\n");
         for m in &self.measurements {
             out.push_str(&format!(
@@ -176,9 +170,7 @@ impl ProfilerReport {
 fn host_tag() -> String {
     let os = std::env::consts::OS;
     let arch = std::env::consts::ARCH;
-    let cpus = std::thread::available_parallelism()
-        .map(|n| n.get())
-        .unwrap_or(0);
+    let cpus = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(0);
     format!("{os}/{arch} cpus={cpus}")
 }
 
@@ -224,7 +216,11 @@ fn fmt_opt_delta(v: Option<i64>) -> String {
             } else {
                 format!("{abs}B")
             };
-            if n < 0 { format!("-{pretty}") } else { format!("+{pretty}") }
+            if n < 0 {
+                format!("-{pretty}")
+            } else {
+                format!("+{pretty}")
+            }
         }
         None => "n/a".to_string(),
     }

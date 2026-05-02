@@ -33,31 +33,20 @@ impl Actor for Recorder {
 }
 
 async fn boot(name: &str) -> RemoteSystem {
-    let sys = ActorSystem::create(name, rakka_config::Config::reference())
-        .await
-        .unwrap();
-    RemoteSystem::start(sys, "127.0.0.1:0".parse().unwrap(), RemoteSettings::default())
-        .await
-        .unwrap()
+    let sys = ActorSystem::create(name, rakka_config::Config::reference()).await.unwrap();
+    RemoteSystem::start(sys, "127.0.0.1:0".parse().unwrap(), RemoteSettings::default()).await.unwrap()
 }
 
 fn spawn_recorder(
     sys: &ActorSystem,
     name: &str,
-) -> (
-    rakka_core::actor::ActorRef<Hello>,
-    Arc<AtomicU32>,
-    Arc<parking_lot::Mutex<Option<String>>>,
-) {
+) -> (rakka_core::actor::ActorRef<Hello>, Arc<AtomicU32>, Arc<parking_lot::Mutex<Option<String>>>) {
     let received = Arc::new(AtomicU32::new(0));
     let last = Arc::new(parking_lot::Mutex::new(None));
     let r1 = received.clone();
     let l1 = last.clone();
     let r = sys
-        .actor_of(
-            Props::create(move || Recorder { received: r1.clone(), last_text: l1.clone() }),
-            name,
-        )
+        .actor_of(Props::create(move || Recorder { received: r1.clone(), last_text: l1.clone() }), name)
         .unwrap();
     (r, received, last)
 }
@@ -74,9 +63,7 @@ async fn tell_crosses_process_boundary() {
 
     // From B, look up A's `echo` and send a Hello.
     let target_path = format!("{}/user/echo", a.local_address);
-    let remote: ActorRef<Hello> = b
-        .actor_selection::<Hello>(&target_path)
-        .expect("remote selection");
+    let remote: ActorRef<Hello> = b.actor_selection::<Hello>(&target_path).expect("remote selection");
     for i in 0..3 {
         remote.tell(Hello { text: format!("hi-{i}"), seq: i });
     }
@@ -88,11 +75,7 @@ async fn tell_crosses_process_boundary() {
         }
         tokio::time::sleep(Duration::from_millis(20)).await;
     }
-    assert_eq!(
-        received.load(Ordering::SeqCst),
-        3,
-        "expected 3 inbound messages",
-    );
+    assert_eq!(received.load(Ordering::SeqCst), 3, "expected 3 inbound messages",);
     assert!(last.lock().as_deref().unwrap_or("").starts_with("hi-"));
 
     a.shutdown().await;
@@ -131,8 +114,7 @@ async fn metrics_record_sent_messages() {
     b.expose_actor(echo);
 
     let target = format!("{}/user/echo", b.local_address);
-    let remote: ActorRef<Hello> =
-        a.actor_selection::<Hello>(&target).expect("remote selection");
+    let remote: ActorRef<Hello> = a.actor_selection::<Hello>(&target).expect("remote selection");
     for i in 0..5 {
         remote.tell(Hello { text: format!("m{i}"), seq: i });
     }
@@ -143,11 +125,7 @@ async fn metrics_record_sent_messages() {
     }
 
     let snap = a.endpoint_manager().metrics().snapshot();
-    let to_b: Vec<_> = snap
-        .per_address
-        .iter()
-        .filter(|r| r.address == b.local_address.to_string())
-        .collect();
+    let to_b: Vec<_> = snap.per_address.iter().filter(|r| r.address == b.local_address.to_string()).collect();
     assert!(!to_b.is_empty(), "expected metrics for {}", b.local_address);
     let row = to_b[0];
     assert!(row.sent_messages >= 5, "sent_messages = {}", row.sent_messages);
@@ -168,8 +146,7 @@ async fn unknown_codec_drops_silently() {
     b.expose_actor(echo);
 
     let target = format!("{}/user/echo", b.local_address);
-    let remote: ActorRef<Hello> =
-        a.actor_selection::<Hello>(&target).expect("remote selection");
+    let remote: ActorRef<Hello> = a.actor_selection::<Hello>(&target).expect("remote selection");
     remote.tell(Hello { text: "ignored".into(), seq: 0 });
 
     tokio::time::sleep(Duration::from_millis(200)).await;
@@ -205,10 +182,7 @@ async fn handshake_protocol_version_carried_on_wire() {
     .unwrap();
 
     let mut inbound = t.inbound();
-    let frame = tokio::time::timeout(Duration::from_millis(500), inbound.recv())
-        .await
-        .unwrap()
-        .unwrap();
+    let frame = tokio::time::timeout(Duration::from_millis(500), inbound.recv()).await.unwrap().unwrap();
     match frame.pdu {
         AkkaPdu::Associate(info) => assert_eq!(info.protocol_version, 999),
         other => panic!("expected Associate, got {other:?}"),

@@ -10,7 +10,9 @@
 mod journal_suite;
 mod snapshot_suite;
 
-pub use journal_suite::{journal_round_trip, journal_suite, journal_tag_suite};
+pub use journal_suite::{
+    journal_concurrent_suite, journal_extended_suite, journal_round_trip, journal_suite, journal_tag_suite,
+};
 pub use snapshot_suite::{snapshot_round_trip, snapshot_suite};
 
 #[cfg(test)]
@@ -36,5 +38,15 @@ mod tests {
     #[tokio::test]
     async fn in_memory_snapshot_full_suite() {
         snapshot_suite(InMemorySnapshotStore::new(), "tck-s-full").await;
+    }
+
+    #[tokio::test]
+    async fn in_memory_journal_extended_suite() {
+        journal_extended_suite(InMemoryJournal::new(), "tck-j-ext").await;
+    }
+
+    #[tokio::test]
+    async fn in_memory_journal_concurrent_suite() {
+        journal_concurrent_suite(InMemoryJournal::new(), "tck-j-conc").await;
     }
 }

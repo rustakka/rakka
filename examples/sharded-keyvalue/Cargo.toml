@@ -1,0 +1,13 @@
+[package]
+name = "example-sharded-keyvalue"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+rakka-cluster-sharding = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+
+[lints]
+workspace = true

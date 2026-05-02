@@ -20,11 +20,7 @@ pub struct PyShardRegion {
 impl PyShardRegion {
     #[new]
     fn new(entity_factory: Py<PyAny>, extractor: Py<PyAny>) -> Self {
-        Self {
-            entity_factory,
-            extractor,
-            entities: Arc::new(Mutex::new(HashMap::new())),
-        }
+        Self { entity_factory, extractor, entities: Arc::new(Mutex::new(HashMap::new())) }
     }
 
     fn deliver(&self, py: Python<'_>, message: Py<PyAny>) -> PyResult<Py<PyAny>> {
@@ -45,7 +41,9 @@ impl PyShardRegion {
         Ok(result)
     }
 
-    fn entity_count(&self) -> usize { self.entities.lock().len() }
+    fn entity_count(&self) -> usize {
+        self.entities.lock().len()
+    }
 }
 
 pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {

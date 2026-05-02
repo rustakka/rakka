@@ -84,17 +84,11 @@ impl PyActor {
                 let t0 = Instant::now();
                 let res = f(py, instance.as_ref());
                 let dt = t0.elapsed().as_nanos() as u64;
-                pool.metrics
-                    .gil_hold_ns_total
-                    .fetch_add(dt, std::sync::atomic::Ordering::Relaxed);
-                pool.metrics
-                    .messages_handled
-                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                pool.metrics.gil_hold_ns_total.fetch_add(dt, std::sync::atomic::Ordering::Relaxed);
+                pool.metrics.messages_handled.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 if let Some(max) = pool.quota.max_handler_ms {
                     if dt / 1_000_000 > max {
-                        pool.metrics
-                            .long_handlers
-                            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        pool.metrics.long_handlers.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                         tracing::warn!(
                             pool = %pool.label,
                             dt_ns = dt,
@@ -107,14 +101,10 @@ impl PyActor {
             }),
         };
         if worker.tx.send(task).is_err() {
-            return Err(PyErr::new::<crate::errors::RakkaError, _>(
-                "interpreter worker shut down",
-            ));
+            return Err(PyErr::new::<crate::errors::RakkaError, _>("interpreter worker shut down"));
         }
         rx.await.unwrap_or_else(|_| {
-            Err(PyErr::new::<crate::errors::RakkaError, _>(
-                "interpreter worker dropped task",
-            ))
+            Err(PyErr::new::<crate::errors::RakkaError, _>("interpreter worker dropped task"))
         })
     }
 }
@@ -202,10 +192,7 @@ impl Actor for PyActor {
         if let Some(tx) = reply {
             let _ = tx.send(result);
         } else if let Err(e) = result {
-            self.pool
-                .metrics
-                .handler_panics
-                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            self.pool.metrics.handler_panics.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             // Surface the error through supervision.
             panic!(
                 "python actor handler raised: {}",
@@ -223,8 +210,7 @@ impl Actor for PyActor {
 /// interpreter's asyncio event loop synchronously, otherwise return as is.
 fn coro_run<'py>(py: Python<'py>, value: Bound<'py, PyAny>) -> PyResult<Py<PyAny>> {
     let asyncio = py.import_bound("asyncio")?;
-    let is_coro: bool =
-        asyncio.call_method1("iscoroutine", (value.clone(),))?.extract().unwrap_or(false);
+    let is_coro: bool = asyncio.call_method1("iscoroutine", (value.clone(),))?.extract().unwrap_or(false);
     if is_coro {
         // Run the coroutine to completion on a temporary event loop. The
         // Python handler is expected to be short-lived; for long async
@@ -237,4 +223,3 @@ fn coro_run<'py>(py: Python<'py>, value: Bound<'py, PyAny>) -> PyResult<Py<PyAny
         Ok(value.unbind())
     }
 }
-

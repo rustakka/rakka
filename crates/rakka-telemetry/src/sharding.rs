@@ -4,9 +4,9 @@
 use parking_lot::RwLock;
 
 use crate::bus::{TelemetryBus, TelemetryEvent};
-use crate::dto::{ShardingEvent, ShardingSnapshot};
 #[cfg(any(feature = "sharding", test))]
 use crate::dto::ShardRegionInfo;
+use crate::dto::{ShardingEvent, ShardingSnapshot};
 
 pub struct ShardingProbe {
     bus: TelemetryBus,
@@ -50,9 +50,7 @@ pub fn region_info<E: rakka_cluster_sharding::MessageExtractor>(
 
 /// Snapshot of the coordinator's shard → region allocation table.
 #[cfg(feature = "sharding")]
-pub fn coordinator_allocations(
-    coord: &rakka_cluster_sharding::ShardCoordinator,
-) -> Vec<(String, String)> {
+pub fn coordinator_allocations(coord: &rakka_cluster_sharding::ShardCoordinator) -> Vec<(String, String)> {
     coord.allocations()
 }
 

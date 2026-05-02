@@ -24,12 +24,7 @@ impl Address {
         host: impl Into<String>,
         port: u16,
     ) -> Self {
-        Self {
-            protocol: protocol.into(),
-            system: system.into(),
-            host: Some(host.into()),
-            port: Some(port),
-        }
+        Self { protocol: protocol.into(), system: system.into(), host: Some(host.into()), port: Some(port) }
     }
 
     pub fn has_local_scope(&self) -> bool {

@@ -48,13 +48,12 @@ impl RemoteSystem {
         bind: SocketAddr,
         settings: RemoteSettings,
     ) -> Result<Self, crate::transport::TransportError> {
-        let transport: Arc<dyn Transport> =
-            Arc::new(TcpTransport::with_advertised(
-                system.name().to_string(),
-                bind,
-                settings.hostname.clone(),
-                settings.max_frame_size,
-            ));
+        let transport: Arc<dyn Transport> = Arc::new(TcpTransport::with_advertised(
+            system.name().to_string(),
+            bind,
+            settings.hostname.clone(),
+            settings.max_frame_size,
+        ));
         Self::start_with_transport(system, transport, settings).await
     }
 
@@ -70,12 +69,8 @@ impl RemoteSystem {
 
         let registry = SerializerRegistry::standard();
         let local_uid = address_uid.get();
-        let daemon = RemoteSystemDaemon::new(
-            system.clone(),
-            registry.clone(),
-            endpoint_manager.clone(),
-            local_uid,
-        );
+        let daemon =
+            RemoteSystemDaemon::new(system.clone(), registry.clone(), endpoint_manager.clone(), local_uid);
         let watcher = RemoteWatcher::new(endpoint_manager.clone(), registry.clone(), local_uid);
 
         // Drain the manager's inbound stream into the daemon dispatcher.
@@ -96,14 +91,7 @@ impl RemoteSystem {
         );
         provider.install(&system);
 
-        Ok(Self {
-            system,
-            provider,
-            daemon,
-            watcher,
-            address_uid,
-            local_address,
-        })
+        Ok(Self { system, provider, daemon, watcher, address_uid, local_address })
     }
 
     pub fn endpoint_manager(&self) -> &EndpointManager {
@@ -165,19 +153,18 @@ impl RemoteSystem {
         // Reject malformed paths up front so callers don't get a
         // dangling `ActorRef<M>` whose underlying handle never resolves.
         let _parsed = parse_actor_path(path)?;
-        let serialize: Arc<
-            dyn Fn(M, Option<ActorPath>) -> SerializedMessage + Send + Sync,
-        > = Arc::new(move |msg: M, sender: Option<ActorPath>| {
-            let manifest = std::any::type_name::<M>().to_string();
-            let payload = bincode::serde::encode_to_vec(&msg, bincode::config::standard())
-                .unwrap_or_default();
-            SerializedMessage {
-                serializer_id: crate::serialization::BINCODE_SERIALIZER_ID,
-                manifest,
-                payload,
-                sender,
-            }
-        });
+        let serialize: Arc<dyn Fn(M, Option<ActorPath>) -> SerializedMessage + Send + Sync> =
+            Arc::new(move |msg: M, sender: Option<ActorPath>| {
+                let manifest = std::any::type_name::<M>().to_string();
+                let payload =
+                    bincode::serde::encode_to_vec(&msg, bincode::config::standard()).unwrap_or_default();
+                SerializedMessage {
+                    serializer_id: crate::serialization::BINCODE_SERIALIZER_ID,
+                    manifest,
+                    payload,
+                    sender,
+                }
+            });
         let _ = (registry, local_uid, endpoint_manager);
         self.system.actor_selection_with(path, serialize)
     }
@@ -205,10 +192,7 @@ fn handle_inbound(daemon: &Arc<RemoteSystemDaemon>, inbound: InboundEnvelope) {
     };
     if env.system {
         // System-control payload — decode RemoteSystemMsg and dispatch.
-        match daemon
-            .registry()
-            .decode_dyn(&env.manifest, env.serializer_id, &env.payload)
-        {
+        match daemon.registry().decode_dyn(&env.manifest, env.serializer_id, &env.payload) {
             Ok((value, _)) => {
                 if let Ok(msg) = value.downcast::<rakka_core::actor::RemoteSystemMsg>() {
                     daemon.dispatch_system(&path, *msg);
@@ -219,9 +203,7 @@ fn handle_inbound(daemon: &Arc<RemoteSystemDaemon>, inbound: InboundEnvelope) {
             }
         }
     } else {
-        if let Err(e) =
-            daemon.dispatch_user(&path, &env.manifest, env.serializer_id, &env.payload)
-        {
+        if let Err(e) = daemon.dispatch_user(&path, &env.manifest, env.serializer_id, &env.payload) {
             tracing::warn!(rec = %env.recipient_path, "user payload dispatch failed: {e}");
         }
     }

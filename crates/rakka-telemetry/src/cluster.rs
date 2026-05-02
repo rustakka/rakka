@@ -5,9 +5,9 @@
 use parking_lot::RwLock;
 
 use crate::bus::{TelemetryBus, TelemetryEvent};
-use crate::dto::{ClusterMemberInfo, ClusterMembershipDiff, ClusterStateInfo};
 #[cfg(feature = "cluster")]
 use crate::dto::ReachabilityRecord;
+use crate::dto::{ClusterMemberInfo, ClusterMembershipDiff, ClusterStateInfo};
 
 pub struct ClusterProbe {
     bus: TelemetryBus,
@@ -63,19 +63,19 @@ fn compute_diff(prev: &ClusterStateInfo, next: &ClusterStateInfo) -> ClusterMemb
     for m in &next.members {
         match prev_by_addr.get(m.address.as_str()) {
             None => added.push(m.clone()),
-            Some(old) if old.status != m.status || old.reachable != m.reachable => {
-                updated.push(m.clone())
-            }
+            Some(old) if old.status != m.status || old.reachable != m.reachable => updated.push(m.clone()),
             _ => {}
         }
     }
-    let removed: Vec<String> =
-        prev.members.iter().filter(|m| !next_by_addr.contains_key(m.address.as_str())).map(|m| m.address.clone()).collect();
+    let removed: Vec<String> = prev
+        .members
+        .iter()
+        .filter(|m| !next_by_addr.contains_key(m.address.as_str()))
+        .map(|m| m.address.clone())
+        .collect();
 
-    let prev_unreach: std::collections::HashSet<&str> =
-        prev.unreachable.iter().map(|s| s.as_str()).collect();
-    let next_unreach: std::collections::HashSet<&str> =
-        next.unreachable.iter().map(|s| s.as_str()).collect();
+    let prev_unreach: std::collections::HashSet<&str> = prev.unreachable.iter().map(|s| s.as_str()).collect();
+    let next_unreach: std::collections::HashSet<&str> = next.unreachable.iter().map(|s| s.as_str()).collect();
     let became_unreachable: Vec<String> =
         next_unreach.difference(&prev_unreach).map(|s| s.to_string()).collect();
     let became_reachable: Vec<String> =
@@ -146,8 +146,7 @@ pub fn from_cluster_state(state: &rakka_cluster::MembershipState) -> ClusterStat
 #[cfg(feature = "cluster")]
 pub fn from_gossip(gossip: &rakka_cluster::Gossip) -> ClusterStateInfo {
     let mut state = from_cluster_state(&gossip.state);
-    state.gossip_version =
-        gossip.version.versions.iter().map(|(k, v)| (k.clone(), *v)).collect();
+    state.gossip_version = gossip.version.versions.iter().map(|(k, v)| (k.clone(), *v)).collect();
     state
 }
 
@@ -202,10 +201,7 @@ mod tests {
         let bus = TelemetryBus::new(8);
         let mut rx = bus.subscribe();
         let probe = ClusterProbe::new(bus);
-        probe.update(ClusterStateInfo {
-            members: vec![member("a", "Up", true)],
-            ..Default::default()
-        });
+        probe.update(ClusterStateInfo { members: vec![member("a", "Up", true)], ..Default::default() });
         let e = rx.recv().await.unwrap();
         assert_eq!(e.topic(), "cluster");
     }

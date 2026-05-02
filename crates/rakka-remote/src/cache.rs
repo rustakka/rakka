@@ -24,11 +24,7 @@ pub struct LruCache<K: Eq + Hash + Clone, V: Clone> {
 impl<K: Eq + Hash + Clone, V: Clone> LruCache<K, V> {
     pub fn new(capacity: usize) -> Self {
         assert!(capacity >= 1, "capacity must be >= 1");
-        Self {
-            capacity,
-            map: HashMap::with_capacity(capacity),
-            tick: 0,
-        }
+        Self { capacity, map: HashMap::with_capacity(capacity), tick: 0 }
     }
 
     pub fn capacity(&self) -> usize {
@@ -69,11 +65,8 @@ impl<K: Eq + Hash + Clone, V: Clone> LruCache<K, V> {
         }
         if self.map.len() >= self.capacity {
             // Evict the entry with the smallest `last`.
-            if let Some((evict_k, _)) = self
-                .map
-                .iter()
-                .min_by_key(|(_, (_, last))| *last)
-                .map(|(k, _)| (k.clone(), ()))
+            if let Some((evict_k, _)) =
+                self.map.iter().min_by_key(|(_, (_, last))| *last).map(|(k, _)| (k.clone(), ()))
             {
                 let (evicted, _) = self.map.remove(&evict_k).expect("just found");
                 self.map.insert(key, (value, self.tick));

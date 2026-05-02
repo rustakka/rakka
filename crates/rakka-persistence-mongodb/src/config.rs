@@ -20,11 +20,7 @@ impl MongoConfig {
         }
     }
 
-    pub fn with_collections(
-        mut self,
-        journal: impl Into<String>,
-        snapshot: impl Into<String>,
-    ) -> Self {
+    pub fn with_collections(mut self, journal: impl Into<String>, snapshot: impl Into<String>) -> Self {
         self.journal_collection = journal.into();
         self.snapshot_collection = snapshot.into();
         self
@@ -37,8 +33,7 @@ impl MongoConfig {
             .or_else(|_| env::var("RAKKA_IT_MONGO_URL"))
             .or_else(|_| env::var("MONGODB_URL"))
             .unwrap_or_else(|_| "mongodb://127.0.0.1:27017".to_string());
-        let db = env::var("RAKKA_PERSISTENCE_MONGO_DB")
-            .unwrap_or_else(|_| "rakka".into());
+        let db = env::var("RAKKA_PERSISTENCE_MONGO_DB").unwrap_or_else(|_| "rakka".into());
         Self::new(url, db)
     }
 }

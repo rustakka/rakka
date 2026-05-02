@@ -59,9 +59,7 @@ impl PyTestProbe {
             match tokio::time::timeout(dur, recv_fut).await {
                 Ok(Some(())) => {
                     let mut guard = inbox.lock();
-                    guard.pop().ok_or_else(|| {
-                        PyErr::new::<errors::RakkaError, _>("probe spurious wakeup")
-                    })
+                    guard.pop().ok_or_else(|| PyErr::new::<errors::RakkaError, _>("probe spurious wakeup"))
                 }
                 _ => Err(PyErr::new::<errors::RakkaError, _>("probe timeout")),
             }
@@ -98,22 +96,13 @@ impl PyTestKit {
         let (ntx, nrx) = mpsc::unbounded_channel::<()>();
         let inbox_cl = inbox.clone();
 
-        let props = RustProps::<ProbeActor>::create(move || ProbeActor {
-            inbox: inbox_cl.clone(),
-            tx: ntx.clone(),
-        });
+        let props =
+            RustProps::<ProbeActor>::create(move || ProbeActor { inbox: inbox_cl.clone(), tx: ntx.clone() });
         let name = format!("probe-{id}");
         let r: RustRef<PyMessage> = self.system.actor_of(props, &name).map_err(errors::map)?;
         let path = format!("akka://{}/user/{}", self.system.name(), name);
         let actor_ref = Py::new(py, PyActorRef::new(r, path))?;
-        Py::new(
-            py,
-            PyTestProbe {
-                inbox,
-                notify_rx: Arc::new(tokio::sync::Mutex::new(nrx)),
-                actor_ref,
-            },
-        )
+        Py::new(py, PyTestProbe { inbox, notify_rx: Arc::new(tokio::sync::Mutex::new(nrx)), actor_ref })
     }
 
     fn shutdown(&self, py: Python<'_>) {
@@ -132,11 +121,7 @@ struct ProbeActor {
 impl rakka_core::actor::Actor for ProbeActor {
     type Msg = PyMessage;
 
-    async fn handle(
-        &mut self,
-        _ctx: &mut rakka_core::actor::Context<Self>,
-        msg: Self::Msg,
-    ) {
+    async fn handle(&mut self, _ctx: &mut rakka_core::actor::Context<Self>, msg: Self::Msg) {
         let payload = msg.payload;
         self.inbox.lock().push(payload);
         let _ = self.tx.send(());

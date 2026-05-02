@@ -34,6 +34,8 @@
 
 pub mod actor;
 pub mod dispatch;
+#[macro_use]
+mod fsm_macro;
 pub mod event;
 pub mod io;
 pub mod pattern;

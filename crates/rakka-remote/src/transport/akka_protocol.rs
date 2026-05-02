@@ -59,11 +59,7 @@ pub enum ProtocolEvent {
 }
 
 impl AkkaProtocolTransport {
-    pub fn new(
-        inner: Arc<dyn Transport>,
-        settings: RemoteSettings,
-        local_uid: AddressUid,
-    ) -> Arc<Self> {
+    pub fn new(inner: Arc<dyn Transport>, settings: RemoteSettings, local_uid: AddressUid) -> Arc<Self> {
         let (tx, rx) = mpsc::unbounded_channel();
         Arc::new(Self {
             inner,
@@ -129,19 +125,15 @@ impl AkkaProtocolTransport {
                         .inner
                         .send(
                             &info.origin,
-                            AkkaPdu::Disassociate(DisassociateReason::HandshakeFailure(
-                                format!(
-                                    "protocol version mismatch: peer={}, local={}",
-                                    info.protocol_version, PROTOCOL_VERSION
-                                ),
-                            )),
+                            AkkaPdu::Disassociate(DisassociateReason::HandshakeFailure(format!(
+                                "protocol version mismatch: peer={}, local={}",
+                                info.protocol_version, PROTOCOL_VERSION
+                            ))),
                         )
                         .await;
                     return;
                 }
-                if self.settings.require_cookie.is_some()
-                    && self.settings.require_cookie != info.cookie
-                {
+                if self.settings.require_cookie.is_some() && self.settings.require_cookie != info.cookie {
                     let _ = self
                         .inner
                         .send(
@@ -190,17 +182,13 @@ impl AkkaProtocolTransport {
                 let key = frame.from.to_string();
                 self.associated.remove(&key);
                 self.peer_uids.remove(&key);
-                let _ = self
-                    .inbound_tx
-                    .send(ProtocolEvent::Disassociated { peer: frame.from, reason });
+                let _ = self.inbound_tx.send(ProtocolEvent::Disassociated { peer: frame.from, reason });
             }
             AkkaPdu::Heartbeat => {
                 // Liveness only; nothing to do at protocol layer.
             }
             other => {
-                let _ = self
-                    .inbound_tx
-                    .send(ProtocolEvent::Payload { from: frame.from, pdu: other });
+                let _ = self.inbound_tx.send(ProtocolEvent::Payload { from: frame.from, pdu: other });
             }
         }
     }

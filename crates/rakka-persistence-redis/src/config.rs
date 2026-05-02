@@ -31,8 +31,7 @@ impl RedisConfig {
             .or_else(|_| env::var("RAKKA_IT_REDIS_URL"))
             .or_else(|_| env::var("REDIS_URL"))
             .unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
-        let prefix = env::var("RAKKA_PERSISTENCE_REDIS_PREFIX")
-            .unwrap_or_else(|_| "rakka".into());
+        let prefix = env::var("RAKKA_PERSISTENCE_REDIS_PREFIX").unwrap_or_else(|_| "rakka".into());
         Self::new(url).with_key_prefix(prefix)
     }
 

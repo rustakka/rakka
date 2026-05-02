@@ -75,10 +75,7 @@ impl Transport for TcpTransport {
     async fn listen(&self) -> Result<Address, TransportError> {
         let listener = TcpListener::bind(self.bind).await?;
         let bound = listener.local_addr()?;
-        let host = self
-            .advertised_host
-            .clone()
-            .unwrap_or_else(|| bound.ip().to_string());
+        let host = self.advertised_host.clone().unwrap_or_else(|| bound.ip().to_string());
         let address = Address::remote("akka.tcp", &self.system_name, host, bound.port());
         *self.local_address.lock() = Some(address.clone());
 
@@ -108,13 +105,8 @@ impl Transport for TcpTransport {
         if self.peers.contains_key(&key) {
             return Ok(());
         }
-        let host = target
-            .host
-            .clone()
-            .ok_or_else(|| TransportError::NotAssociated(key.clone()))?;
-        let port = target
-            .port
-            .ok_or_else(|| TransportError::NotAssociated(key.clone()))?;
+        let host = target.host.clone().ok_or_else(|| TransportError::NotAssociated(key.clone()))?;
+        let port = target.port.ok_or_else(|| TransportError::NotAssociated(key.clone()))?;
         let stream = TcpStream::connect((host.as_str(), port)).await?;
         let _ = stream.set_nodelay(true);
         let (mut reader, mut writer) = stream.into_split();
@@ -144,8 +136,7 @@ impl Transport for TcpTransport {
             loop {
                 match read_frame(&mut reader, max_frame).await {
                     Ok(pdu) => {
-                        let _ = inbound
-                            .send(InboundFrame { from: target_addr.clone(), pdu });
+                        let _ = inbound.send(InboundFrame { from: target_addr.clone(), pdu });
                     }
                     Err(_) => {
                         peers_for_reader.remove(&key_for_reader);
@@ -164,11 +155,7 @@ impl Transport for TcpTransport {
         if !self.peers.contains_key(&key) {
             self.associate(target).await?;
         }
-        let peer = self
-            .peers
-            .get(&key)
-            .ok_or(TransportError::Closed)?
-            .clone();
+        let peer = self.peers.get(&key).ok_or(TransportError::Closed)?.clone();
         peer.sender.send(pdu).map_err(|_| TransportError::Closed)
     }
 
@@ -182,9 +169,7 @@ impl Transport for TcpTransport {
     async fn disassociate(&self, target: &Address) -> Result<(), TransportError> {
         let key = target.to_string();
         if let Some((_, peer)) = self.peers.remove(&key) {
-            let _ = peer.sender.send(AkkaPdu::Disassociate(
-                crate::pdu::DisassociateReason::Normal,
-            ));
+            let _ = peer.sender.send(AkkaPdu::Disassociate(crate::pdu::DisassociateReason::Normal));
         }
         Ok(())
     }
@@ -240,14 +225,8 @@ async fn handle_inbound_socket(
     let reader_origin = origin.clone();
     let inbound_for_reader = inbound.clone();
     let reader_task = tokio::spawn(async move {
-        loop {
-            match read_frame(&mut reader, max_frame).await {
-                Ok(pdu) => {
-                    let _ = inbound_for_reader
-                        .send(InboundFrame { from: reader_origin.clone(), pdu });
-                }
-                Err(_) => break,
-            }
+        while let Ok(pdu) = read_frame(&mut reader, max_frame).await {
+            let _ = inbound_for_reader.send(InboundFrame { from: reader_origin.clone(), pdu });
         }
     });
 
@@ -266,12 +245,7 @@ mod tests {
     use std::time::Duration;
 
     fn associate_pdu(origin: Address, uid: u64) -> AkkaPdu {
-        AkkaPdu::Associate(AssociateInfo {
-            origin,
-            uid,
-            cookie: None,
-            protocol_version: PROTOCOL_VERSION,
-        })
+        AkkaPdu::Associate(AssociateInfo { origin, uid, cookie: None, protocol_version: PROTOCOL_VERSION })
     }
 
     #[tokio::test]
@@ -285,10 +259,8 @@ mod tests {
         b.associate(&addr_a).await.unwrap();
         b.send(&addr_a, associate_pdu(addr_b.clone(), 7)).await.unwrap();
 
-        let frame = tokio::time::timeout(Duration::from_millis(500), inbound_a.recv())
-            .await
-            .unwrap()
-            .unwrap();
+        let frame =
+            tokio::time::timeout(Duration::from_millis(500), inbound_a.recv()).await.unwrap().unwrap();
         match frame.pdu {
             AkkaPdu::Associate(info) => {
                 assert_eq!(info.origin, addr_b);

@@ -88,41 +88,27 @@ impl RemoteProbe {
 /// association state, and pulls byte counters from
 /// [`rakka_remote::RemoteMetrics`].
 #[cfg(feature = "remote")]
-pub fn refresh_from_endpoint_manager(
-    probe: &RemoteProbe,
-    manager: &rakka_remote::EndpointManager,
-) {
+pub fn refresh_from_endpoint_manager(probe: &RemoteProbe, manager: &rakka_remote::EndpointManager) {
     use std::collections::HashSet;
     let states = manager.peer_states();
     let live: HashSet<String> = states.iter().map(|(k, _, _)| k.clone()).collect();
     for (addr, state, _attempt) in &states {
-        probe
-            .associations
-            .entry(addr.clone())
-            .or_insert_with(|| AssociationCounters {
-                state: parking_lot::RwLock::new((*state).to_string()),
-                inbound_bytes: AtomicU64::new(0),
-                outbound_bytes: AtomicU64::new(0),
-            });
+        probe.associations.entry(addr.clone()).or_insert_with(|| AssociationCounters {
+            state: parking_lot::RwLock::new((*state).to_string()),
+            inbound_bytes: AtomicU64::new(0),
+            outbound_bytes: AtomicU64::new(0),
+        });
         probe.set_state(addr, state);
     }
     let snap = manager.metrics().snapshot();
     for row in snap.per_address {
         if let Some(entry) = probe.associations.get(&row.address) {
-            entry
-                .inbound_bytes
-                .store(row.received_bytes, Ordering::Relaxed);
-            entry
-                .outbound_bytes
-                .store(row.sent_bytes, Ordering::Relaxed);
+            entry.inbound_bytes.store(row.received_bytes, Ordering::Relaxed);
+            entry.outbound_bytes.store(row.sent_bytes, Ordering::Relaxed);
         }
     }
-    let stale: Vec<String> = probe
-        .associations
-        .iter()
-        .map(|e| e.key().clone())
-        .filter(|k| !live.contains(k))
-        .collect();
+    let stale: Vec<String> =
+        probe.associations.iter().map(|e| e.key().clone()).filter(|k| !live.contains(k)).collect();
     for k in stale {
         probe.remove(&k);
     }

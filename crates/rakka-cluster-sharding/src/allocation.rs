@@ -20,11 +20,7 @@ pub trait ShardAllocationStrategy: Send + Sync + 'static {
     /// Pick a region to host `shard_id`. `regions` lists known
     /// candidates (region path → current shard count). Returns the
     /// chosen region's path, or `None` if `regions` is empty.
-    fn allocate_shard(
-        &self,
-        shard_id: &str,
-        regions: &HashMap<String, usize>,
-    ) -> Option<String>;
+    fn allocate_shard(&self, shard_id: &str, regions: &HashMap<String, usize>) -> Option<String>;
 
     /// Decide which shards should migrate. `current_allocations` is
     /// the shard → region mapping; `regions` lists region shard
@@ -49,29 +45,18 @@ pub struct LeastShardAllocationStrategy {
 
 impl Default for LeastShardAllocationStrategy {
     fn default() -> Self {
-        Self {
-            max_simultaneous_rebalance: 3,
-            rebalance_threshold: 1,
-        }
+        Self { max_simultaneous_rebalance: 3, rebalance_threshold: 1 }
     }
 }
 
 impl ShardAllocationStrategy for LeastShardAllocationStrategy {
-    fn allocate_shard(
-        &self,
-        _shard_id: &str,
-        regions: &HashMap<String, usize>,
-    ) -> Option<String> {
+    fn allocate_shard(&self, _shard_id: &str, regions: &HashMap<String, usize>) -> Option<String> {
         let mut entries: Vec<(&String, &usize)> = regions.iter().collect();
         entries.sort_by(|a, b| a.1.cmp(b.1).then_with(|| a.0.cmp(b.0)));
         entries.first().map(|(k, _)| (*k).clone())
     }
 
-    fn rebalance(
-        &self,
-        current: &HashMap<String, String>,
-        regions: &HashMap<String, usize>,
-    ) -> Vec<String> {
+    fn rebalance(&self, current: &HashMap<String, String>, regions: &HashMap<String, usize>) -> Vec<String> {
         if regions.len() < 2 {
             return Vec::new();
         }
@@ -81,11 +66,8 @@ impl ShardAllocationStrategy for LeastShardAllocationStrategy {
             return Vec::new();
         }
         // Pick shard ids that live on the most-loaded region(s).
-        let mut max_regions: Vec<&String> = regions
-            .iter()
-            .filter(|(_, c)| **c == max)
-            .map(|(k, _)| k)
-            .collect();
+        let mut max_regions: Vec<&String> =
+            regions.iter().filter(|(_, c)| **c == max).map(|(k, _)| k).collect();
         max_regions.sort();
         let mut out: Vec<String> = current
             .iter()
@@ -106,11 +88,7 @@ pub struct PinnedAllocationStrategy {
 }
 
 impl ShardAllocationStrategy for PinnedAllocationStrategy {
-    fn allocate_shard(
-        &self,
-        _shard_id: &str,
-        _regions: &HashMap<String, usize>,
-    ) -> Option<String> {
+    fn allocate_shard(&self, _shard_id: &str, _regions: &HashMap<String, usize>) -> Option<String> {
         Some(self.region.clone())
     }
 
@@ -166,15 +144,9 @@ mod tests {
 
     #[test]
     fn rebalance_returns_shards_from_loaded_region() {
-        let s = LeastShardAllocationStrategy {
-            max_simultaneous_rebalance: 2,
-            rebalance_threshold: 2,
-        };
+        let s = LeastShardAllocationStrategy { max_simultaneous_rebalance: 2, rebalance_threshold: 2 };
         let r = regions(&[("r1", 5), ("r2", 1)]);
-        let a = allocs(&[
-            ("s1", "r1"), ("s2", "r1"), ("s3", "r1"), ("s4", "r1"), ("s5", "r1"),
-            ("s6", "r2"),
-        ]);
+        let a = allocs(&[("s1", "r1"), ("s2", "r1"), ("s3", "r1"), ("s4", "r1"), ("s5", "r1"), ("s6", "r2")]);
         let out = s.rebalance(&a, &r);
         assert_eq!(out.len(), 2);
         for shard in &out {

@@ -73,14 +73,13 @@ impl<S: DowningStrategy> SbrRuntime<S> {
 
         match self.strategy.decide(&reachable, &unreachable) {
             DowningDecision::Stay => SbrAction::None,
-            DowningDecision::DownUnreachable => SbrAction::DownUnreachable(
-                unreachable.iter().map(|m| m.address.to_string()).collect(),
-            ),
-            DowningDecision::DownAll => SbrAction::DownAll(
-                state.members.iter().map(|m| m.address.to_string()).collect(),
-            ),
+            DowningDecision::DownUnreachable => {
+                SbrAction::DownUnreachable(unreachable.iter().map(|m| m.address.to_string()).collect())
+            }
+            DowningDecision::DownAll => {
+                SbrAction::DownAll(state.members.iter().map(|m| m.address.to_string()).collect())
+            }
             DowningDecision::DownSelf => SbrAction::DownSelf,
-            _ => SbrAction::None,
         }
     }
 
