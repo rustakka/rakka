@@ -86,6 +86,15 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Build dashboard SPA (ui/dist for embed-ui)
+        shell: bash
+        working-directory: crates/rakka-dashboard/ui
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
       - name: Install cross (Linux aarch64)
         if: matrix.cross == true
         run: cargo install cross --locked
@@ -146,10 +155,10 @@ jobs:
             target: x86_64-unknown-linux-gnu
             python-target: x86_64
             manylinux: auto
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            python-target: aarch64
-            manylinux: auto
+          # NOTE: aarch64-linux-gnu wheel is intentionally not built —
+          # `ring` (pulled in transitively by `rustls` via `aws-lc-rs`)
+          # fails to cross-compile inside the manylinux container with
+          # `__ARM_ARCH` undefined. ARM Linux users install from sdist.
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             python-target: x86_64
