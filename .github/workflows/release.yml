@@ -273,43 +273,46 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
-      # Foundation crates first.
-      - run: cargo publish -p rakka-config
-      - run: cargo publish -p rakka-macros
-      - run: cargo publish -p rakka-core
-
-      # Mid-layer.
-      - run: cargo publish -p rakka-testkit
-      - run: cargo publish -p rakka-remote
-      - run: cargo publish -p rakka-distributed-data
-      - run: cargo publish -p rakka-coordination
-      - run: cargo publish -p rakka-discovery
-      - run: cargo publish -p rakka-di
-      - run: cargo publish -p rakka-cluster
-      - run: cargo publish -p rakka-cluster-tools
-      - run: cargo publish -p rakka-cluster-metrics
-
-      # Persistence stack.
-      - run: cargo publish -p rakka-persistence
-      - run: cargo publish -p rakka-persistence-tck
-      - run: cargo publish -p rakka-persistence-query
-      - run: cargo publish -p rakka-persistence-query-inmemory
-      - run: cargo publish -p rakka-persistence-sql
-      - run: cargo publish -p rakka-persistence-redis
-      - run: cargo publish -p rakka-persistence-mongodb
-      - run: cargo publish -p rakka-persistence-cassandra
-      - run: cargo publish -p rakka-persistence-aws
-      - run: cargo publish -p rakka-persistence-azure
-
-      # Streams + sharding + telemetry.
-      - run: cargo publish -p rakka-streams
-      - run: cargo publish -p rakka-cluster-sharding
-      - run: cargo publish -p rakka-telemetry
-      - run: cargo publish -p rakka-dashboard
-
-      # Hosting + facade last.
-      - run: cargo publish -p rakka-hosting
-      - run: cargo publish -p rakka
+      # Walk every publishable crate in dependency order. Each
+      # `cargo publish` waits briefly for the index to become visible
+      # before moving on, so the next crate can resolve its
+      # path-dependencies from crates.io. `already uploaded` is
+      # treated as success so a partially-completed run can be
+      # safely retried by re-tagging.
+      - name: Publish all crates in dep order
+        run: |
+          set -euo pipefail
+          publish_one() {
+            local crate=$1
+            echo "==> publishing $crate"
+            local out
+            if out=$(cargo publish -p "$crate" 2>&1); then
+              printf '%s\n' "$out"
+              return 0
+            fi
+            printf '%s\n' "$out"
+            if printf '%s' "$out" | grep -qE "already (uploaded|exists)"; then
+              echo "    (already on crates.io — continuing)"
+              return 0
+            fi
+            return 1
+          }
+          # Foundation: rakka-config has no internal deps; rakka-core
+          # needs rakka-config; rakka-macros needs rakka-core.
+          for crate in \
+            rakka-config rakka-core rakka-macros \
+            rakka-testkit rakka-remote rakka-distributed-data \
+            rakka-coordination rakka-discovery rakka-di \
+            rakka-cluster rakka-cluster-tools rakka-cluster-metrics \
+            rakka-persistence rakka-persistence-tck \
+            rakka-persistence-query rakka-persistence-query-inmemory \
+            rakka-persistence-sql rakka-persistence-redis \
+            rakka-persistence-mongodb rakka-persistence-cassandra \
+            rakka-persistence-aws rakka-persistence-azure \
+            rakka-streams rakka-cluster-sharding rakka-telemetry \
+            rakka-dashboard rakka-hosting rakka; do
+            publish_one "$crate"
+          done
 
   publish-crates-dry-run:
     name: Publish to crates.io (dry run)
@@ -345,6 +348,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: dist
+          # Only Python artifacts — binary tarballs share the
+          # `*.tar.gz` extension with the sdist but are not valid
+          # PyPI uploads, so download just the wheel + sdist
+          # artifact buckets.
+          pattern: "rakka-{wheels-*,sdist}"
       - name: Flatten wheel + sdist artifacts
         run: |
           mkdir -p upload
@@ -372,6 +380,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: dist
+          pattern: "rakka-{wheels-*,sdist}"
       - name: Flatten wheel + sdist artifacts
         run: |
           mkdir -p upload
