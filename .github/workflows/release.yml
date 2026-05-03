@@ -297,20 +297,28 @@ jobs:
             fi
             return 1
           }
-          # Foundation: rakka-config has no internal deps; rakka-core
-          # needs rakka-config; rakka-macros needs rakka-core.
+          # Strict dep-order — see audit at the bottom of this job
+          # for the graph. Adding a new crate? Slot it into the
+          # earliest layer that has all its dependencies already
+          # published in earlier layers.
           for crate in \
-            rakka-config rakka-core rakka-macros \
-            rakka-testkit rakka-remote rakka-distributed-data \
+            rakka-config \
+            rakka-core \
+            rakka-macros rakka-testkit rakka-remote \
+            rakka-persistence rakka-streams \
             rakka-coordination rakka-discovery rakka-di \
-            rakka-cluster rakka-cluster-tools rakka-cluster-metrics \
-            rakka-persistence rakka-persistence-tck \
-            rakka-persistence-query rakka-persistence-query-inmemory \
-            rakka-persistence-sql rakka-persistence-redis \
-            rakka-persistence-mongodb rakka-persistence-cassandra \
-            rakka-persistence-aws rakka-persistence-azure \
-            rakka-streams rakka-cluster-sharding rakka-telemetry \
-            rakka-dashboard rakka-hosting rakka; do
+            rakka-cluster \
+            rakka-persistence-tck rakka-persistence-query \
+            rakka-hosting \
+            rakka-distributed-data rakka-cluster-tools rakka-cluster-metrics \
+            rakka-persistence-query-inmemory rakka-persistence-sql \
+            rakka-persistence-redis rakka-persistence-mongodb \
+            rakka-persistence-cassandra rakka-persistence-aws \
+            rakka-persistence-azure \
+            rakka-cluster-sharding \
+            rakka-telemetry \
+            rakka-dashboard \
+            rakka; do
             publish_one "$crate"
           done
 
