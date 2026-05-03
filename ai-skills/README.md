@@ -27,33 +27,98 @@ because those drift faster than docs.
 
 ## Installing
 
-### As a plugin (most agent runtimes)
+Pick the path that matches your assistant. The skills themselves are
+vendor-neutral `SKILL.md` files — only the install mechanism differs.
 
-Most agent harnesses (Claude Code, Cursor, etc.) accept a folder of
-`SKILL.md` files via a plugin manifest. Point your tool at this
-folder; the skills in `skills/` will be picked up automatically.
+### Claude Code (recommended: marketplace)
+
+If you use Claude Code, install via the plugin marketplace — this
+keeps the skills updated as rakka releases, with no manual copy step:
 
 ```text
-# Claude Code (example)
-/plugin install /path/to/rakka/ai-skills
+/plugin marketplace add rustakka/rakka
+/plugin install rakka-ai-skills@rakka
 ```
 
-### By copying
+You can also install from a local checkout (useful when developing
+against a rakka fork):
 
-If your tooling expects skills under a project-local directory, copy
-them in:
+```text
+/plugin marketplace add /path/to/rakka
+/plugin install rakka-ai-skills@rakka
+```
+
+Skills auto-activate based on the `description` frontmatter — no need
+to invoke them explicitly.
+
+### Claude Agent SDK / project-local `.claude/skills/`
+
+For SDK-based agents or project-local Claude Code setups that read
+from `.claude/skills/`, copy or symlink the skills in:
 
 ```bash
+# copy (snapshot)
 cp -r /path/to/rakka/ai-skills/skills/* .claude/skills/
-# or wherever your assistant looks for SKILL.md files
-```
 
-### By symlink (track upstream)
-
-```bash
+# symlink (track upstream)
 ln -s /path/to/rakka/ai-skills/skills/rakka-actor-design \
       .claude/skills/rakka-actor-design
 ```
+
+### Cursor
+
+Cursor reads project rules from `.cursor/rules/`. Copy the skills in
+as `.mdc` rules; Cursor will treat the frontmatter `description` as
+the activation hint:
+
+```bash
+mkdir -p .cursor/rules
+for s in /path/to/rakka/ai-skills/skills/*/SKILL.md; do
+  name=$(basename "$(dirname "$s")")
+  cp "$s" ".cursor/rules/${name}.mdc"
+done
+```
+
+### OpenAI Codex CLI
+
+Codex CLI reads `AGENTS.md` (project-level) and `~/.codex/AGENTS.md`
+(user-level). It does not have a SKILL.md loader, so reference the
+skills from `AGENTS.md` and let the model pull them in on demand:
+
+```markdown
+<!-- in AGENTS.md -->
+## rakka skills
+When working on rakka actors, consult the matching skill in
+`ai-skills/skills/<name>/SKILL.md`:
+- actor design / supervision → rakka-actor-design
+- tests with rakka-testkit   → rakka-testing
+- cluster / sharding / pubsub → rakka-cluster
+- event sourcing / journals  → rakka-persistence
+- Python bindings            → rakka-python
+- mailbox / restart / errors → rakka-troubleshooting
+```
+
+### Gemini CLI
+
+Gemini CLI reads `GEMINI.md` and supports custom commands under
+`.gemini/commands/`. Point Gemini at the skills the same way:
+
+```markdown
+<!-- in GEMINI.md -->
+For rakka work, load the relevant skill from
+`ai-skills/skills/<name>/SKILL.md` before editing.
+```
+
+Optionally wrap each skill as a slash command in
+`.gemini/commands/rakka-<name>.toml` whose `prompt` includes
+`@ai-skills/skills/<name>/SKILL.md`.
+
+### Other harnesses (Aider, Continue, Zed, etc.)
+
+Any tool that accepts a system prompt or rules file can load these
+skills — `SKILL.md` is plain Markdown with YAML frontmatter. Either
+include the file directly in the system prompt, or reference its path
+from your tool's rules file (`.aider.conf.yml`, `.continue/`, etc.).
 
 ## Authoring conventions
 
