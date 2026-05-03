@@ -282,20 +282,37 @@ jobs:
       - name: Publish all crates in dep order
         run: |
           set -euo pipefail
+          # crates.io applies a "new crates per period" rate limit
+          # (rolling window). Pace successful new-crate publishes
+          # with a sleep, and retry transient 429s after a longer
+          # backoff. Already-published crates are skipped in <1s
+          # so a re-tag of the same version is cheap.
           publish_one() {
             local crate=$1
-            echo "==> publishing $crate"
-            local out
-            if out=$(cargo publish -p "$crate" 2>&1); then
+            local attempt=1
+            while true; do
+              echo "==> publishing $crate (attempt $attempt)"
+              local out
+              if out=$(cargo publish -p "$crate" 2>&1); then
+                printf '%s\n' "$out"
+                # Throttle between successful new-crate publishes.
+                sleep 30
+                return 0
+              fi
               printf '%s\n' "$out"
-              return 0
-            fi
-            printf '%s\n' "$out"
-            if printf '%s' "$out" | grep -qE "already (uploaded|exists)"; then
-              echo "    (already on crates.io — continuing)"
-              return 0
-            fi
-            return 1
+              if printf '%s' "$out" | grep -qE "already (uploaded|exists)"; then
+                echo "    (already on crates.io — continuing)"
+                return 0
+              fi
+              if printf '%s' "$out" | grep -qE "(429|Too Many Requests|rate.*limit)" && [ $attempt -lt 6 ]; then
+                local delay=$((90 * attempt))
+                echo "    (rate-limited — sleeping ${delay}s before retry)"
+                sleep "$delay"
+                attempt=$((attempt + 1))
+                continue
+              fi
+              return 1
+            done
           }
           # Strict dep-order — see audit at the bottom of this job
           # for the graph. Adding a new crate? Slot it into the
