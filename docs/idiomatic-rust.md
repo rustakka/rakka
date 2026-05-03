@@ -1,30 +1,26 @@
 # Idiomatic Rust principles
 
-These are the non-negotiable invariants for `rakka`. They exist
-because `rakka` is a port of a .NET codebase and it would be easy to
-transliterate `IActorRef`, `IUntypedActorContext`, `Props.Create<T>`,
-and friends into Rust shapes that compile but fight the borrow
-checker, blow up the type erasure budget, and ship runtime panics
-where the type system would have caught the bug.
+These are the non-negotiable invariants for rakka. They exist because
+the actor model has been transliterated from many languages over the
+years and it would be easy to ship Rust shapes that *compile* but
+fight the borrow checker, blow up the type-erasure budget, and bury
+runtime panics where the type system would have caught them.
 
-Every PR is reviewed against this list. The Phase 0 lint set in
-`Cargo.toml` mechanically enforces the parts that can be caught by
-the compiler; the rest is reviewer discipline.
+Every PR is reviewed against this list. The lint set in `Cargo.toml`
+mechanically enforces the parts that can be caught by the compiler;
+the rest is reviewer discipline.
 
-The numbering matches `docs/full-port-plan.md` so audit reports and
-PR descriptions can reference principle "P-7" without ambiguity.
+The numbering matches [`full-port-plan.md`](full-port-plan.md) so
+audit reports and PR descriptions can reference principle "P-7"
+without ambiguity.
 
 ## P-1. No `Box<dyn Any>` in any public API
 
-The 2026-04 audit found `MessageEnvelope::sender:
-Option<Box<dyn Any + Send>>` and `Context::current_sender` using `Any`
-to forget the message type of the sending actor.
-
-**Why this is wrong.** Rust's whole value-add over .NET is
-compile-time message contracts. The moment you erase a sender, you
-have to `downcast` on every `tell`-back, which means every reply
-path has a runtime branch that can only fail. Phase 1 replaces this
-with a typed `Sender` enum:
+Rust's whole value-add for an actor runtime is compile-time message
+contracts. The moment you erase a sender or a payload type, you have
+to `downcast` on every reply, which means every reply path has a
+runtime branch that can only fail. The runtime models senders as a
+typed enum:
 
 ```rust
 pub enum Sender {
@@ -43,21 +39,20 @@ which serializes via the registry chosen at handshake.
 
 If you need to look something up by type, use:
 
-- a typed key like `ExtensionId<E>(PhantomData<E>)` (Akka.NET's
-  `ExtensionIdProvider` translates directly), or
+- a typed key like `ExtensionId<E>(PhantomData<E>)`, or
 - a sealed enum (`Serializer::{Bincode, Json, System(SystemSerializer)}`).
 
 `TypeId`-keyed maps are acceptable in cold-path registries
 (extension registration, props lookup at spawn) but never in the
-mailbox-pump or gossip loop.
+mailbox pump or gossip loop.
 
 ## P-3. Actor state, not `RwLock<HashMap>`
 
 If two tasks share mutable state, model the state as an actor and
-let messages serialize the access. The actor is the synchronization
-primitive — `RwLock<HashMap<K, V>>` is a 1:1 transliteration of a
-.NET `ConcurrentDictionary` and it always grows into a contention
-hot spot.
+let messages serialize access. The actor is the synchronization
+primitive. A workspace-wide `RwLock<HashMap<K, V>>` over
+"replicator state" or "shard allocation" or "endpoint manager" is
+the kind of thing that always grows into a contention hot spot.
 
 Acceptable uses of `RwLock` / `Mutex`:
 
@@ -66,9 +61,9 @@ Acceptable uses of `RwLock` / `Mutex`:
 - Internal scratch space inside a single actor's task that doesn't
   cross `await` points.
 
-Unacceptable: the `Replicator`, `Mediator`, `ShardCoordinator`,
-`ClusterDaemon`, `EndpointManager`, `ServiceContainer`. All of
-these become real actors in Phases 6–9.
+Unacceptable: any subsystem coordinator that has its own logical
+identity (replicator, mediator, shard coordinator, cluster daemon,
+endpoint manager, service container). Those are actors.
 
 ## P-4. No `panic!`, `unwrap()`, `expect()`, `unimplemented!()`, or
        `todo!()` in library code
@@ -159,7 +154,7 @@ opting in to a custom decider is a typed override.
 
 ## P-9. `tracing` everywhere
 
-No `println!`/`eprintln!`/`dbg!` in library code. Logging goes
+No `println!` / `eprintln!` / `dbg!` in library code. Logging goes
 through the `tracing` crate with structured fields:
 
 ```rust
@@ -171,8 +166,8 @@ tracing::info!(
 );
 ```
 
-The Phase 0 audit task includes a counter for stray `println!`
-sites; CI fails on regression.
+The audit task counts stray `println!` sites; CI fails on
+regression.
 
 ## P-10. Sealed traits over open inheritance
 
@@ -236,3 +231,23 @@ let table: RwLock<RoutingTable> = RwLock::new(initial);
 
 The audit task scans for these comments and tracks them in
 `docs/reports/audit-*.json` so reviewers can see drift over time.
+
+## Why these matter for unified compute
+
+The granularity argument in
+[`actors-and-agentic-computing.md`](actors-and-agentic-computing.md)
+only pays off if per-message overhead stays low. The invariants
+above are how we keep it low:
+
+- P-1 / P-2 keep the dispatch path branch-free and allocation-free
+  on the hot loop, so adding a new dispatcher backend (e.g. a CUDA
+  stream) doesn't have to inherit a chain of `downcast` checks.
+- P-3 keeps coordinator state inside actors, which means the same
+  coordination protocol works whether the actors run on host
+  threads or accelerator-resident dispatchers.
+- P-6 keeps snapshots immutable and cheap to share, so a host-side
+  reader and an accelerator-side dispatcher can hold concurrent
+  views without a lock.
+- P-12 keeps the dependency surface lean. A future `gpu`
+  feature flag will gate accelerator dispatchers; the rest of the
+  workspace continues to build slim.

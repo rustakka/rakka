@@ -1,11 +1,16 @@
 [package]
 name = "rakka-core"
-description = "rakka core — actor system, dispatchers, mailboxes, scheduler, routing, IO."
+description = "Actors, supervision, dispatch, mailboxes, scheduler, FSM, event stream, and coordinated shutdown — the core of the rakka actor runtime."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+documentation = "https://docs.rs/rakka-core"
+keywords = ["actor", "concurrency", "async", "supervisor", "tokio"]
+categories = ["concurrency", "asynchronous"]
 
 [dependencies]
 tokio = { workspace = true }
@@ -33,3 +38,7 @@ tracing-subscriber = { workspace = true }
 
 [lints]
 workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

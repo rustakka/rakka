@@ -45,6 +45,18 @@ jobs:
       - name: Check audit metrics vs 2026-04 baseline
         run: cargo xtask audit --check
 
+  rustdoc:
+    name: rustdoc (broken-link gate)
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: "-D warnings -D rustdoc::broken-intra-doc-links --cfg docsrs"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo doc --workspace --no-deps --all-features
+        run: cargo doc --workspace --no-deps --all-features
+
   verify:
     name: verify (1.0-rc gate)
     runs-on: ubuntu-latest
@@ -119,6 +131,23 @@ jobs:
         run: |
           . .venv/bin/activate
           pytest python/tests -v
+
+  docs:
+    name: docs (mkdocs build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install mkdocs-material
+        run: pip install mkdocs-material
+      - name: Build site
+        run: mkdocs build --strict --site-dir _site
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docs-site
+          path: _site/
 
   upstream-diff:
     if: github.event_name == 'schedule'

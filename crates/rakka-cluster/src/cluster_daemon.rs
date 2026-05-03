@@ -83,7 +83,7 @@ pub struct DaemonSnapshot {
     pub version: VectorClock,
 }
 
-/// Public handle to a running [`ClusterDaemon`].
+/// Public handle to a running `ClusterDaemon`.
 pub struct ClusterDaemonHandle {
     cmd: mpsc::UnboundedSender<DaemonCmd>,
     snapshot: Arc<Mutex<DaemonSnapshot>>,

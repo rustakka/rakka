@@ -1,11 +1,16 @@
 [package]
 name = "rakka-streams"
-description = "Akka Streams-inspired DSL over futures::Stream for rakka."
+description = "Typed reactive streams DSL for rakka — Source / Flow / Sink, junctions, framing, kill switches, hubs, stream refs."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+documentation = "https://docs.rs/rakka-streams"
+keywords = ["actor", "streams", "reactive", "async"]
+categories = ["concurrency", "asynchronous"]
 
 [dependencies]
 rakka-core = { workspace = true }
@@ -23,3 +28,7 @@ tempfile = "3"
 
 [lints]
 workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

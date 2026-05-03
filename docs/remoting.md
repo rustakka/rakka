@@ -1,7 +1,7 @@
 # Remoting
 
 `rakka-remote` lets two `ActorSystem`s on different processes (or
-machines) exchange messages. It is a port of `Akka.Remote` covering:
+machines) exchange messages. It covers:
 
 - length-prefixed binary framing (`AkkaPdu`)
 - handshake / heartbeat / ack / disassociate PDUs

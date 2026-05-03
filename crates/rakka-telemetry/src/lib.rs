@@ -4,7 +4,7 @@
 //!
 //! The crate is passive and opt-in. Construct a [`TelemetryExtension`] and
 //! register it on an [`rakka_core::actor::ActorSystem`] via
-//! [`rakka_core::actor::Extensions`]. Subsystems check for the extension
+//! `rakka_core::actor::Extensions`. Subsystems check for the extension
 //! at runtime (cheap `Arc<T>` lookup) and, when present, emit snapshots +
 //! events into the telemetry [`bus::TelemetryBus`]. When absent, there is
 //! no cost beyond a single `DashMap` lookup.
@@ -37,7 +37,7 @@ use crate::bus::TelemetryBus;
 use crate::dead_letters::DeadLetterFeed;
 
 /// The telemetry extension. Construct once per actor system, register via
-/// [`Extensions::register`], and all other probes will pick it up.
+/// the actor system's extensions, and all other probes will pick it up.
 pub struct TelemetryExtension {
     pub node: String,
     pub bus: TelemetryBus,

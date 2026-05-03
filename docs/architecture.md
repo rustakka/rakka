@@ -1,182 +1,233 @@
-# rakka architecture
+# Architecture
 
-How the layered crate stack maps onto upstream Akka.NET — concept by
-concept, with a note on the cases where rakka deliberately diverges.
+How rakka is laid out, what each crate does, where the dispatch and
+supervision boundaries fall, and where the heterogeneous-compute hooks
+slot in. This is the map for somebody who wants to understand or
+extend the runtime.
 
 ## Crate stack (bottom → top)
 
 ```
-                                 rakka-dashboard / rakka-telemetry
-                                                ▲
-                                                │
-            ┌────────────┬───────────┬──────────┼───────────┬───────────┐
-            │            │           │          │           │           │
-            ▼            ▼           ▼          ▼           ▼           ▼
-    rakka-streams  rakka-persistence rakka-cluster-sharding rakka-cluster-tools
-            │            │           │          │           │
-            │            │           ▼          ▼           ▼
-            │            │     rakka-cluster ─► rakka-distributed-data
-            │            │           │          │
-            ▼            ▼           ▼          ▼
-                          rakka-remote ◄──────── rakka-coordination
-                                  ▲              rakka-discovery
-                                  │              rakka-di
-                                  │              rakka-hosting
-                                  ▼
-                            rakka-core
-                                  ▲
-                                  │
-                            rakka-config
-                            rakka-macros
+                         rakka-dashboard / rakka-telemetry
+                                        ▲
+                                        │
+       ┌────────────┬───────────┬───────┼────────┬───────────┐
+       │            │           │       │        │           │
+       ▼            ▼           ▼       ▼        ▼           ▼
+rakka-streams  rakka-persistence  rakka-cluster-sharding  rakka-cluster-tools
+       │            │           │       │        │
+       │            │           ▼       ▼        ▼
+       │            │     rakka-cluster ─► rakka-distributed-data
+       │            │           │       │
+       ▼            ▼           ▼       ▼
+                rakka-remote ◄──────── rakka-coordination
+                        ▲              rakka-discovery
+                        │              rakka-di
+                        │              rakka-hosting
+                        ▼
+                  rakka-core
+                        ▲
+                        │
+                  rakka-config
+                  rakka-macros
 ```
 
-Each crate keeps to its single Akka.NET module so upstream-sync
-diffing stays tractable (see [`PORTING.md`](../PORTING.md)).
+Each crate owns one concern — picking it up in isolation gives you the
+contract; pulling more in adds capability without changing the
+contract.
 
-## Concept-by-concept
+## Concept by concept
 
 ### Actors
 
-* `Actor` trait + `async_trait` (no inheritance hierarchy).
-* `ActorRef<M>` is **typed** — sender / receiver types are checked at
-  compile time. There is no `IActorRef` analogue you can pass around
-  without type info; for fan-out across actor types use
-  `UntypedActorRef` for the path + an enum for the message.
-* The `Sender` enum (`Local`/`Remote`/`None`) is the only thing
-  attached to an envelope's sender slot. No `Box<dyn Any>` — see
-  [`docs/idiomatic-rust.md`](idiomatic-rust.md) P-1.
+- `Actor` trait + `async_trait`. No inheritance hierarchy.
+- `ActorRef<M>` is **typed** — sender / receiver types are checked at
+  compile time. There is no untyped `IActorRef` you can pass around
+  without the type info; for fan-out across actor types use
+  `UntypedActorRef` for the path plus an enum for the message.
+- The `Sender` enum (`Local` / `Remote` / `None`) is the only thing
+  attached to an envelope's sender slot. No `Box<dyn Any>` anywhere on
+  the public surface — see
+  [Idiomatic Rust principles](idiomatic-rust.md) P-1.
 
 ### Supervision
 
-* Closure-based `OneForOneStrategy` / `AllForOneStrategy` for
-  ad-hoc deciders (default).
-* `SupervisorOf<C>` trait for compile-time per-(parent, child) typed
-  policies (opt-in; Rust coherence forbids blanket-with-override).
-* `SupervisionError` is the catch-all error type for actors that
-  don't yet have a domain-specific error.
+- Closure-based `OneForOneStrategy` / `AllForOneStrategy` for ad-hoc
+  deciders (default).
+- `SupervisorOf<C>` trait for compile-time per-(parent, child) typed
+  policies (opt-in).
+- `SupervisionError` is the catch-all error type for actors that don't
+  yet have a domain-specific error.
 
-### Dispatchers / mailboxes
+### Dispatchers and mailboxes
 
-* The default `Tokio` multi-thread runtime is the dispatcher.
-* Pluggable dispatcher trait + per-actor pinned dispatcher land in
-  Phase 3.1 — see `docs/full-port-plan.md`.
-* Mailboxes are unbounded by default; bounded / priority variants
-  in Phase 3.2.
+- The default dispatcher runs on the multi-thread tokio runtime.
+- Pluggable dispatcher trait — pinned single-thread, work-stealing
+  pool, or custom backends. **The same trait is the seam through which
+  GPU / accelerator dispatchers slot in:** a dispatcher is anything
+  that pulls envelopes from a mailbox and runs `Actor::handle` to
+  completion. A future `cuda` dispatcher batches messages on the host
+  side, schedules a kernel, and produces results back through the same
+  envelope contract.
+- Mailboxes are unbounded by default; bounded and priority variants
+  available. The mailbox trait is small enough that an accelerator
+  dispatcher can carry its own queue type when host-side queueing is
+  the wrong shape.
 
 ### Persistence
 
-* `Eventsourced` trait owns the (Command → Events → State) shape.
-* `RecoveryPermitter` (semaphore-bounded) caps concurrent recoveries.
-* `ReceivePersistent` is the closure-style helper (Akka.NET
-  `ReceivePersistentActor`).
-* `PersistenceQuery` exposes typed `Offset`, `events_by_tag`,
+- `Eventsourced` trait owns the (Command → Events → State) shape.
+- `RecoveryPermitter` (semaphore-bounded) caps concurrent recoveries
+  so a fleet-wide restart doesn't melt the journal.
+- `ReceivePersistent` is the closure-style ergonomic helper.
+- `PersistenceQuery` exposes typed `Offset`, `events_by_tag`,
   `current_*` variants.
-* Storage backends (`-sql`, `-redis`, `-mongodb`, `-cassandra`,
-  `-aws`, `-azure`) are placeholder skeletons today; Phase 11.G fills
-  them in against the expanded TCK.
+- Storage adapters (`-sql`, `-redis`, `-mongodb`, `-cassandra`,
+  `-aws`, `-azure`) implement the journal + snapshot traits. The TCK
+  in `rakka-persistence-tck` is the conformance contract — every
+  backend must pass.
 
 ### Cluster
 
-* In-memory `MembershipState` + `Reachability` + 5 SBR strategies are
-  shipped today (`KeepMajority`, `StaticQuorum`, `KeepOldest`,
-  `KeepReferee`, `LeaseMajority`).
-* `ClusterEventBus` + `elect_leader` + `is_converged` are the pure
-  helpers; an active gossip dissemination loop and convergence-driven
-  leader transition need Phases 6.D / 6.E (gossip transport on top of
-  rakka-remote).
+- `MembershipState` + `Reachability` + five split-brain resolvers
+  (`KeepMajority`, `StaticQuorum`, `KeepOldest`, `KeepReferee`,
+  `LeaseMajority`).
+- `ClusterEventBus`, `elect_leader`, `is_converged` are the pure
+  helpers behind the daemon.
+- The cluster daemon owns gossip, leader actions, and SBR ticks; it
+  emits PDUs through a pluggable `GossipTransport`.
 
-### Cluster-tools
+### Cluster tools
 
-* `DistributedPubSub.Mediator`: typed `publish_msg::<M>` with topic +
-  group routing; cross-node gossip integration is Phase 7.B.
-* `ClusterSingleton` + `ClusterClient` exist as type sketches; the
-  full handover protocol is Phase 7.C / 7.D.
+- `DistributedPubSub.Mediator`: typed `publish_msg::<M>` with topic +
+  group routing. Cluster-aware via the mediator transport.
+- `ClusterSingleton` and `ClusterClient` patterns over the cluster
+  daemon.
 
 ### Sharding
 
-* `ShardAllocationStrategy` trait + `LeastShard`/`Pinned` strategies.
-* `ShardCoordinator::allocate_with_strategy` /
-  `rebalance_with_strategy` / `region_shard_counts` are the typed
-  entry points; the persistent (event-sourced) coordinator + 3-phase
-  handoff state machine land in Phase 9.D-H.
-* `PassivationTracker` decides which entities to passivate after a
+- `ShardAllocationStrategy` trait with `LeastShard` and `Pinned`
+  strategies; the persistent (event-sourced) coordinator owns the
+  durable allocation table.
+- `PassivationTracker` decides which entities to passivate after a
   configurable idle TTL.
+- Three-phase handoff state machine for safe shard movement.
 
 ### Distributed data
 
-* CRDTs: `GCounter`, `PNCounter`, `GSet`, `OrSet`, `LwwRegister`,
+- CRDTs: `GCounter`, `PNCounter`, `GSet`, `OrSet`, `LwwRegister`,
   `Flag`, `ORMap<K, V>`, `LWWMap<K, V>`, `PNCounterMap<K>`.
-* `Replicator` stores them in-memory with a `subscribe(key, fn)`
-  notification API (`SubscriptionToken` is RAII).
-* Delta-CRDT propagation, durable storage, and consistency-level
-  reads/writes land in Phase 8.C-G.
+- `Replicator` ships them with a `subscribe(key, fn)` notification API
+  (`SubscriptionToken` is RAII).
+- Delta-CRDT propagation and durable storage available; consistency
+  levels are first-class on read and write.
 
 ### Streams
 
-* `Source` / `Flow` / `Sink` linear ops + 7 junctions + framing + IO.
-* Recovery operators (`recover` / `map_error` / `recover_with`).
-* Time-windowed (`grouped_within`, `idle_timeout`).
-* Routing (`partition`, `balance`, `unzip`).
-* Substreams (`groupBy`, `splitWhen`), Hub patterns, supervision
-  deciders, and StreamRefs are Phase 12.1/12.4/12.5/12.9.
-* HTTP integration carved out as `rakka-http` (Phase 12.10).
+- `Source` / `Flow` / `Sink` linear ops, plus seven junctions
+  (broadcast, merge, zip, partition, balance, …).
+- Recovery operators (`recover`, `map_error`, `recover_with`).
+- Time-windowed (`grouped_within`, `idle_timeout`).
+- Routing (`partition`, `balance`, `unzip`).
+- Substreams (`group_by`, `split_when`), hub patterns
+  (`BroadcastHub`, `MergeHub`), supervision deciders, stream refs
+  for cross-process flows.
+- Framing and file IO ship as first-class operators.
 
 ### Remote
 
-* TCP transport, AkkaProtocol handshake, AckedDelivery, EndpointManager
-  state machine, RemoteWatcher, RemoteSystemDaemon, FailureDetector
-  registry, transport adapters (`Throttle`, `FailureInjector`,
-  `Test`).
-* `AssociationState` + `RemoteError` (typed) + `peer_state` /
-  `purge_tombstones` queries.
-* Reader/writer task split, TLS, message chunking, send-queue
-  backpressure, LRU caches, `RemoteProps` are Phase 5.D-K.
+- TCP transport, framed PDU codec, ack'd delivery, endpoint state
+  machine, watcher, remote system daemon.
+- Failure-detector registry; transport adapters for throttle,
+  failure-injection, and tests.
+- Reader / writer task split for full-duplex socket use; LRU caches
+  for inflight envelope tracking.
 
 ### Configuration
 
-* Native TOML loader.
-* HOCON-subset parser (`include`, `${path}`, `${?ENV}`, dotted keys,
-  triple-quoted strings) — Phase 2.
+- Layered TOML loader.
+- HOCON-subset parser supporting `include`, `${path}`, `${?ENV}`,
+  dotted keys, triple-quoted strings.
 
-### Test-kit
+### Testkit
 
-* `TestKit` (preconfigured `ActorSystem`) + `TestProbe` matchers
+- `TestKit` (preconfigured `ActorSystem`) + `TestProbe` matchers
   (`expect_msg_class`, `expect_all_of`, `receive_n`, `receive_while`,
   `fish_for_message`).
-* `TestScheduler` (virtual-time clock).
-* `MultiNodeSpec` (in-process N-node harness with shared
-  `tokio::sync::Barrier`).
-* `EventFilter` for system event-stream assertions.
+- `TestScheduler` for virtual-time tests.
+- `MultiNodeSpec` for in-process N-node harnesses with shared
+  `tokio::sync::Barrier`.
+- `EventFilter` for system event-stream assertions.
 
-### Telemetry / dashboard
+### Telemetry and dashboard
 
-* `rakka-telemetry` exposes probes for actors / dead-letters / cluster
-  / sharding / persistence / remote / streams / distributed-data.
-* `rakka-dashboard` is an `axum` REST + WebSocket server with an
-  embedded React UI (`embed-ui` feature). Cluster-mode aggregator
-  fans out across peers.
-* Prometheus + OTLP exporters cover the same metric set.
+- `rakka-telemetry` exposes probes for actors, dead letters, cluster,
+  sharding, persistence, remote, streams, and distributed data.
+- `rakka-dashboard` is an `axum` REST + WebSocket server with an
+  embedded React UI (`embed-ui` feature). Cluster-mode aggregator fans
+  out across peers so the same UI shows the whole fleet.
+- Prometheus and OTLP exporters cover the same metric surface.
 
 ### Macros
 
-* `#[derive(Actor)]` + `#[actor_msg]` for ergonomics.
-* `#[derive(Receive)]` (unit-variant dispatch via
+- `#[derive(Actor)]` and `#[actor_msg]` for ergonomics.
+- `#[derive(Receive)]` (unit-variant dispatch via
   `#[receive(unit_variants(…))]`).
-* `props!(EXPR)` — terse `Props::create(|| EXPR)`.
+- `props!(EXPR)` — terse `Props::create(|| EXPR)`.
 
-## Deliberate divergences from Akka.NET
+## Where heterogeneous compute slots in
 
-* **No wire compatibility** with JVM/CLR Akka — Tokio TCP +
-  Serde/bincode, not DotNetty + Hyperion.
-* **No reflection-driven typing** — `IActorRef` becomes typed
-  `ActorRef<M>`; `Box<dyn Any>` is forbidden in public APIs.
-* **Async-first** — every `await` boundary uses tokio; no blocking
-  inside `Receive`.
-* **Persistent / immutable structures** for hot snapshot paths
-  (gossip, replicator, sharding allocation) once Phase 13 lands.
-* **Sealed traits** on framework markers (`Actor`, `Message`,
-  `Serializer`) so downstream extends through composition; partial
-  today, completed in Phase 13.
+The dispatch boundary is the place where the runtime can fan out
+beyond CPU.
 
-For the full audit + roadmap see
-[`docs/full-port-plan.md`](full-port-plan.md).
+```
+ActorRef<M> ─► Mailbox<M> ─► Dispatcher::poll() ─► Actor::handle()
+                                  │
+                                  ├── tokio worker pool   (CPU)
+                                  ├── pinned thread       (CPU, blocking-friendly)
+                                  └── accelerator stream  (GPU, planned)
+```
+
+The `Dispatcher` trait is small and the message is opaque to it. A
+dispatcher whose backend is a CUDA stream would:
+
+1. accept envelopes destined for actors annotated as accelerator-
+   resident,
+2. coalesce a window of compatible envelopes into a host buffer,
+3. submit a kernel and wait on a stream event,
+4. produce reply messages from the kernel result and feed them back
+   into the actor system.
+
+Supervision still applies. Backpressure still applies. Dead-letter
+routing still applies. Telemetry still applies. The shape of the
+program above the dispatcher does not change.
+
+That's the value: the cost of moving a workload onto an accelerator
+shouldn't be a new framework — it should be a `with_dispatcher("gpu")`.
+
+## Design constraints
+
+- **No wire compatibility** with any prior actor runtime — tokio TCP
+  plus serde / bincode for the framed PDU codec.
+- **No reflection-driven typing** — `ActorRef<M>` is typed,
+  `Box<dyn Any>` is forbidden in public APIs.
+- **Async-first** — every `await` boundary uses tokio; no blocking
+  inside `Actor::handle`.
+- **Persistent / immutable structures** on hot snapshot paths
+  (gossip, replicator, sharding allocation) where copy-on-write would
+  hurt p99.
+- **Sealed traits** on framework markers (`Actor`, `Message`,
+  `Serializer`) so downstream extends through composition.
+
+## See also
+
+- [Actors and agentic computing](actors-and-agentic-computing.md) —
+  the argument for the model.
+- [Idiomatic Rust principles](idiomatic-rust.md) — invariants that
+  preserve the granularity above.
+- [Remoting](remoting.md) — the transport layer.
+- [Persistence providers](persistence-providers.md) — the storage
+  adapter contract.
+- [Streams](https://github.com/rustakka/rakka#whats-in-the-box) — reactive stream DSL.
+- [Dashboard](dashboard.md) — live system view.
+- [Full port plan](full-port-plan.md) — depth roadmap.

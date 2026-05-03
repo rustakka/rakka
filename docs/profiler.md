@@ -95,11 +95,11 @@ The top-level report adds `runtime`, `version`, `host`, and a
 ## Developer notes
 
 - The Rust scenarios live in
-  [`crates/rakka-profiler/src/scenarios.rs`](../crates/rakka-profiler/src/scenarios.rs);
+  [`crates/rakka-profiler/src/scenarios.rs`](https://github.com/rustakka/rakka/blob/main/crates/rakka-profiler/src/scenarios.rs);
   the CLI is
-  [`crates/rakka-profiler/src/bin/rakka_profiler.rs`](../crates/rakka-profiler/src/bin/rakka_profiler.rs).
+  [`crates/rakka-profiler/src/bin/rakka_profiler.rs`](https://github.com/rustakka/rakka/blob/main/crates/rakka-profiler/src/bin/rakka_profiler.rs).
 - The Python counterpart is the
-  [`rakka.profiler`](../python/rakka/profiler/__init__.py)
+  [`rakka.profiler`](https://github.com/rustakka/rakka/blob/main/python/rakka/profiler/__init__.py)
   sub-package (`_probes.py`, `_report.py`, `_scenarios.py`,
   `__main__.py`).
 - Resource probes are Linux-only today (`VmRSS`, `VmHWM`,

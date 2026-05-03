@@ -12,7 +12,7 @@ use crate::remote_ref::RemoteActorRefImpl;
 use crate::serialization::SerializerRegistry;
 use crate::system_daemon::RemoteSystemDaemon;
 
-/// Per-system remote provider. Created by [`enable_remote`].
+/// Per-system remote provider. Created by `enable_remote`.
 pub struct RemoteActorRefProvider {
     local_address: Address,
     local_uid: u64,

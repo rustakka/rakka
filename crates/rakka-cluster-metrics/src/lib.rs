@@ -249,8 +249,8 @@ pub mod sys {
             let mut sys = self.sys.lock().unwrap();
             sys.refresh_cpu_usage();
             sys.refresh_memory();
-            // global_cpu_info().cpu_usage() is in [0..100]; normalize to [0..1].
-            let cpu_load = (sys.global_cpu_info().cpu_usage() as f64 / 100.0).clamp(0.0, 1.0);
+            // global_cpu_usage() is in [0..100]; normalize to [0..1].
+            let cpu_load = (sys.global_cpu_usage() as f64 / 100.0).clamp(0.0, 1.0);
             let memory_max = sys.total_memory();
             let memory_used = sys.used_memory();
             NodeMetrics { address: address.into(), timestamp, cpu_load, memory_used, memory_max }

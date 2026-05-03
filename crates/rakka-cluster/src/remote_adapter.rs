@@ -7,7 +7,7 @@
 //! `send_gossip(peer)` to push our local state out.
 //!
 //! Heartbeats are driven by the same path; the `FailureDetectorRegistry`
-//! that lives inside the [`EndpointManager`] surfaces unreachable peers
+//! that lives inside the `EndpointManager` surfaces unreachable peers
 //! and a [`MembershipState`] update tags them with
 //! [`ReachabilityStatus::Unreachable`].
 
@@ -112,7 +112,7 @@ impl ClusterRemoteAdapter {
 
     /// Mark `peer` unreachable in our local membership state. Driven by
     /// the failure detector registry inside the underlying
-    /// [`EndpointManager`].
+    /// `EndpointManager`.
     pub fn mark_unreachable(&self, observer: &Address, peer: &Address) {
         let mut g = self.inner.state.write();
         g.state

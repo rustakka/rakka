@@ -4,7 +4,7 @@
 //!
 //! Each endpoint owns one peer (`Address` + UID). The writer half pumps
 //! outbound user/system payloads (with heartbeats when idle); the reader
-//! half consumes inbound payloads dispatched by the [`EndpointManager`]
+//! half consumes inbound payloads dispatched by the `EndpointManager`
 //! and routes them up to the local `ActorSystem`. Both halves cooperate
 //! with the [`AckedSendBuffer`] / [`AckedReceiveBuffer`] for
 //! sliding-window reliable delivery.

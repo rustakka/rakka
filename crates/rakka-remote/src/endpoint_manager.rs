@@ -29,7 +29,7 @@ use crate::transport::{Transport, TransportError};
 /// `Idle → Pending → Connected → (Quarantined → Tombstoned)`.
 /// `Quarantined` is time-bounded by [`RemoteSettings::
 /// quarantine_duration`]; `Tombstoned` is permanent until
-/// [`EndpointManager::purge_tombstones`] sweeps the entry.
+/// `EndpointManager::purge_tombstones` sweeps the entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum AssociationState {
@@ -297,7 +297,7 @@ impl EndpointManager {
 
     /// Take the inbound stream of decoded user/system envelopes. Calling
     /// more than once returns an empty channel — the first taker is
-    /// responsible for fan-out (typically the [`provider::InboundDispatcher`]).
+    /// responsible for fan-out (typically the `provider::InboundDispatcher`).
     pub fn take_inbound(&self) -> mpsc::UnboundedReceiver<InboundEnvelope> {
         self.inner.inbound_rx.lock().take().unwrap_or_else(|| {
             let (_t, r) = mpsc::unbounded_channel();

@@ -1,11 +1,16 @@
 [package]
 name = "rakka-coordination"
-description = "Lease-based coordination API for rakka (akka.net Akka.Coordination)."
+description = "Lease-based coordination primitives for rakka."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+documentation = "https://docs.rs/rakka-coordination"
+keywords = ["actor", "lease", "coordination", "distributed"]
+categories = ["concurrency", "network-programming"]
 
 [dependencies]
 rakka-core = { workspace = true }
@@ -16,3 +21,7 @@ thiserror = { workspace = true }
 
 [lints]
 workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

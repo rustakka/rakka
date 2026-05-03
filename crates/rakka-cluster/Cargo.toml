@@ -1,11 +1,16 @@
 [package]
 name = "rakka-cluster"
-description = "rakka cluster — membership, gossip, reachability, SBR."
+description = "Membership, gossip, reachability, vector clocks, and split-brain resolvers for rakka clusters."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+documentation = "https://docs.rs/rakka-cluster"
+keywords = ["actor", "cluster", "distributed", "gossip"]
+categories = ["network-programming", "concurrency"]
 
 [dependencies]
 rakka-core = { workspace = true }
@@ -25,3 +30,7 @@ rakka-testkit = { workspace = true }
 
 [lints]
 workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

@@ -1,43 +1,79 @@
 # rakka
 
-`rakka` is an idiomatic Rust port of [Akka.NET][akkanet] with
-first-class Python bindings. It mirrors the Akka.NET module structure so
-upstream changes can be tracked, while using native Rust patterns for
-configuration (TOML), transport (Tokio + bincode), and serialization
-(Serde). No wire compatibility with JVM/CLR Akka.
+A native Rust runtime for actor-based concurrent and distributed
+systems, with first-class Python bindings. One programming model —
+addressable units of state plus behavior, communicating by
+asynchronous message passing — that scales from a single core to a
+cluster, and increasingly from a CPU to a GPU.
 
-For a concise **why**—native execution, the same actor idea from cores to
-cluster, and how that lines up with **agentic** and **distributed**
-design—read [Actors and agentic computing](actors-and-agentic-computing.md).
-For **LLM agent workflows**, companion layers **`rakka-langgraph`**
-(LangGraph-style **state graphs** on actors) and **`rakka-agents`**
-(**patterns and practices** above the graph) compose with the core
-crates. **Telemetry and dashboard** (see [Dashboard](dashboard.md)) add
-**visualization hooks** so behavior across `rakka-core`, cluster,
-persistence, remote, streams, and more is visible in one service.
+The runtime is small at the edge — typed actors, supervised
+hierarchies, deterministic mailboxes — and grows outward into
+remoting, clustering, sharded entities, replicated CRDTs, event
+sourcing, reactive streams, and live introspection. The same message
+contract holds at every layer.
+
+## Why this design
+
+**Agentic systems want this shape.** Autonomous, collaborating,
+stateful processes that coordinate through messages and survive
+partial failure are exactly what supervised actors describe. Each
+agent is an actor; conversations are mailboxes; tool invocations are
+typed messages; failure is observed and supervised, not silently
+swallowed.
+
+**Heterogeneous compute wants this shape, too.** Modern workloads
+straddle CPU and GPU. Inference, embedding, simulation, scoring all
+prefer accelerator memory; coordination, control flow, persistence,
+and I/O prefer the host. Today's stacks bridge the two with ad-hoc
+batching layers, queues, and serialization shims. The actor model
+already encodes the right boundary — a message *is* the dispatch unit
+— so a system built on actors can put CPU mailboxes and CUDA-backed
+dispatchers behind the same `actor_ref.tell(msg)` call, with the same
+supervision, the same backpressure, and the same observability. That
+is the unified-compute thesis: don't write two programs glued at the
+seam, write one program whose dispatch can target either side
+explicitly and efficiently.
+
+**Rust earns the granularity.** Zero-cost abstractions, ownership-as-
+concurrency-safety, and predictable resource use mean per-message
+overhead stays low and per-actor footprint stays small enough that
+millions of fine-grained actors are tractable. The same precision
+lets the runtime push backpressure, mailboxes, and supervision down
+into primitives that don't need to be rebuilt at every layer above.
+
+A longer argument lives in
+[Actors and agentic computing](actors-and-agentic-computing.md).
 
 ## At a glance
 
-- Typed actors with compile-time message dispatch (similar to Akka Typed,
-  actix, ractor).
-- Full Akka.NET surface: supervision, FSM, stash, watch/death-watch,
-  ask/pipe-to, dispatchers, mailboxes, schedulers, event stream,
-  coordinated shutdown, extensions.
-- Cross-process remoting: TCP transport, Akka-protocol handshake,
-  ack'd delivery, EndpointManager state machine, RemoteActorRefProvider,
-  RemoteWatcher, throttle / failure-injector / test transport adapters.
-- Cluster stack: gossip, membership, reachability, heartbeat, SBR (5
-  strategies), cluster-tools, cluster-sharding, distributed data,
-  cluster-metrics.
-- Persistence: journal + snapshot plugin traits, query, TCK,
-  at-least-once delivery, in-memory implementation.
-- Streams: Source / Flow / Sink / BidiFlow / GraphDsl / ActorMaterializer.
-- Contrib: coordination (Lease), discovery, DI, hosting.
-- Python bindings for every subsystem via PyO3, with GIL-isolated
-  interpreter pools (`python-pinned`, `python-subinterpreter-pool`,
-  `python-nogil`, `python-subprocess`) and per-pool
-  `InterpreterQuota` / `InterpreterMetrics`.
-- `xtask` upstream-sync tool; quarterly CI job reports Akka.NET diffs.
+- **Typed actors** with compile-time message dispatch.
+- **Supervision, FSM, stash, watch / death-watch, ask / pipe-to,
+  dispatchers, mailboxes, schedulers, event stream, coordinated
+  shutdown, extensions.**
+- **Remoting** — TCP transport, framed PDU codec, ack'd delivery,
+  endpoint state machine, watcher, throttle / failure-injector / test
+  transports.
+- **Cluster** — gossip, membership, reachability, heartbeat,
+  split-brain resolvers, cluster-tools (singleton, pub/sub, client),
+  cluster-sharding (regions, rebalance, remember-entities), cluster
+  metrics, distributed data (CRDTs).
+- **Persistence** — event sourcing with journal + snapshot traits,
+  recovery permitter, async snapshotting, query streams; storage
+  adapters for SQL, Redis, MongoDB, Cassandra, DynamoDB, Azure Table.
+- **Streams** — typed `Source` / `Flow` / `Sink` / `BidiFlow` / graph
+  DSL with materializer, junctions, hubs, framing, file IO, kill
+  switches, lifecycle hooks.
+- **Coordination, discovery, DI, hosting** — the contrib toolkit you
+  reach for when you compose larger systems.
+- **Telemetry + dashboard** — tracing, metrics, exporters, plus a
+  live web UI over the running system.
+- **Python bindings** for every subsystem with GIL-isolated
+  interpreter strategies (`python-pinned`,
+  `python-subinterpreter-pool` per PEP 684, `python-nogil` per PEP
+  703, `python-subprocess`) and per-pool `InterpreterQuota` /
+  `InterpreterMetrics`.
+- **Cross-runtime profiler** — same scenarios in Rust and Python,
+  shared JSON schema, side-by-side comparison.
 
 ## Getting started
 
@@ -53,54 +89,39 @@ cargo run   -p pingpong
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install maturin pytest pytest-asyncio
-maturin develop --release
-pytest python/tests -v
+pip install rakka
 python python/examples/ml_inference.py
 ```
 
 ## Documentation map
 
-- [Actors and agentic computing](actors-and-agentic-computing.md) — value
-  proposition: native efficiency, Akka-style clarity, agent-like systems,
-  **`rakka-langgraph`** / **`rakka-agents`**, determinism vs
-  real-world non-determinism.
-- [Dashboard](dashboard.md) — telemetry **visualization**; behavior across
-  crates in one API + Web UI + WebSocket; cluster-wide views.
-- [Python bindings](python.md) — install, actor API, GIL tuning guide,
-  interpreter quotas, metrics, C-extension compatibility registry.
-- [Persistence providers](persistence-providers.md) — SQL, Redis,
-  MongoDB, Cassandra, DynamoDB, and Azure Table Storage crates plus the
-  shared TCK.
-- [Remoting](remoting.md) — `RemoteSystem`, transports, handshake,
-  `actor_selection` across processes, cluster + sharding integration.
-- [Profiler](profiler.md) — cross-runtime actor memory + CPU profiler,
-  shared JSON schema, baseline numbers.
-- [Parity](parity.md) — generated crate-by-crate presence report.
-- [Full port plan](full-port-plan.md) — depth audit + 15-phase roadmap to
-  close the gap with upstream Akka.NET in idiomatic Rust.
-- [Idiomatic Rust principles](idiomatic-rust.md) — 12 invariants every
-  PR is reviewed against (no `Box<dyn Any>`, type-state lifecycle,
-  compile-time supervision contracts, …).
+- [Actors and agentic computing](actors-and-agentic-computing.md) — the
+  argument: native efficiency, supervised concurrency, agentic systems,
+  the unified CPU + CUDA compute model.
+- [Architecture](architecture.md) — runtime layout, dispatch, cluster
+  topology, the hooks where heterogeneous backends slot in.
+- [Idiomatic Rust principles](idiomatic-rust.md) — twelve invariants
+  every PR is reviewed against (no `Box<dyn Any>` mailboxes,
+  type-state lifecycle, compile-time supervision contracts, …).
+- [Python bindings](python.md) — install, actor API, GIL strategy
+  guide, quotas, metrics, compatibility registry.
+- [Remoting](remoting.md) — cross-process actor messaging.
+- [Persistence providers](persistence-providers.md) — storage adapters
+  and the shared TCK.
+- [Streams](https://github.com/rustakka/rakka#whats-in-the-box) — reactive stream DSL.
+- [Dashboard](dashboard.md) — live system UI.
+- [Observability](observability.md) — exporters and integration
+  points.
+- [Profiler](profiler.md) — cross-runtime profiler with baseline
+  numbers.
+- [Release pipeline](release-pipeline.md) — how artifacts ship.
+- [Parity](parity.md) — alignment surface and depth grades by crate.
+- [Full port plan](full-port-plan.md) — depth roadmap.
 - [Audit 2026-04](audit-2026-04.md) — empirical depth + anti-pattern
-  baseline; tracked by `cargo xtask audit --check` in CI.
-- [Architecture](architecture.md) — the layered crate stack and
-  concept-by-concept Akka.NET ↔ rakka mapping.
-- [Migrating from Akka.NET](migrating-from-akka-net.md) — translation
-  table, idiom-by-idiom diff, migration playbook.
-- [`../README.md`](../README.md) — repository overview and quick start.
-- [`../PORTING.md`](../PORTING.md) — upstream Akka.NET tracking commits.
-- [`../PORTING_TODO.md`](../PORTING_TODO.md) — phase progress checklist.
-
-## Status
-
-**Scaffolding-complete, depth-in-progress.** Every Akka.NET subsystem
-has a crate that builds and passes its unit tests (174+ Rust, 23
-Python), but a 2026-04-30 audit found that most subsystems cover only
-~1–10% of upstream LOC and skip critical protocol machinery (active
-gossip, leader election, shard rebalance, recovery permitter, real
-persistence backends, …). See [`full-port-plan.md`](full-port-plan.md)
-for the audit and the 15-phase roadmap, and [`parity.md`](parity.md)
-for per-crate depth grades.
-
-[akkanet]: https://getakka.net/
+  baseline tracked by CI.
+- [Migration playbook](migrating-from-akka-net.md) — for teams coming
+  from a JVM/CLR actor runtime.
+- [`../README.md`](https://github.com/rustakka/rakka) — repository overview.
+- [`../PORTING.md`](https://github.com/rustakka/rakka/blob/main/PORTING.md) — alignment with prior-art
+  runtimes.
+- [`../PORTING_TODO.md`](https://github.com/rustakka/rakka/blob/main/PORTING_TODO.md) — depth roadmap.

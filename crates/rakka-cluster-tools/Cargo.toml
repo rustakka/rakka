@@ -1,11 +1,16 @@
 [package]
 name = "rakka-cluster-tools"
-description = "DistributedPubSub, ClusterClient, ClusterSingleton for rakka."
+description = "Distributed pub/sub, cluster singleton, and cluster client patterns for rakka."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+documentation = "https://docs.rs/rakka-cluster-tools"
+keywords = ["actor", "cluster", "pubsub", "singleton"]
+categories = ["network-programming", "concurrency"]
 
 [dependencies]
 rakka-core = { workspace = true }
@@ -22,3 +27,7 @@ rakka-config = { workspace = true }
 
 [lints]
 workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

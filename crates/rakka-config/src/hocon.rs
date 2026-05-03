@@ -57,7 +57,7 @@ pub enum HoconError {
 /// Parse a HOCON document and return the merged root object.
 ///
 /// `base_dir` controls how `include "rel/path"` resolves. Pass
-/// [`Path::new(".")`] when parsing in-memory documents without a
+/// `Path::new(".")` when parsing in-memory documents without a
 /// physical anchor.
 pub fn parse(text: &str, base_dir: &Path) -> Result<ConfigValue, HoconError> {
     let mut p = Parser::new(text, base_dir.to_path_buf());

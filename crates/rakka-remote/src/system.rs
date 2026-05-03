@@ -1,5 +1,5 @@
 //! `RemoteSystem` — convenience wrapper that builds and wires up the
-//! whole remoting stack on top of a [`rakka_core::ActorSystem`].
+//! whole remoting stack on top of a `rakka_core::ActorSystem`.
 //!
 //! Most users hold one `RemoteSystem` per process. It owns:
 //!

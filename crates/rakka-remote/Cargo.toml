@@ -1,11 +1,16 @@
 [package]
 name = "rakka-remote"
-description = "rakka remoting — Transport, Endpoint, FailureDetectors, wire protocol."
+description = "Cross-process and cross-host actor messaging for rakka — TCP transport, framed PDU codec, ack'd delivery, endpoint state machine, watcher."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+documentation = "https://docs.rs/rakka-remote"
+keywords = ["actor", "remote", "distributed", "tcp", "tokio"]
+categories = ["network-programming", "concurrency"]
 
 [dependencies]
 rakka-core = { workspace = true }
@@ -26,3 +31,7 @@ tracing = { workspace = true }
 
 [lints]
 workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

@@ -2,7 +2,7 @@
 //!
 //! Concrete implementation of `rakka_core::actor::RemoteRef` that
 //! serializes outbound messages via the [`SerializerRegistry`] and ships
-//! them through an [`EndpointManager`].
+//! them through an `EndpointManager`.
 
 use rakka_core::actor::{ActorPath, RemoteRef, RemoteSystemMsg, SerializedMessage};
 

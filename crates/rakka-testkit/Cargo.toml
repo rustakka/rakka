@@ -1,11 +1,16 @@
 [package]
 name = "rakka-testkit"
-description = "Test utilities for rakka — TestProbe, TestKit, EventFilter."
+description = "Test scaffolding for rakka actors — TestProbe matchers, TestKit, virtual-time scheduler, multi-node spec, EventFilter."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+documentation = "https://docs.rs/rakka-testkit"
+keywords = ["actor", "testing", "concurrency"]
+categories = ["development-tools::testing", "concurrency"]
 
 [dependencies]
 rakka-core = { workspace = true }
@@ -18,3 +23,7 @@ thiserror = { workspace = true }
 
 [lints]
 workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

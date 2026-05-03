@@ -1,11 +1,16 @@
 [package]
 name = "rakka-dashboard"
-description = "rakka dashboard — optional HTTP/WebSocket observability service with embedded React UI."
+description = "Live web UI over a running rakka system — REST + WebSocket + embedded React SPA, Prometheus / OTLP exporters."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+documentation = "https://docs.rs/rakka-dashboard"
+keywords = ["actor", "dashboard", "observability", "metrics"]
+categories = ["development-tools::profiling", "web-programming"]
 
 [dependencies]
 rakka-core = { workspace = true }
@@ -53,3 +58,7 @@ tokio-tungstenite = "0.24"
 
 [lints]
 workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

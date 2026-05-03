@@ -1,4 +1,4 @@
-//! Sharding probe — snapshots [`ShardRegion`] / [`ShardCoordinator`] state
+//! Sharding probe — snapshots `ShardRegion` / `ShardCoordinator` state
 //! when the `sharding` feature is enabled.
 
 use parking_lot::RwLock;

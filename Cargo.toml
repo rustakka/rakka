@@ -60,7 +60,8 @@ version = "0.2.0"
 edition = "2021"
 rust-version = "1.78"
 license = "Apache-2.0"
-repository = "https://github.com/local/rakka"
+repository = "https://github.com/rustakka/rakka"
+homepage = "https://github.com/rustakka/rakka"
 authors = ["rakka contributors"]
 
 [workspace.dependencies]
