@@ -1,0 +1,7 @@
+{
+  "name": "rakka-ai-skills",
+  "version": "0.1.0",
+  "description": "Skills for AI coding assistants working on projects that depend on rakka.",
+  "homepage": "https://github.com/rustakka/rakka",
+  "skills_dir": "skills"
+}
