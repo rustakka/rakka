@@ -9,7 +9,7 @@ repository.workspace = true
 homepage.workspace = true
 authors.workspace = true
 documentation = "https://docs.rs/rakka-rs"
-readme = "README.md"
+readme = "../../README.md"
 keywords = ["actor", "concurrency", "distributed", "async", "supervisor"]
 categories = ["concurrency", "asynchronous", "network-programming"]
 
