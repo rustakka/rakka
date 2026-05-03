@@ -335,7 +335,7 @@ jobs:
             rakka-cluster-sharding \
             rakka-telemetry \
             rakka-dashboard \
-            rakka; do
+            rakka-rs; do
             publish_one "$crate"
           done
 

@@ -1,5 +1,5 @@
 [package]
-name = "rakka"
+name = "rakka-rs"
 description = "Native Rust runtime for actor-based concurrent and distributed systems. Umbrella crate — pull in subsystems via feature flags."
 version.workspace = true
 edition.workspace = true
@@ -8,7 +8,7 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 authors.workspace = true
-documentation = "https://docs.rs/rakka"
+documentation = "https://docs.rs/rakka-rs"
 readme = "README.md"
 keywords = ["actor", "concurrency", "distributed", "async", "supervisor"]
 categories = ["concurrency", "asynchronous", "network-programming"]

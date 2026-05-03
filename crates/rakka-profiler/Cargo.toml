@@ -20,7 +20,7 @@ name = "rakka-profiler"
 path = "src/bin/rakka_profiler.rs"
 
 [dependencies]
-rakka = { path = "../rakka" }
+rakka = { package = "rakka-rs", path = "../rakka", version = "0.2.0" }
 rakka-core = { workspace = true }
 tokio = { workspace = true }
 async-trait = { workspace = true }

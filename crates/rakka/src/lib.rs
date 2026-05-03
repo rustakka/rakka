@@ -11,7 +11,10 @@
 //!
 //! ```toml
 //! [dependencies]
-//! rakka = { version = "0.2", features = ["cluster", "persistence", "streams"] }
+//! # Cargo's `package =` alias keeps the import name `rakka`
+//! # while the published crate is `rakka-rs` (the short name on
+//! # crates.io is owned by an unrelated dormant crate).
+//! rakka = { package = "rakka-rs", version = "0.2", features = ["cluster", "persistence", "streams"] }
 //! ```
 //!
 //! ```ignore

@@ -91,6 +91,18 @@ async-native `tell` / `ask`.
 
 ## Quick start (Rust)
 
+The umbrella crate is published on crates.io as **`rakka-rs`** (the
+short name `rakka` is already taken by an unrelated, dormant crate).
+Cargo's package alias keeps the import name `rakka`:
+
+```toml
+[dependencies]
+rakka = { package = "rakka-rs", version = "0.2", features = ["cluster", "persistence"] }
+```
+
+Or pull in subsystem crates directly — `rakka-core`, `rakka-cluster`,
+`rakka-persistence`, `rakka-streams`, etc. are all on crates.io.
+
 ```rust
 use rakka::prelude::*;
 

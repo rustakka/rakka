@@ -56,7 +56,7 @@ members = [
 exclude = ["akka.net"]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 rust-version = "1.78"
 license = "Apache-2.0"
@@ -141,33 +141,34 @@ rust-embed = { version = "8" }
 clap = { version = "4", features = ["derive"] }
 
 # Internal
-rakka-core = { path = "crates/rakka-core", version = "0.2.0" }
-rakka-config = { path = "crates/rakka-config", version = "0.2.0" }
-rakka-macros = { path = "crates/rakka-macros", version = "0.2.0" }
-rakka-testkit = { path = "crates/rakka-testkit", version = "0.2.0" }
-rakka-remote = { path = "crates/rakka-remote", version = "0.2.0" }
-rakka-cluster = { path = "crates/rakka-cluster", version = "0.2.0" }
-rakka-cluster-tools = { path = "crates/rakka-cluster-tools", version = "0.2.0" }
-rakka-cluster-sharding = { path = "crates/rakka-cluster-sharding", version = "0.2.0" }
-rakka-cluster-metrics = { path = "crates/rakka-cluster-metrics", version = "0.2.0" }
-rakka-distributed-data = { path = "crates/rakka-distributed-data", version = "0.2.0" }
-rakka-persistence = { path = "crates/rakka-persistence", version = "0.2.0" }
-rakka-persistence-query = { path = "crates/rakka-persistence-query", version = "0.2.0" }
-rakka-persistence-query-inmemory = { path = "crates/rakka-persistence-query-inmemory", version = "0.2.0" }
-rakka-persistence-tck = { path = "crates/rakka-persistence-tck", version = "0.2.0" }
-rakka-persistence-sql = { path = "crates/rakka-persistence-sql", version = "0.2.0" }
-rakka-persistence-redis = { path = "crates/rakka-persistence-redis", version = "0.2.0" }
-rakka-persistence-mongodb = { path = "crates/rakka-persistence-mongodb", version = "0.2.0" }
-rakka-persistence-cassandra = { path = "crates/rakka-persistence-cassandra", version = "0.2.0" }
-rakka-persistence-aws = { path = "crates/rakka-persistence-aws", version = "0.2.0" }
-rakka-persistence-azure = { path = "crates/rakka-persistence-azure", version = "0.2.0" }
-rakka-streams = { path = "crates/rakka-streams", version = "0.2.0" }
-rakka-telemetry = { path = "crates/rakka-telemetry", version = "0.2.0" }
-rakka-dashboard = { path = "crates/rakka-dashboard", version = "0.2.0" }
-rakka-coordination = { path = "crates/rakka-coordination", version = "0.2.0" }
-rakka-discovery = { path = "crates/rakka-discovery", version = "0.2.0" }
-rakka-di = { path = "crates/rakka-di", version = "0.2.0" }
-rakka-hosting = { path = "crates/rakka-hosting", version = "0.2.0" }
+rakka-rs = { path = "crates/rakka", version = "0.2.1" }
+rakka-core = { path = "crates/rakka-core", version = "0.2.1" }
+rakka-config = { path = "crates/rakka-config", version = "0.2.1" }
+rakka-macros = { path = "crates/rakka-macros", version = "0.2.1" }
+rakka-testkit = { path = "crates/rakka-testkit", version = "0.2.1" }
+rakka-remote = { path = "crates/rakka-remote", version = "0.2.1" }
+rakka-cluster = { path = "crates/rakka-cluster", version = "0.2.1" }
+rakka-cluster-tools = { path = "crates/rakka-cluster-tools", version = "0.2.1" }
+rakka-cluster-sharding = { path = "crates/rakka-cluster-sharding", version = "0.2.1" }
+rakka-cluster-metrics = { path = "crates/rakka-cluster-metrics", version = "0.2.1" }
+rakka-distributed-data = { path = "crates/rakka-distributed-data", version = "0.2.1" }
+rakka-persistence = { path = "crates/rakka-persistence", version = "0.2.1" }
+rakka-persistence-query = { path = "crates/rakka-persistence-query", version = "0.2.1" }
+rakka-persistence-query-inmemory = { path = "crates/rakka-persistence-query-inmemory", version = "0.2.1" }
+rakka-persistence-tck = { path = "crates/rakka-persistence-tck", version = "0.2.1" }
+rakka-persistence-sql = { path = "crates/rakka-persistence-sql", version = "0.2.1" }
+rakka-persistence-redis = { path = "crates/rakka-persistence-redis", version = "0.2.1" }
+rakka-persistence-mongodb = { path = "crates/rakka-persistence-mongodb", version = "0.2.1" }
+rakka-persistence-cassandra = { path = "crates/rakka-persistence-cassandra", version = "0.2.1" }
+rakka-persistence-aws = { path = "crates/rakka-persistence-aws", version = "0.2.1" }
+rakka-persistence-azure = { path = "crates/rakka-persistence-azure", version = "0.2.1" }
+rakka-streams = { path = "crates/rakka-streams", version = "0.2.1" }
+rakka-telemetry = { path = "crates/rakka-telemetry", version = "0.2.1" }
+rakka-dashboard = { path = "crates/rakka-dashboard", version = "0.2.1" }
+rakka-coordination = { path = "crates/rakka-coordination", version = "0.2.1" }
+rakka-discovery = { path = "crates/rakka-discovery", version = "0.2.1" }
+rakka-di = { path = "crates/rakka-di", version = "0.2.1" }
+rakka-hosting = { path = "crates/rakka-hosting", version = "0.2.1" }
 
 [profile.release]
 opt-level = 3
