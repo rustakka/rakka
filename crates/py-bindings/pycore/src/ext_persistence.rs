@@ -5,12 +5,12 @@ use std::sync::Arc;
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyList};
 
-use rakka_persistence::{InMemoryJournal, Journal, PersistentRepr};
+use atomr_persistence::{InMemoryJournal, Journal, PersistentRepr};
 
 use crate::errors;
 use crate::runtime::runtime;
 
-#[pyclass(name = "InMemoryJournal", module = "rakka._native.persistence")]
+#[pyclass(name = "InMemoryJournal", module = "atomr._native.persistence")]
 pub struct PyInMemoryJournal {
     inner: Arc<InMemoryJournal>,
 }

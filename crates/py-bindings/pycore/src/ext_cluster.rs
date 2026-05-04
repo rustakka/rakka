@@ -3,10 +3,10 @@
 use parking_lot::Mutex;
 use pyo3::prelude::*;
 
-use rakka_cluster::{Member, MemberStatus, MembershipState, VectorClock, VectorRelation};
-use rakka_core::actor::Address;
+use atomr_cluster::{Member, MemberStatus, MembershipState, VectorClock, VectorRelation};
+use atomr_core::actor::Address;
 
-#[pyclass(name = "Member", module = "rakka._native.cluster")]
+#[pyclass(name = "Member", module = "atomr._native.cluster")]
 #[derive(Clone)]
 pub struct PyMember {
     pub(crate) inner: Member,
@@ -45,7 +45,7 @@ impl PyMember {
     }
 }
 
-#[pyclass(name = "MembershipState", module = "rakka._native.cluster")]
+#[pyclass(name = "MembershipState", module = "atomr._native.cluster")]
 pub struct PyMembershipState {
     pub(crate) inner: Mutex<MembershipState>,
 }
@@ -66,7 +66,7 @@ impl PyMembershipState {
     }
 }
 
-#[pyclass(name = "VectorClock", module = "rakka._native.cluster")]
+#[pyclass(name = "VectorClock", module = "atomr._native.cluster")]
 pub struct PyVectorClock {
     inner: Mutex<VectorClock>,
 }

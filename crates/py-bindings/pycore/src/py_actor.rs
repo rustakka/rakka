@@ -23,8 +23,8 @@ use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use tokio::sync::oneshot;
 
-use rakka_core::actor::{Actor, Context};
-use rakka_core::supervision::SupervisorStrategy;
+use atomr_core::actor::{Actor, Context};
+use atomr_core::supervision::SupervisorStrategy;
 
 use crate::interpreter::{InterpreterInstance, PyTask};
 
@@ -101,10 +101,10 @@ impl PyActor {
             }),
         };
         if worker.tx.send(task).is_err() {
-            return Err(PyErr::new::<crate::errors::RakkaError, _>("interpreter worker shut down"));
+            return Err(PyErr::new::<crate::errors::AtomrError, _>("interpreter worker shut down"));
         }
         rx.await.unwrap_or_else(|_| {
-            Err(PyErr::new::<crate::errors::RakkaError, _>("interpreter worker dropped task"))
+            Err(PyErr::new::<crate::errors::AtomrError, _>("interpreter worker dropped task"))
         })
     }
 }

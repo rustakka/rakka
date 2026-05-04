@@ -11,7 +11,7 @@ use crate::actor_system::PyActorSystem;
 use crate::config::PyConfig;
 use crate::interpreter::InterpreterQuota;
 
-#[pyclass(name = "ActorSystemBuilder", module = "rakka._native.hosting")]
+#[pyclass(name = "ActorSystemBuilder", module = "atomr._native.hosting")]
 pub struct PyActorSystemBuilder {
     name: String,
     config: Mutex<Option<Py<PyConfig>>>,

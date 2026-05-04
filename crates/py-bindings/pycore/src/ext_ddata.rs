@@ -4,9 +4,9 @@
 use parking_lot::Mutex;
 use pyo3::prelude::*;
 
-use rakka_distributed_data::{CrdtMerge, GCounter, GSet, OrSet, PNCounter};
+use atomr_distributed_data::{CrdtMerge, GCounter, GSet, OrSet, PNCounter};
 
-#[pyclass(name = "GCounter", module = "rakka._native.ddata")]
+#[pyclass(name = "GCounter", module = "atomr._native.ddata")]
 pub struct PyGCounter {
     inner: Mutex<GCounter>,
 }
@@ -29,7 +29,7 @@ impl PyGCounter {
     }
 }
 
-#[pyclass(name = "PNCounter", module = "rakka._native.ddata")]
+#[pyclass(name = "PNCounter", module = "atomr._native.ddata")]
 pub struct PyPNCounter {
     inner: Mutex<PNCounter>,
 }
@@ -55,7 +55,7 @@ impl PyPNCounter {
     }
 }
 
-#[pyclass(name = "GSet", module = "rakka._native.ddata")]
+#[pyclass(name = "GSet", module = "atomr._native.ddata")]
 pub struct PyGSet {
     inner: Mutex<GSet<String>>,
 }
@@ -81,7 +81,7 @@ impl PyGSet {
     }
 }
 
-#[pyclass(name = "ORSet", module = "rakka._native.ddata")]
+#[pyclass(name = "ORSet", module = "atomr._native.ddata")]
 pub struct PyORSet {
     inner: Mutex<OrSet<String>>,
 }

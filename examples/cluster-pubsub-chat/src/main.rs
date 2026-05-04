@@ -10,9 +10,9 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use rakka_cluster_tools::DistributedPubSub;
-use rakka_config::Config;
-use rakka_core::actor::{Actor, ActorSystem, Context, Props};
+use atomr_cluster_tools::DistributedPubSub;
+use atomr_config::Config;
+use atomr_core::actor::{Actor, ActorSystem, Context, Props};
 
 #[derive(Clone, Debug)]
 struct ChatMsg {

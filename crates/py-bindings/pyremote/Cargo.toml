@@ -1,6 +1,6 @@
 [package]
-name = "rakka-pyremote"
-description = "Pluggable Python codec layer for rakka-remote (Phase P3 / 5.K)."
+name = "atomr-pyremote"
+description = "Pluggable Python codec layer for atomr-remote (Phase P3 / 5.K)."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,7 +11,7 @@ repository.workspace = true
 path = "src/lib.rs"
 
 [dependencies]
-rakka-remote = { workspace = true }
+atomr-remote = { workspace = true }
 parking_lot = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

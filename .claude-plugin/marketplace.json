@@ -1,21 +1,21 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "rakka",
-  "description": "Skills and plugins for working on projects that depend on rakka, the Rust port of Akka.",
+  "name": "atomr",
+  "description": "Skills and plugins for working on projects that depend on atomr, the Rust port of Akka.",
   "owner": {
     "name": "rustakka",
     "url": "https://github.com/rustakka"
   },
   "plugins": [
     {
-      "name": "rakka-ai-skills",
-      "description": "Skills for AI coding assistants working on projects that depend on rakka — actor design, testing, clustering, persistence, Python bindings, and troubleshooting.",
+      "name": "atomr-ai-skills",
+      "description": "Skills for AI coding assistants working on projects that depend on atomr — actor design, testing, clustering, persistence, Python bindings, and troubleshooting.",
       "author": {
         "name": "rustakka"
       },
       "category": "development",
       "source": "./ai-skills",
-      "homepage": "https://github.com/rustakka/rakka/tree/main/ai-skills"
+      "homepage": "https://github.com/rustakka/atomr/tree/main/ai-skills"
     }
   ]
 }

@@ -1,11 +1,11 @@
 """Smoke tests — module imports, version, capabilities."""
 
-import rakka
+import atomr
 
 
 def test_version():
-    assert isinstance(rakka.__version__, str)
-    assert rakka.__version__
+    assert isinstance(atomr.__version__, str)
+    assert atomr.__version__
 
 
 def test_submodules_present():
@@ -22,9 +22,9 @@ def test_submodules_present():
         "di",
         "hosting",
     ]:
-        assert hasattr(rakka, mod), f"missing facade: {mod}"
+        assert hasattr(atomr, mod), f"missing facade: {mod}"
 
 
 def test_compat_defaults():
-    flags = rakka.compat_flags("json")
+    flags = atomr.compat_flags("json")
     assert flags is not None and flags["subinterpreter_safe"]

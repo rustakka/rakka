@@ -6,7 +6,7 @@ Responsibilities:
 1. Ensure an upstream clone exists at ``./akka.net`` (never committed —
    see ``.gitignore``). Clone it on first run, fetch on subsequent runs.
 2. Compute the diff since the last synced commit and group it by
-   subsystem so reviewers know which rakka crate needs attention.
+   subsystem so reviewers know which atomr crate needs attention.
 3. Emit a markdown report suitable for pasting into a PR description or
    piping into ``$GITHUB_STEP_SUMMARY``.
 
@@ -33,29 +33,29 @@ DEFAULT_UPSTREAM = "https://github.com/akkadotnet/akka.net"
 DEFAULT_PATH = "akka.net"
 DEFAULT_RANGE = "HEAD~200..HEAD"
 
-# upstream src/ prefix → rakka crate.  Kept in sync with PORTING.md.
+# upstream src/ prefix → atomr crate.  Kept in sync with PORTING.md.
 SUBSYSTEM_MAP: List[Tuple[str, str]] = [
-    ("src/core/Akka.TestKit", "rakka-testkit"),
-    ("src/core/Akka.Remote", "rakka-remote"),
-    ("src/core/Akka.Cluster", "rakka-cluster"),
-    ("src/core/Akka.Persistence.Query", "rakka-persistence-query"),
-    ("src/core/Akka.Persistence.TCK", "rakka-persistence-tck"),
-    ("src/core/Akka.Persistence", "rakka-persistence"),
-    ("src/core/Akka.Streams", "rakka-streams"),
-    ("src/core/Akka.Coordination", "rakka-coordination"),
-    ("src/core/Akka.Discovery", "rakka-discovery"),
-    ("src/core/Akka/Configuration", "rakka-config"),
-    ("src/core/Akka", "rakka-core"),
-    ("src/contrib/cluster/Akka.Cluster.Tools", "rakka-cluster-tools"),
-    ("src/contrib/cluster/Akka.Cluster.Sharding", "rakka-cluster-sharding"),
-    ("src/contrib/cluster/Akka.Cluster.Metrics", "rakka-cluster-metrics"),
-    ("src/contrib/cluster/Akka.DistributedData", "rakka-distributed-data"),
-    ("src/contrib/dependencyinjection/Akka.DependencyInjection", "rakka-di"),
+    ("src/core/Akka.TestKit", "atomr-testkit"),
+    ("src/core/Akka.Remote", "atomr-remote"),
+    ("src/core/Akka.Cluster", "atomr-cluster"),
+    ("src/core/Akka.Persistence.Query", "atomr-persistence-query"),
+    ("src/core/Akka.Persistence.TCK", "atomr-persistence-tck"),
+    ("src/core/Akka.Persistence", "atomr-persistence"),
+    ("src/core/Akka.Streams", "atomr-streams"),
+    ("src/core/Akka.Coordination", "atomr-coordination"),
+    ("src/core/Akka.Discovery", "atomr-discovery"),
+    ("src/core/Akka/Configuration", "atomr-config"),
+    ("src/core/Akka", "atomr-core"),
+    ("src/contrib/cluster/Akka.Cluster.Tools", "atomr-cluster-tools"),
+    ("src/contrib/cluster/Akka.Cluster.Sharding", "atomr-cluster-sharding"),
+    ("src/contrib/cluster/Akka.Cluster.Metrics", "atomr-cluster-metrics"),
+    ("src/contrib/cluster/Akka.DistributedData", "atomr-distributed-data"),
+    ("src/contrib/dependencyinjection/Akka.DependencyInjection", "atomr-di"),
 ]
 
 
 def classify(path: str) -> str:
-    """Map an upstream file path to a rakka crate (or 'unmapped')."""
+    """Map an upstream file path to a atomr crate (or 'unmapped')."""
     if not path.startswith("src/"):
         return "non-src"
     for prefix, crate in SUBSYSTEM_MAP:
@@ -173,9 +173,9 @@ def render_markdown(
         out.append("No changes in `src/` for the requested range. ✅")
         return "\n".join(out) + "\n"
 
-    out.append("## Changes by rakka crate")
+    out.append("## Changes by atomr crate")
     out.append("")
-    out.append("| rakka crate | files | +added | -removed |")
+    out.append("| atomr crate | files | +added | -removed |")
     out.append("|---|---|---|---|")
     for crate in sorted(by_crate, key=lambda c: -sum(a for _, a, _ in by_crate[c])):
         rows = by_crate[crate]

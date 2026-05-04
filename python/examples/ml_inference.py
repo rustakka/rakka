@@ -10,7 +10,7 @@ from __future__ import annotations
 import math
 import time
 
-from rakka import Actor, ActorSystem, InterpreterQuota, props
+from atomr import Actor, ActorSystem, InterpreterQuota, props
 
 
 class Predictor(Actor):
@@ -30,7 +30,7 @@ def main() -> None:
         quota = InterpreterQuota(
             max_actors=16,
             max_handler_ms=500,
-            module_allowlist=["math", "rakka"],
+            module_allowlist=["math", "atomr"],
             import_policy="eager",
         )
         system.configure_interpreter(

@@ -9,7 +9,7 @@ use std::sync::Arc;
 use parking_lot::Mutex;
 use pyo3::prelude::*;
 
-#[pyclass(name = "ShardRegion", module = "rakka._native.cluster_sharding")]
+#[pyclass(name = "ShardRegion", module = "atomr._native.cluster_sharding")]
 pub struct PyShardRegion {
     entity_factory: Py<PyAny>,
     extractor: Py<PyAny>,

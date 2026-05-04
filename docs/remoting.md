@@ -1,6 +1,6 @@
 # Remoting
 
-`rakka-remote` lets two `ActorSystem`s on different processes (or
+`atomr-remote` lets two `ActorSystem`s on different processes (or
 machines) exchange messages. It covers:
 
 - length-prefixed binary framing (`AkkaPdu`)
@@ -24,8 +24,8 @@ machines) exchange messages. It covers:
 ## Quick start
 
 ```rust,no_run
-use rakka_core::prelude::*;
-use rakka_remote::{RemoteSettings, RemoteSystem};
+use atomr_core::prelude::*;
+use atomr_remote::{RemoteSettings, RemoteSystem};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,7 +43,7 @@ impl Actor for Greeter {
 
 # async fn run() -> Result<(), Box<dyn std::error::Error>> {
 // On node A:
-let sys_a = ActorSystem::create("A", rakka_config::Config::reference()).await?;
+let sys_a = ActorSystem::create("A", atomr_config::Config::reference()).await?;
 let remote_a = RemoteSystem::start(
     sys_a.clone(),
     "127.0.0.1:7000".parse()?,
@@ -54,7 +54,7 @@ let greeter = sys_a.actor_of(Props::create(|| Greeter), "greeter")?;
 remote_a.expose_actor(greeter);
 
 // On node B (could be in a different process / machine):
-let sys_b = ActorSystem::create("B", rakka_config::Config::reference()).await?;
+let sys_b = ActorSystem::create("B", atomr_config::Config::reference()).await?;
 let remote_b = RemoteSystem::start(
     sys_b.clone(),
     "127.0.0.1:7001".parse()?,
@@ -157,10 +157,10 @@ let remote = RemoteSystem::start_with_transport(sys, dropping, RemoteSettings::d
 
 ## Cluster integration
 
-`rakka-cluster` ships a `ClusterRemoteAdapter` that bootstraps a
+`atomr-cluster` ships a `ClusterRemoteAdapter` that bootstraps a
 `RemoteSystem`, exposes a local `cluster` actor for inbound `Gossip`
 messages, and provides `send_gossip(peer)` for outbound dissemination.
-See `crates/rakka-cluster/src/remote_adapter.rs`.
+See `crates/atomr-cluster/src/remote_adapter.rs`.
 
 ## Sharding integration
 
@@ -171,7 +171,7 @@ messages to remote shard owners via `RemoteSystem::actor_selection`.
 
 - **Wire compatibility with JVM/CLR Akka is not a goal.** The PDU
   encoding is bincode, not Akka's protobuf. JVM and CLR clusters cannot
-  join a `rakka` cluster.
+  join a `atomr` cluster.
 - **Remote `Props` deployment** ships a `(manifest, bytes)` create
   request rather than a fully-typed `Props`. The remote daemon must have
   a route registered for that manifest.

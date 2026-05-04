@@ -1,6 +1,6 @@
 # Performance profiler
 
-rakka ships a cross-runtime actor profiler that measures the same
+atomr ships a cross-runtime actor profiler that measures the same
 four scenarios in both Rust and Python and emits a shared JSON schema
 so the results can be compared directly.
 
@@ -20,10 +20,10 @@ CPU probes come from `/proc/self/{status,stat}` on Linux and return
 
 ```bash
 # Rust only
-cargo run --release -p rakka-profiler -- --scenario all --format md
+cargo run --release -p atomr-profiler -- --scenario all --format md
 
 # Python only (after maturin develop --release)
-python -m rakka.profiler --scenario all --format md
+python -m atomr.profiler --scenario all --format md
 
 # Both, side-by-side (also writes merged JSON)
 python scripts/profile.py --output docs/reports/profiler.md \
@@ -95,11 +95,11 @@ The top-level report adds `runtime`, `version`, `host`, and a
 ## Developer notes
 
 - The Rust scenarios live in
-  [`crates/rakka-profiler/src/scenarios.rs`](https://github.com/rustakka/rakka/blob/main/crates/rakka-profiler/src/scenarios.rs);
+  [`crates/atomr-profiler/src/scenarios.rs`](https://github.com/rustakka/atomr/blob/main/crates/atomr-profiler/src/scenarios.rs);
   the CLI is
-  [`crates/rakka-profiler/src/bin/rakka_profiler.rs`](https://github.com/rustakka/rakka/blob/main/crates/rakka-profiler/src/bin/rakka_profiler.rs).
+  [`crates/atomr-profiler/src/bin/atomr_profiler.rs`](https://github.com/rustakka/atomr/blob/main/crates/atomr-profiler/src/bin/atomr_profiler.rs).
 - The Python counterpart is the
-  [`rakka.profiler`](https://github.com/rustakka/rakka/blob/main/python/rakka/profiler/__init__.py)
+  [`atomr.profiler`](https://github.com/rustakka/atomr/blob/main/python/atomr/profiler/__init__.py)
   sub-package (`_probes.py`, `_report.py`, `_scenarios.py`,
   `__main__.py`).
 - Resource probes are Linux-only today (`VmRSS`, `VmHWM`,

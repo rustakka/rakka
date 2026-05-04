@@ -1,0 +1,28 @@
+[package]
+name = "atomr-persistence"
+description = "Event sourcing for atomr — `Eventsourced` trait, recovery permitter, async snapshotter, persistent FSM, at-least-once delivery."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+documentation = "https://docs.rs/atomr-persistence"
+keywords = ["actor", "event-sourcing", "persistence", "cqrs"]
+categories = ["database", "concurrency"]
+
+[dependencies]
+atomr-core = { workspace = true }
+serde = { workspace = true }
+parking_lot = { workspace = true }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

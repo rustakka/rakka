@@ -4,7 +4,7 @@
 
 use pyo3::prelude::*;
 
-#[pyclass(name = "Props", module = "rakka._native")]
+#[pyclass(name = "Props", module = "atomr._native")]
 pub struct PyProps {
     pub(crate) factory: Py<PyAny>,
     pub(crate) dispatcher: String,

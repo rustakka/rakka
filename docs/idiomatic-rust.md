@@ -1,6 +1,6 @@
 # Idiomatic Rust principles
 
-These are the non-negotiable invariants for rakka. They exist because
+These are the non-negotiable invariants for atomr. They exist because
 the actor model has been transliterated from many languages over the
 years and it would be easy to ship Rust shapes that *compile* but
 fight the borrow checker, blow up the type-erasure budget, and bury

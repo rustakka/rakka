@@ -1,4 +1,4 @@
-//! `xtask` — developer tooling for the rakka workspace.
+//! `xtask` — developer tooling for the atomr workspace.
 //!
 //! Subcommands:
 //! * `sync-upstream` — diff against the tracked Akka.NET commit and print
@@ -7,7 +7,7 @@
 //! * `audit` — count placeholder/anti-pattern sentinels per crate
 //!   (Phase 0 baseline tracker; CI fails on regression).
 //! * `profile` — run the actor perf profiler (rust only).
-//! * `dashboard` — run the rakka-dashboard with embed-ui.
+//! * `dashboard` — run the atomr-dashboard with embed-ui.
 
 use std::collections::BTreeMap;
 use std::env;
@@ -38,7 +38,7 @@ fn main() -> Result<()> {
 }
 
 fn print_help() {
-    println!("rakka xtask");
+    println!("atomr xtask");
     println!();
     println!("USAGE:");
     println!("  cargo xtask <subcommand>");
@@ -52,7 +52,7 @@ fn print_help() {
     println!("  bump <patch|minor|major|--pre <id>|--set <ver>>");
     println!("                                  bump workspace + python version, refresh Cargo.lock");
     println!("  profile [extra args...]         run the actor perf profiler (rust only)");
-    println!("  dashboard [extra args...]       run rakka-dashboard with embed-ui + common features");
+    println!("  dashboard [extra args...]       run atomr-dashboard with embed-ui + common features");
     println!("  help                            print this help");
 }
 
@@ -60,15 +60,15 @@ fn dashboard(mut extra: Vec<String>) -> Result<()> {
     if extra.first().map(|s| s.as_str()) == Some("--") {
         extra.remove(0);
     }
-    let features = std::env::var("RAKKA_DASHBOARD_FEATURES")
+    let features = std::env::var("ATOMR_DASHBOARD_FEATURES")
         .unwrap_or_else(|_| "bin,embed-ui,aggregator,metrics-prometheus".into());
     let status = Command::new(env!("CARGO"))
-        .args(["run", "-q", "-p", "rakka-dashboard", "--features", &features, "--"])
+        .args(["run", "-q", "-p", "atomr-dashboard", "--features", &features, "--"])
         .args(&extra)
         .status()
-        .context("spawning cargo run for rakka-dashboard")?;
+        .context("spawning cargo run for atomr-dashboard")?;
     if !status.success() {
-        return Err(anyhow!("rakka-dashboard exited with {status}"));
+        return Err(anyhow!("atomr-dashboard exited with {status}"));
     }
     Ok(())
 }
@@ -111,12 +111,12 @@ fn profile(mut extra: Vec<String>) -> Result<()> {
         extra.remove(0);
     }
     let status = Command::new(env!("CARGO"))
-        .args(["run", "--release", "-q", "-p", "rakka-profiler", "--"])
+        .args(["run", "--release", "-q", "-p", "atomr-profiler", "--"])
         .args(&extra)
         .status()
-        .context("spawning cargo run for rakka-profiler")?;
+        .context("spawning cargo run for atomr-profiler")?;
     if !status.success() {
-        return Err(anyhow!("rakka-profiler exited with {status}"));
+        return Err(anyhow!("atomr-profiler exited with {status}"));
     }
     Ok(())
 }
@@ -152,7 +152,7 @@ fn bump(args: Vec<String>) -> Result<()> {
     }
     // Refresh Cargo.lock — `cargo metadata` is enough to rewrite it.
     let _ = Command::new(env!("CARGO")).args(["update", "--workspace"]).status();
-    println!("RAKKA_NEW_VERSION={next}");
+    println!("ATOMR_NEW_VERSION={next}");
     Ok(())
 }
 

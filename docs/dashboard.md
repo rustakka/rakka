@@ -1,21 +1,21 @@
 # Telemetry Dashboard
 
-The **rakka-dashboard** is an optional, self-contained HTTP +
-WebSocket service that visualizes a live rakka node. It ships with a
+The **atomr-dashboard** is an optional, self-contained HTTP +
+WebSocket service that visualizes a live atomr node. It ships with a
 React single-page application (Vite + Tailwind + shadcn/ui + React Flow
 + Recharts) that is embedded directly into the Rust binary when built
 with `--features embed-ui`.
 
-The dashboard is strictly opt-in: nothing in `rakka-core` starts it
+The dashboard is strictly opt-in: nothing in `atomr-core` starts it
 by default. Enable it explicitly from Rust (`DashboardServer::start`),
-from Python (`rakka.dashboard.serve`), or with the standalone
-`rakka-dashboard` binary.
+from Python (`atomr.dashboard.serve`), or with the standalone
+`atomr-dashboard` binary.
 
 ## Architecture
 
 ```
 ┌───────────────────────────┐
-│        rakka node      │
+│        atomr node      │
 │ ┌────────────┬──────────┐ │   WebSocket   /ws (filtered events)
 │ │  probes    │ telemetry│ │──────────────────────────────────▶
 │ │ (actors,   │   bus    │ │     REST     /api/* (snapshots)
@@ -27,14 +27,14 @@ from Python (`rakka.dashboard.serve`), or with the standalone
 └───────────────────────────┘
 ```
 
-The **telemetry probes** live in the `rakka-telemetry` crate. They
+The **telemetry probes** live in the `atomr-telemetry` crate. They
 hook every subsystem — actors, dead letters, cluster, sharding,
 persistence, remote, streams, distributed-data — and publish
 `TelemetryEvent`s onto a `tokio::sync::broadcast` bus. Anything that
 subscribes (WebSocket clients, Prometheus exporter, OpenTelemetry
 exporter, external aggregators) receives copies.
 
-The **dashboard service** in `rakka-dashboard` layers an axum
+The **dashboard service** in `atomr-dashboard` layers an axum
 `Router` over the telemetry bus:
 
 - `GET /api/overview` — rollup vitals
@@ -51,10 +51,10 @@ The **dashboard service** in `rakka-dashboard` layers an axum
   (behind the `aggregator` feature)
 - `GET /` — the embedded SPA (behind `embed-ui`)
 
-## Viewing behavior across rakka crates
+## Viewing behavior across atomr crates
 
 The dashboard is the **public face** of **telemetry hooks** in
-`rakka-telemetry`, which is wired into the rest of the workspace so
+`atomr-telemetry`, which is wired into the rest of the workspace so
 you can see **one node’s** behavior as it spans multiple subsystems. You
 are not looking at a single crate in isolation: the same
 `TelemetryExtension` drives REST snapshots, the WebSocket event stream, and
@@ -62,14 +62,14 @@ optional cluster-wide fan-out.
 
 | Area | What you see | Where it is instrumented |
 |------|----------------|---------------------------|
-| **Actors** | Tree, flat list, mailbox depth, spawn/stop | `rakka-core` + actor registry probe |
+| **Actors** | Tree, flat list, mailbox depth, spawn/stop | `atomr-core` + actor registry probe |
 | **Dead letters** | Ring buffer of failed delivers | `ActorRef` / `DeadLetterFeed` |
-| **Cluster** | Members, reachability, gossip | `rakka-cluster` state probe |
-| **Sharding** | Regions, shard allocations | `rakka-cluster-sharding` |
-| **Persistence** | Journals, persistence IDs, recent writes | `rakka-persistence` + `JournalAdmin` |
-| **Remote** | Associations, byte counters | `rakka-remote` |
-| **Streams** | Running/finished materialized graphs | `rakka-streams` |
-| **Distributed data** | Keys, update counts | `rakka-distributed-data` replicator snapshot |
+| **Cluster** | Members, reachability, gossip | `atomr-cluster` state probe |
+| **Sharding** | Regions, shard allocations | `atomr-cluster-sharding` |
+| **Persistence** | Journals, persistence IDs, recent writes | `atomr-persistence` + `JournalAdmin` |
+| **Remote** | Associations, byte counters | `atomr-remote` |
+| **Streams** | Running/finished materialized graphs | `atomr-streams` |
+| **Distributed data** | Keys, update counts | `atomr-distributed-data` replicator snapshot |
 
 **How to use it:** after `TelemetryExtension` is installed, start
 `DashboardServer` (or the standalone binary) and open the UI or call
@@ -99,8 +99,8 @@ same activity. For exporter setup, see [Observability](observability.md).
 ### From Rust
 
 ```rust
-use rakka_dashboard::{DashboardConfig, DashboardMode, DashboardServer};
-use rakka_telemetry::TelemetryExtension;
+use atomr_dashboard::{DashboardConfig, DashboardMode, DashboardServer};
+use atomr_telemetry::TelemetryExtension;
 
 let telemetry = TelemetryExtension::new("worker-1", 1024).install(&system);
 let server = DashboardServer::new(
@@ -119,7 +119,7 @@ handle.shutdown().await;
 ### From Python
 
 ```python
-from rakka import dashboard
+from atomr import dashboard
 
 handle = dashboard.serve(
     bind="127.0.0.1:9100",
@@ -141,7 +141,7 @@ with dashboard.serve(bind="127.0.0.1:0", node="dev") as h:
 ### Standalone binary
 
 ```bash
-cargo run -p rakka-dashboard --features bin,embed-ui,aggregator,metrics-prometheus -- \
+cargo run -p atomr-dashboard --features bin,embed-ui,aggregator,metrics-prometheus -- \
     --bind 127.0.0.1:9100 \
     --node worker-1 \
     --prometheus \
@@ -173,22 +173,22 @@ cargo feature and (b) a runtime opt-in.
 When enabled, the dashboard mounts `GET /metrics` serving the standard
 text exposition. Metric names:
 
-- `rakka_actors_spawned_total`, `rakka_actors_stopped_total`,
-  `rakka_actors_live`
-- `rakka_mailbox_depth{actor_path="…"}`
-- `rakka_dead_letters_total`
-- `rakka_cluster_members_up`, `rakka_cluster_unreachable`,
-  `rakka_cluster_member_events_total{kind="…"}`
-- `rakka_sharding_events_total{region,event}`,
-  `rakka_sharding_allocations{region}`
-- `rakka_persistence_events_written_total{journal}`,
-  `rakka_persistence_last_sequence_nr{journal}`
-- `rakka_remote_endpoints`,
-  `rakka_remote_association_events_total{state}`,
-  `rakka_remote_bytes{remote,direction}`
-- `rakka_streams_running`, `rakka_streams_started_total`,
-  `rakka_streams_finished_total`
-- `rakka_ddata_updates_total{key}`
+- `atomr_actors_spawned_total`, `atomr_actors_stopped_total`,
+  `atomr_actors_live`
+- `atomr_mailbox_depth{actor_path="…"}`
+- `atomr_dead_letters_total`
+- `atomr_cluster_members_up`, `atomr_cluster_unreachable`,
+  `atomr_cluster_member_events_total{kind="…"}`
+- `atomr_sharding_events_total{region,event}`,
+  `atomr_sharding_allocations{region}`
+- `atomr_persistence_events_written_total{journal}`,
+  `atomr_persistence_last_sequence_nr{journal}`
+- `atomr_remote_endpoints`,
+  `atomr_remote_association_events_total{state}`,
+  `atomr_remote_bytes{remote,direction}`
+- `atomr_streams_running`, `atomr_streams_started_total`,
+  `atomr_streams_finished_total`
+- `atomr_ddata_updates_total{key}`
 
 All metrics carry a constant `node="…"` label.
 
@@ -196,7 +196,7 @@ Example Prometheus scrape config:
 
 ```yaml
 scrape_configs:
-  - job_name: rakka
+  - job_name: atomr
     metrics_path: /metrics
     static_configs:
       - targets: ["worker-1.internal:9100", "worker-2.internal:9100"]
@@ -205,14 +205,14 @@ scrape_configs:
 ### OpenTelemetry
 
 Pushes the same semantic metrics under OTel naming
-(`rakka.actors.spawned`, `rakka.dead_letters`, etc.) to an OTLP
+(`atomr.actors.spawned`, `atomr.dead_letters`, etc.) to an OTLP
 collector. Pick a transport at compile time and set a runtime config:
 
 ```toml
 [exporters.otlp]
 endpoint = "http://otel-collector:4317"
 protocol = "grpc"              # or "http"
-service_name = "rakka-app"
+service_name = "atomr-app"
 interval_secs = 15
 traces = true                  # emit message-handle spans
 [exporters.otlp.headers]

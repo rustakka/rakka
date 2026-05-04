@@ -8,7 +8,7 @@ name: Release
 # This workflow:
 #   1. Runs the 1.0-rc gate (`cargo xtask verify`) so a tag never
 #      ships an untested build.
-#   2. Builds release binaries (`rakka-dashboard`, `rakka-profiler`)
+#   2. Builds release binaries (`atomr-dashboard`, `atomr-profiler`)
 #      for Linux x86_64 + macOS aarch64.
 #   3. Creates the GitHub Release with the artifacts attached.
 #   4. Publishes every publishable Rust crate to crates.io in
@@ -91,53 +91,53 @@ jobs:
           node-version: "20"
       - name: Build dashboard SPA (ui/dist for embed-ui)
         shell: bash
-        working-directory: crates/rakka-dashboard/ui
+        working-directory: crates/atomr-dashboard/ui
         run: |
           npm install --no-audit --no-fund
           npm run build
       - name: Install cross (Linux aarch64)
         if: matrix.cross == true
         run: cargo install cross --locked
-      - name: Build rakka-dashboard
+      - name: Build atomr-dashboard
         shell: bash
         run: |
           if [ "${{ matrix.cross }}" = "true" ]; then
-            cross build --release --target ${{ matrix.target }} -p rakka-dashboard --features bin,embed-ui,aggregator,metrics-prometheus
+            cross build --release --target ${{ matrix.target }} -p atomr-dashboard --features bin,embed-ui,aggregator,metrics-prometheus
           else
-            cargo build --release --target ${{ matrix.target }} -p rakka-dashboard --features bin,embed-ui,aggregator,metrics-prometheus
+            cargo build --release --target ${{ matrix.target }} -p atomr-dashboard --features bin,embed-ui,aggregator,metrics-prometheus
           fi
-      - name: Build rakka-profiler
+      - name: Build atomr-profiler
         shell: bash
         run: |
           if [ "${{ matrix.cross }}" = "true" ]; then
-            cross build --release --target ${{ matrix.target }} -p rakka-profiler
+            cross build --release --target ${{ matrix.target }} -p atomr-profiler
           else
-            cargo build --release --target ${{ matrix.target }} -p rakka-profiler
+            cargo build --release --target ${{ matrix.target }} -p atomr-profiler
           fi
       - name: Stage artifacts (unix)
         if: matrix.archive_ext == 'tar.gz'
         shell: bash
         run: |
           mkdir -p artifacts
-          for bin in rakka-dashboard rakka-profiler; do
+          for bin in atomr-dashboard atomr-profiler; do
             src="target/${{ matrix.target }}/release/$bin"
             [ -f "$src" ] && cp "$src" "artifacts/${bin}-${{ matrix.target }}"
           done
-          (cd artifacts && tar czf "rakka-${{ matrix.target }}.tar.gz" rakka-dashboard-* rakka-profiler-*)
+          (cd artifacts && tar czf "atomr-${{ matrix.target }}.tar.gz" atomr-dashboard-* atomr-profiler-*)
       - name: Stage artifacts (windows)
         if: matrix.archive_ext == 'zip'
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path artifacts | Out-Null
-          foreach ($bin in @("rakka-dashboard", "rakka-profiler")) {
+          foreach ($bin in @("atomr-dashboard", "atomr-profiler")) {
             $src = "target/${{ matrix.target }}/release/$bin${{ matrix.bin_ext }}"
             if (Test-Path $src) { Copy-Item $src "artifacts/$bin-${{ matrix.target }}${{ matrix.bin_ext }}" }
           }
-          Compress-Archive -Path "artifacts/rakka-dashboard-*","artifacts/rakka-profiler-*" -DestinationPath "artifacts/rakka-${{ matrix.target }}.zip"
+          Compress-Archive -Path "artifacts/atomr-dashboard-*","artifacts/atomr-profiler-*" -DestinationPath "artifacts/atomr-${{ matrix.target }}.zip"
       - uses: actions/upload-artifact@v4
         with:
-          name: rakka-binaries-${{ matrix.target }}
-          path: artifacts/rakka-${{ matrix.target }}.${{ matrix.archive_ext }}
+          name: atomr-binaries-${{ matrix.target }}
+          path: artifacts/atomr-${{ matrix.target }}.${{ matrix.archive_ext }}
 
   build-wheels:
     name: Build wheels (${{ matrix.target }} / ${{ matrix.os }})
@@ -189,7 +189,7 @@ jobs:
           manylinux: ${{ matrix.manylinux }}
       - uses: actions/upload-artifact@v4
         with:
-          name: rakka-wheels-${{ matrix.target }}
+          name: atomr-wheels-${{ matrix.target }}
           path: dist/*.whl
 
   build-sdist:
@@ -209,7 +209,7 @@ jobs:
           args: --out dist
       - uses: actions/upload-artifact@v4
         with:
-          name: rakka-sdist
+          name: atomr-sdist
           path: dist/*.tar.gz
 
   github-release:
@@ -234,24 +234,24 @@ jobs:
           prev=$(git tag --sort=-creatordate | grep -v "^${tag}$" | head -n1 || true)
           range="${prev:+$prev..}HEAD"
           {
-            echo "## rakka ${tag}"
+            echo "## atomr ${tag}"
             echo
             echo "### Changes"
             git log --no-merges --pretty=format:'- %s (%h)' "${range}"
             echo
             echo
             echo "### Crates published"
-            grep -E "rakka-[a-z-]+ = \{ path" Cargo.toml | sed 's/^/- /'
+            grep -E "atomr-[a-z-]+ = \{ path" Cargo.toml | sed 's/^/- /'
             echo
             echo "### Python wheels"
-            ls artifacts | grep "rakka-wheels-" | sed 's/^/- /' || true
+            ls artifacts | grep "atomr-wheels-" | sed 's/^/- /' || true
           } > RELEASE_NOTES.md
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.notes.outputs.tag }}
-          name: rakka ${{ steps.notes.outputs.tag }}
+          name: atomr ${{ steps.notes.outputs.tag }}
           body_path: RELEASE_NOTES.md
           prerelease: ${{ contains(steps.notes.outputs.tag, '-') }}
           files: |
@@ -319,23 +319,23 @@ jobs:
           # earliest layer that has all its dependencies already
           # published in earlier layers.
           for crate in \
-            rakka-config \
-            rakka-core \
-            rakka-macros rakka-testkit rakka-remote \
-            rakka-persistence rakka-streams \
-            rakka-coordination rakka-discovery rakka-di \
-            rakka-cluster \
-            rakka-persistence-tck rakka-persistence-query \
-            rakka-hosting \
-            rakka-distributed-data rakka-cluster-tools rakka-cluster-metrics \
-            rakka-persistence-query-inmemory rakka-persistence-sql \
-            rakka-persistence-redis rakka-persistence-mongodb \
-            rakka-persistence-cassandra rakka-persistence-aws \
-            rakka-persistence-azure \
-            rakka-cluster-sharding \
-            rakka-telemetry \
-            rakka-dashboard \
-            rakka-rs; do
+            atomr-config \
+            atomr-core \
+            atomr-macros atomr-testkit atomr-remote \
+            atomr-persistence atomr-streams \
+            atomr-coordination atomr-discovery atomr-di \
+            atomr-cluster \
+            atomr-persistence-tck atomr-persistence-query \
+            atomr-hosting \
+            atomr-distributed-data atomr-cluster-tools atomr-cluster-metrics \
+            atomr-persistence-query-inmemory atomr-persistence-sql \
+            atomr-persistence-redis atomr-persistence-mongodb \
+            atomr-persistence-cassandra atomr-persistence-aws \
+            atomr-persistence-azure \
+            atomr-cluster-sharding \
+            atomr-telemetry \
+            atomr-dashboard \
+            atomr; do
             publish_one "$crate"
           done
 
@@ -350,9 +350,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Dry-run publish (foundation crates)
         run: |
-          for c in rakka-config rakka-macros rakka-core rakka-testkit rakka-remote \
-                   rakka-distributed-data rakka-cluster rakka-persistence rakka-streams \
-                   rakka-cluster-sharding rakka; do
+          for c in atomr-config atomr-macros atomr-core atomr-testkit atomr-remote \
+                   atomr-distributed-data atomr-cluster atomr-persistence atomr-streams \
+                   atomr-cluster-sharding atomr; do
             echo "==> $c"
             cargo publish -p "$c" --dry-run --allow-dirty || true
           done
@@ -366,7 +366,7 @@ jobs:
     # publishing → add GitHub publisher (owner / repo / workflow / env).
     environment:
       name: pypi
-      url: https://pypi.org/p/rakka
+      url: https://pypi.org/p/atomr
     permissions:
       id-token: write
     steps:
@@ -377,7 +377,7 @@ jobs:
           # `*.tar.gz` extension with the sdist but are not valid
           # PyPI uploads, so download just the wheel + sdist
           # artifact buckets.
-          pattern: "rakka-{wheels-*,sdist}"
+          pattern: "atomr-{wheels-*,sdist}"
       - name: Flatten wheel + sdist artifacts
         run: |
           mkdir -p upload
@@ -398,14 +398,14 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true' && github.event.inputs.skip_python != 'true'
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/rakka
+      url: https://test.pypi.org/p/atomr
     permissions:
       id-token: write
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: dist
-          pattern: "rakka-{wheels-*,sdist}"
+          pattern: "atomr-{wheels-*,sdist}"
       - name: Flatten wheel + sdist artifacts
         run: |
           mkdir -p upload

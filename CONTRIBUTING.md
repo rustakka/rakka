@@ -1,6 +1,6 @@
-# Contributing to rakka
+# Contributing to atomr
 
-Thanks for your interest in contributing! rakka is a native-Rust
+Thanks for your interest in contributing! atomr is a native-Rust
 runtime for actor-based concurrent and distributed systems, with
 first-class Python bindings. This guide covers how to get a working
 checkout, the bar for changes, and how releases happen.
@@ -56,7 +56,7 @@ versions.
 
 ## Pull requests
 
-A good rakka PR:
+A good atomr PR:
 
 1. **Stays focused.** One feature, one fix, one refactor — not all three.
 2. **Includes tests.** New behavior gets a unit test or an integration
@@ -84,9 +84,9 @@ merged until CI is green.
 
 | Path | What's there |
 |---|---|
-| `crates/` | Rust workspace — one crate per subsystem (`rakka-core`, `rakka-cluster`, …) |
+| `crates/` | Rust workspace — one crate per subsystem (`atomr-core`, `atomr-cluster`, …) |
 | `crates/py-bindings/` | PyO3 bridge crates |
-| `python/rakka/` | Python package (the facade over the native extension) |
+| `python/atomr/` | Python package (the facade over the native extension) |
 | `python/tests/` | Python integration tests |
 | `examples/` | Runnable Rust examples |
 | `benches/` | Criterion benches |

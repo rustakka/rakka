@@ -1,0 +1,133 @@
+[package]
+name = "atomr"
+description = "Native Rust runtime for actor-based concurrent and distributed systems. Umbrella crate — pull in subsystems via feature flags."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+documentation = "https://docs.rs/atomr"
+readme = "../../README.md"
+keywords = ["actor", "concurrency", "distributed", "async", "supervisor"]
+categories = ["concurrency", "asynchronous", "network-programming"]
+
+[dependencies]
+atomr-core = { workspace = true }
+atomr-config = { workspace = true }
+atomr-macros = { workspace = true, optional = true }
+atomr-testkit = { workspace = true, optional = true }
+atomr-remote = { workspace = true, optional = true }
+atomr-cluster = { workspace = true, optional = true }
+atomr-cluster-tools = { workspace = true, optional = true }
+atomr-cluster-sharding = { workspace = true, optional = true }
+atomr-cluster-metrics = { workspace = true, optional = true }
+atomr-distributed-data = { workspace = true, optional = true }
+atomr-persistence = { workspace = true, optional = true }
+atomr-persistence-query = { workspace = true, optional = true }
+atomr-streams = { workspace = true, optional = true }
+atomr-coordination = { workspace = true, optional = true }
+atomr-discovery = { workspace = true, optional = true }
+atomr-di = { workspace = true, optional = true }
+atomr-hosting = { workspace = true, optional = true }
+atomr-telemetry = { workspace = true, optional = true }
+
+[features]
+# A bare `atomr` dependency gives you the actor system, config, and the
+# ergonomic macros — nothing else. Reach for additional subsystems by
+# turning on their feature flags. Each flag also re-exports the crate
+# under a stable namespace (`atomr::cluster`, `atomr::persistence`, …).
+default = ["macros"]
+
+# Ergonomic derives + helpers (`#[derive(Actor)]`, `props!`, etc.).
+macros = ["dep:atomr-macros"]
+
+# Test scaffolding — probes, virtual time, multi-node spec.
+testkit = ["dep:atomr-testkit"]
+
+# Cross-process / cross-host messaging.
+remote = ["dep:atomr-remote"]
+
+# Membership, gossip, reachability, split-brain resolvers.
+cluster = ["dep:atomr-cluster", "remote"]
+
+# Singleton, distributed pub/sub, cluster client.
+cluster-tools = ["dep:atomr-cluster-tools", "cluster"]
+
+# Sharded entities with rebalance + remember-entities.
+cluster-sharding = ["dep:atomr-cluster-sharding", "cluster", "persistence", "distributed-data"]
+
+# Adaptive load balancing on top of cluster metrics.
+cluster-metrics = ["dep:atomr-cluster-metrics", "cluster"]
+
+# Convergent replicated data types over the cluster.
+distributed-data = ["dep:atomr-distributed-data", "cluster"]
+
+# Event sourcing — journals, snapshots, recovery.
+persistence = ["dep:atomr-persistence"]
+
+# Tagged event streams over journals.
+persistence-query = ["dep:atomr-persistence-query", "persistence"]
+
+# Typed reactive streams DSL.
+streams = ["dep:atomr-streams"]
+
+# Lease-based leadership primitives.
+coordination = ["dep:atomr-coordination"]
+
+# Pluggable service discovery.
+discovery = ["dep:atomr-discovery"]
+
+# Dependency-injection container.
+di = ["dep:atomr-di"]
+
+# Builder API for system + config + DI wiring.
+hosting = ["dep:atomr-hosting", "di"]
+
+# Tracing, metrics, exporters.
+telemetry = ["dep:atomr-telemetry"]
+
+# Convenience bundle: every subsystem atomr ships, plus macros + testkit.
+full = [
+  "macros",
+  "testkit",
+  "remote",
+  "cluster",
+  "cluster-tools",
+  "cluster-sharding",
+  "cluster-metrics",
+  "distributed-data",
+  "persistence",
+  "persistence-query",
+  "streams",
+  "coordination",
+  "discovery",
+  "di",
+  "hosting",
+  "telemetry",
+]
+
+# Convenience bundle for cluster-grade applications: the actor system,
+# remoting, cluster, sharded entities, replicated data, persistence,
+# streams, telemetry. Skips DI / hosting / discovery for projects that
+# wire those themselves.
+cluster-app = [
+  "macros",
+  "remote",
+  "cluster",
+  "cluster-tools",
+  "cluster-sharding",
+  "distributed-data",
+  "persistence",
+  "persistence-query",
+  "streams",
+  "telemetry",
+]
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

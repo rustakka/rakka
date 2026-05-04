@@ -1,13 +1,13 @@
-# rakka
+# atomr
 
 A native Rust runtime for **actor-based concurrent and distributed
-systems**, with first-class Python bindings. rakka gives you a single
+systems**, with first-class Python bindings. atomr gives you a single
 mental model — addressable units of state plus behavior, communicating
 by asynchronous messages — that scales from a single core to a cluster,
 and increasingly from a CPU to a GPU.
 
 ```rust
-use rakka::prelude::*;
+use atomr::prelude::*;
 
 #[derive(Default)]
 struct Greeter;
@@ -31,7 +31,7 @@ message passing. That model is a good fit for two converging trends.
 that reason, call tools, and coordinate are exactly what supervised,
 addressable actors describe. Each agent is an actor; conversations are
 mailboxes; tool calls are typed messages; failure is supervised, not
-silently swallowed. rakka gives that model a runtime that doesn't trade
+silently swallowed. atomr gives that model a runtime that doesn't trade
 performance for safety.
 
 **Unified compute.** Modern workloads no longer live entirely on the
@@ -39,7 +39,7 @@ CPU. Inference, embedding, scoring, simulation — they want a GPU.
 Coordination, control flow, I/O, persistence — they want a CPU.
 Today's stacks force you to glue the two with ad-hoc batching layers,
 queues, and serialization boundaries. The actor model already encodes
-the right boundary: a message *is* the dispatch unit. rakka is built so
+the right boundary: a message *is* the dispatch unit. atomr is built so
 that the same `actor_ref.tell(msg)` can target a CPU mailbox today and
 a CUDA-backed dispatcher tomorrow — with the same supervision, the
 same backpressure, the same observability. The runtime is explicit
@@ -62,49 +62,47 @@ A longer argument is in
 
 | Crate | What it does |
 |---|---|
-| `rakka` | Umbrella facade re-exporting the core types |
-| `rakka-core` | Actors, supervision, dispatch, mailboxes, FSMs, event stream, coordinated shutdown |
-| `rakka-config` | HOCON-style layered configuration |
-| `rakka-macros` | Ergonomic derives and helpers |
-| `rakka-testkit` | Probes, virtual time, deterministic test scaffolding |
-| `rakka-remote` | Location-transparent messaging across processes (TCP + framed PDU + reliable delivery) |
-| `rakka-cluster` | Membership, gossip, reachability, split-brain resolution |
-| `rakka-cluster-tools` | Singleton, pub/sub, cluster-client patterns |
-| `rakka-cluster-sharding` | Shard regions, rebalance, remember-entities, persistent coordinator |
-| `rakka-cluster-metrics` | Adaptive load balancing |
-| `rakka-distributed-data` | Convergent replicated data types (CRDTs) over the cluster |
-| `rakka-persistence` | Event sourcing — journals, snapshots, recovery, async snapshotting |
-| `rakka-persistence-query` | Tagged event streams over journals |
-| `rakka-persistence-{sql,redis,mongodb,cassandra,aws,azure}` | Storage adapters |
-| `rakka-persistence-tck` | Conformance suite for journal + snapshot implementations |
-| `rakka-streams` | Typed reactive streams (sources, flows, sinks, junctions, hubs, kill switches) |
-| `rakka-coordination` | Lease-based leadership primitives |
-| `rakka-discovery` | Pluggable service discovery |
-| `rakka-di` | Dependency-injection container |
-| `rakka-hosting` | Builder API for wiring system + config + DI together |
-| `rakka-telemetry` | Tracing, metrics, exporters |
-| `rakka-dashboard` | Live web UI over the running system |
+| `atomr` | Umbrella facade re-exporting the core types |
+| `atomr-core` | Actors, supervision, dispatch, mailboxes, FSMs, event stream, coordinated shutdown |
+| `atomr-config` | HOCON-style layered configuration |
+| `atomr-macros` | Ergonomic derives and helpers |
+| `atomr-testkit` | Probes, virtual time, deterministic test scaffolding |
+| `atomr-remote` | Location-transparent messaging across processes (TCP + framed PDU + reliable delivery) |
+| `atomr-cluster` | Membership, gossip, reachability, split-brain resolution |
+| `atomr-cluster-tools` | Singleton, pub/sub, cluster-client patterns |
+| `atomr-cluster-sharding` | Shard regions, rebalance, remember-entities, persistent coordinator |
+| `atomr-cluster-metrics` | Adaptive load balancing |
+| `atomr-distributed-data` | Convergent replicated data types (CRDTs) over the cluster |
+| `atomr-persistence` | Event sourcing — journals, snapshots, recovery, async snapshotting |
+| `atomr-persistence-query` | Tagged event streams over journals |
+| `atomr-persistence-{sql,redis,mongodb,cassandra,aws,azure}` | Storage adapters |
+| `atomr-persistence-tck` | Conformance suite for journal + snapshot implementations |
+| `atomr-streams` | Typed reactive streams (sources, flows, sinks, junctions, hubs, kill switches) |
+| `atomr-coordination` | Lease-based leadership primitives |
+| `atomr-discovery` | Pluggable service discovery |
+| `atomr-di` | Dependency-injection container |
+| `atomr-hosting` | Builder API for wiring system + config + DI together |
+| `atomr-telemetry` | Tracing, metrics, exporters |
+| `atomr-dashboard` | Live web UI over the running system |
 
-Plus a Python facade — `pip install rakka` — that exposes the same
+Plus a Python facade — `pip install atomr` — that exposes the same
 actor model with GIL-isolated interpreter pools for CPU-bound work and
 async-native `tell` / `ask`.
 
 ## Quick start (Rust)
 
-The umbrella crate is published on crates.io as **`rakka-rs`** (the
-short name `rakka` is already taken by an unrelated, dormant crate).
-Cargo's package alias keeps the import name `rakka`:
+The umbrella crate is published on crates.io as **`atomr`**:
 
 ```toml
 [dependencies]
-rakka = { package = "rakka-rs", version = "0.2", features = ["cluster", "persistence"] }
+atomr = { version = "0.1", features = ["cluster", "persistence"] }
 ```
 
-Or pull in subsystem crates directly — `rakka-core`, `rakka-cluster`,
-`rakka-persistence`, `rakka-streams`, etc. are all on crates.io.
+Or pull in subsystem crates directly — `atomr-core`, `atomr-cluster`,
+`atomr-persistence`, `atomr-streams`, etc. are all on crates.io.
 
 ```rust
-use rakka::prelude::*;
+use atomr::prelude::*;
 
 #[derive(Default)]
 struct Greeter;
@@ -129,11 +127,11 @@ system.terminate().await;
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install rakka
+pip install atomr
 ```
 
 ```python
-from rakka import Actor, ActorSystem, props
+from atomr import Actor, ActorSystem, props
 
 class Greeter(Actor):
     async def handle(self, ctx, msg):
@@ -168,13 +166,13 @@ mkdocs serve
 
 ## Profiling
 
-rakka ships with a cross-runtime profiler that measures the same four
+atomr ships with a cross-runtime profiler that measures the same four
 scenarios (`tell`, `ask`, `fanout`, `cpu`) in Rust and Python and emits
 a shared JSON schema so the two paths can be compared directly.
 
 ```bash
-cargo run --release -p rakka-profiler -- --scenario all --format md
-python -m rakka.profiler --scenario all --format md
+cargo run --release -p atomr-profiler -- --scenario all --format md
+python -m atomr.profiler --scenario all --format md
 ```
 
 See [`docs/profiler.md`](docs/profiler.md).
@@ -184,7 +182,7 @@ See [`docs/profiler.md`](docs/profiler.md).
 ```
 crates/                 Rust workspace
 crates/py-bindings/     PyO3 bridge crates
-python/rakka/           Python package
+python/atomr/           Python package
 python/tests/           Python integration tests
 examples/               Runnable Rust examples
 benches/                Criterion benches

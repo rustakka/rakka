@@ -5,7 +5,7 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-rakka = { package = "rakka-rs", path = "../../crates/rakka" }
+atomr = { path = "../../crates/atomr" }
 tokio = { workspace = true }
 async-trait = { workspace = true }
 anyhow = { workspace = true }

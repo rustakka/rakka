@@ -1,6 +1,6 @@
 # Depth roadmap
 
-This document tracks the **alignment surface** of each rakka subsystem
+This document tracks the **alignment surface** of each atomr subsystem
 against the feature shape that mature actor runtimes have converged on
 over the last decade. It is not a percent-complete ledger. The goal
 is to call out, per subsystem, where we are aligned and where we
@@ -13,7 +13,7 @@ architectural plan see [`docs/full-port-plan.md`](docs/full-port-plan.md).
 
 ## Foundations
 
-### `rakka-core`
+### `atomr-core`
 
 The actor primitives, supervision, dispatch, mailbox, FSM, event
 stream, and coordinated shutdown.
@@ -34,7 +34,7 @@ stream, and coordinated shutdown.
   whether the dispatcher is a tokio worker pool, a pinned thread,
   or a CUDA stream.
 
-### `rakka-config`
+### `atomr-config`
 
 Layered HOCON-style configuration.
 
@@ -43,14 +43,14 @@ Layered HOCON-style configuration.
   substitution, `${?ENV}` optional substitution.
 - **Native**: integrated typed deserialization via serde.
 
-### `rakka-testkit`
+### `atomr-testkit`
 
 - **Aligned**: `TestKit`, `TestProbe` matchers (`expect_msg_class`,
   `expect_all_of`, `receive_n`, `receive_while`,
   `fish_for_message`), virtual-time `TestScheduler`,
   `MultiNodeSpec` for in-process N-node harnesses, `EventFilter`.
 
-### `rakka-macros`
+### `atomr-macros`
 
 - **Aligned**: derive-and-attribute helpers for actor + receive
   ergonomics.
@@ -59,7 +59,7 @@ Layered HOCON-style configuration.
 
 ## Distribution
 
-### `rakka-remote`
+### `atomr-remote`
 
 Cross-process actor messaging with framed PDU codec, ack'd delivery,
 and an endpoint state machine.
@@ -82,7 +82,7 @@ and an endpoint state machine.
   send-queue backpressure tuning, LRU caches for inflight envelope
   tracking.
 
-### `rakka-cluster`
+### `atomr-cluster`
 
 Membership, gossip, reachability, split-brain resolution.
 
@@ -95,25 +95,25 @@ Membership, gossip, reachability, split-brain resolution.
 - **Depth in progress**: distributed leader-election handover over
   remote, multi-DC tagging.
 
-### `rakka-cluster-tools`
+### `atomr-cluster-tools`
 
 - **Aligned**: distributed pub/sub mediator (typed
   `publish_msg::<M>`, topic + group routing), cluster singleton,
   cluster client.
 
-### `rakka-cluster-sharding`
+### `atomr-cluster-sharding`
 
 - **Aligned**: `ShardAllocationStrategy` (`LeastShard`, `Pinned`),
   shard region, persistent (event-sourced) coordinator, three-phase
   handoff state machine, `PassivationTracker`, remember-entities,
   remote forwarder for cross-node entity messages.
 
-### `rakka-cluster-metrics`
+### `atomr-cluster-metrics`
 
 - **Aligned**: adaptive load balancing using cluster metrics
   snapshots.
 
-### `rakka-distributed-data`
+### `atomr-distributed-data`
 
 - **Aligned**: `GCounter`, `PNCounter`, `GSet`, `OrSet`,
   `LwwRegister`, `Flag`, `ORMap<K, V>`, `LWWMap<K, V>`,
@@ -123,42 +123,42 @@ Membership, gossip, reachability, split-brain resolution.
 
 ## Persistence
 
-### `rakka-persistence`
+### `atomr-persistence`
 
 - **Aligned**: `Eventsourced` trait (Command → Events → State),
   recovery permitter, async snapshot store, `ReceivePersistent`
   closure helper.
 
-### `rakka-persistence-query`
+### `atomr-persistence-query`
 
 - **Aligned**: typed `Offset`, `events_by_tag`, `current_*`
   variants over journals.
 
-### `rakka-persistence-tck`
+### `atomr-persistence-tck`
 
 - **Aligned**: journal + extended journal + concurrent + tag
   + snapshot suites. Every storage adapter must pass.
 
 ### Storage adapters
 
-- `rakka-persistence-sql` — SQL backends with a shared schema and
+- `atomr-persistence-sql` — SQL backends with a shared schema and
   per-dialect migrations.
-- `rakka-persistence-redis` — sorted-set journal, hash snapshot
+- `atomr-persistence-redis` — sorted-set journal, hash snapshot
   store, transactional batches.
-- `rakka-persistence-mongodb` — indexed collections, atomic
+- `atomr-persistence-mongodb` — indexed collections, atomic
   multi-document inserts, BSON payloads.
-- `rakka-persistence-cassandra` — partitioned journal tables,
+- `atomr-persistence-cassandra` — partitioned journal tables,
   prepared-statement replay.
-- `rakka-persistence-aws` — DynamoDB single-table design with
+- `atomr-persistence-aws` — DynamoDB single-table design with
   `E#` / `S#` sort keys, conditional writes.
-- `rakka-persistence-azure` — Azure Table Storage with a
+- `atomr-persistence-azure` — Azure Table Storage with a
   SharedKeyLite client.
 
 All adapters share the TCK as their conformance contract.
 
 ## Reactive streams
 
-### `rakka-streams`
+### `atomr-streams`
 
 - **Aligned**: `Source` / `Flow` / `Sink` linear operators
   (map / filter / take / skip / scan / grouped / concat / prepend
@@ -174,7 +174,7 @@ All adapters share the TCK as their conformance contract.
 
 ## Hosting and integration
 
-### `rakka-coordination`, `rakka-discovery`, `rakka-di`, `rakka-hosting`
+### `atomr-coordination`, `atomr-discovery`, `atomr-di`, `atomr-hosting`
 
 - **Aligned**: lease primitives, pluggable service discovery,
   dependency-injection container, builder API for system + config +
@@ -182,7 +182,7 @@ All adapters share the TCK as their conformance contract.
 
 ## Observability
 
-### `rakka-telemetry`, `rakka-dashboard`
+### `atomr-telemetry`, `atomr-dashboard`
 
 - **Aligned**: probe surface across actors, dead letters, cluster,
   sharding, persistence, remote, streams, distributed data;
@@ -193,7 +193,7 @@ All adapters share the TCK as their conformance contract.
 
 ## Tooling
 
-- `rakka-profiler` — cross-runtime profiler (Rust + Python),
+- `atomr-profiler` — cross-runtime profiler (Rust + Python),
   shared JSON schema, baseline numbers.
 - `cargo xtask audit` — anti-pattern + LOC sentinel ledger with
   baseline regression check.
@@ -203,25 +203,25 @@ All adapters share the TCK as their conformance contract.
 
 ## Python bindings
 
-A separate facade — `pip install rakka` — that re-exposes every
+A separate facade — `pip install atomr` — that re-exposes every
 subsystem above through PyO3 plus a GIL-isolation layer that has no
 direct prior-art equivalent.
 
-- `rakka._native.ActorSystem`, `Actor`, `Props`, `ActorRef`,
+- `atomr._native.ActorSystem`, `Actor`, `Props`, `ActorRef`,
   `Context`, plus the `PyActor` shim, `pinned` and
   `subinterpreter-pool` dispatchers.
 - `InterpreterInstance`, `InterpreterQuota`, `InterpreterMetrics`
   for explicit GIL strategy control.
-- `rakka.testkit`, `rakka.cluster`, `rakka.cluster_tools`,
-  `rakka.cluster_sharding`, `rakka.ddata`, `rakka.persistence`,
-  `rakka.streams`, `rakka.coordination`, `rakka.discovery`,
-  `rakka.di`, `rakka.hosting`.
-- C-extension compatibility registry (`rakka.compat`) that
+- `atomr.testkit`, `atomr.cluster`, `atomr.cluster_tools`,
+  `atomr.cluster_sharding`, `atomr.ddata`, `atomr.persistence`,
+  `atomr.streams`, `atomr.coordination`, `atomr.discovery`,
+  `atomr.di`, `atomr.hosting`.
+- C-extension compatibility registry (`atomr.compat`) that
   surfaces subinterpreter / nogil safety per-extension.
 - Native streams materializer integration (`run_collect`,
   `run_fold` over the Rust streams DSL) plus the legacy Python-only
   `map_reduce` helper.
-- Profiler mirror in `rakka.profiler` with the same scenarios as
+- Profiler mirror in `atomr.profiler` with the same scenarios as
   the Rust binary.
 
 See [`docs/python.md`](docs/python.md) for the GIL strategy guide.

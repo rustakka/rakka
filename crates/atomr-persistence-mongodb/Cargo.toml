@@ -1,0 +1,41 @@
+[package]
+name = "atomr-persistence-mongodb"
+description = "MongoDB journal and snapshot store for atomr — indexed collections, atomic multi-document inserts, BSON payloads."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+documentation = "https://docs.rs/atomr-persistence-mongodb"
+keywords = ["actor", "event-sourcing", "mongodb"]
+categories = ["database", "concurrency"]
+
+[features]
+default = []
+integration = []
+
+[dependencies]
+atomr-persistence = { workspace = true }
+atomr-persistence-query = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
+futures = { workspace = true }
+chrono = { workspace = true }
+mongodb = { workspace = true }
+
+[dev-dependencies]
+atomr-persistence-tck = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

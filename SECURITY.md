@@ -14,7 +14,7 @@ Use GitHub's private vulnerability reporting:
 
 Or email the maintainers (see commit history for current
 maintainers' addresses) with the subject line
-`[security] rakka: <one-line summary>`.
+`[security] atomr: <one-line summary>`.
 
 In your report, please include:
 
@@ -49,17 +49,17 @@ issues, on a best-effort basis.
 | `0.2.x` | Supported |
 | `< 0.2` | End of life |
 
-A formal LTS policy will be published when rakka reaches `1.0`.
+A formal LTS policy will be published when atomr reaches `1.0`.
 
 ## Scope
 
 In scope:
 
 - The Rust workspace crates published to crates.io
-  (`rakka-rs`, `rakka-core`, `rakka-cluster*`, `rakka-persistence*`,
-  `rakka-streams`, `rakka-remote`, …).
-- The Python package published to PyPI (`rakka`).
-- The release artifacts (`rakka-dashboard`, `rakka-profiler` binaries).
+  (`atomr`, `atomr-core`, `atomr-cluster*`, `atomr-persistence*`,
+  `atomr-streams`, `atomr-remote`, …).
+- The Python package published to PyPI (`atomr`).
+- The release artifacts (`atomr-dashboard`, `atomr-profiler` binaries).
 - The CI pipeline insofar as a compromise would affect published
   artifacts.
 
@@ -73,7 +73,7 @@ Out of scope:
 
 ## Hardening guidance
 
-If you are deploying rakka in a security-sensitive environment, see
+If you are deploying atomr in a security-sensitive environment, see
 `docs/observability.md` and `docs/remoting.md` for the recommended
 configuration: TLS for cross-host transport, an SBR (split-brain
 resolver), authenticated discovery, and telemetry export to a SIEM.

@@ -5,7 +5,7 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-rakka-cluster-sharding = { workspace = true }
+atomr-cluster-sharding = { workspace = true }
 tokio = { workspace = true }
 anyhow = { workspace = true }
 

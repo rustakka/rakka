@@ -1,6 +1,6 @@
 [package]
-name = "rakka-pyddata"
-description = "Placeholder sub-crate (bindings aggregated in rakka-pycore)."
+name = "atomr-pyddata"
+description = "Placeholder sub-crate (bindings aggregated in atomr-pycore)."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

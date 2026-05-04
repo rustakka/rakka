@@ -3,13 +3,13 @@ requires = ["maturin>=1.5,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "rakka"
-version = "0.2.2"
+name = "atomr"
+version = "0.1.0"
 description = "Native Rust actor runtime with Python bindings — supervised concurrency from one core to a cluster."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
-authors = [{ name = "rakka contributors" }]
+authors = [{ name = "atomr contributors" }]
 keywords = ["actor", "concurrency", "distributed", "async", "supervisor", "rust"]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -29,11 +29,11 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/rustakka/rakka"
-Documentation = "https://rustakka.github.io/rakka/"
-Repository = "https://github.com/rustakka/rakka"
-Issues = "https://github.com/rustakka/rakka/issues"
-Changelog = "https://github.com/rustakka/rakka/releases"
+Homepage = "https://github.com/rustakka/atomr"
+Documentation = "https://rustakka.github.io/atomr/"
+Repository = "https://github.com/rustakka/atomr"
+Issues = "https://github.com/rustakka/atomr/issues"
+Changelog = "https://github.com/rustakka/atomr/releases"
 
 [project.optional-dependencies]
 dev = ["pytest>=7", "pytest-asyncio>=0.23", "msgpack>=1.0"]
@@ -41,7 +41,7 @@ msgpack = ["msgpack>=1.0"]
 
 [tool.maturin]
 manifest-path = "crates/py-bindings/pycore/Cargo.toml"
-module-name = "rakka._native"
+module-name = "atomr._native"
 python-source = "python"
 features = ["pyo3/extension-module"]
 strip = true

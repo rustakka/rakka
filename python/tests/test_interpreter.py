@@ -1,7 +1,7 @@
 """Interpreter pool + quota + compat registry tests."""
 
-import rakka
-from rakka import Actor, ActorSystem, InterpreterQuota, props
+import atomr
+from atomr import Actor, ActorSystem, InterpreterQuota, props
 
 
 class Counter(Actor):
@@ -25,7 +25,7 @@ def test_configure_interpreter_with_quota():
         for i in range(5):
             assert ref.ask_blocking(i, 5.0) == i + 1
 
-        metrics = rakka._native.interpreter_metrics()
+        metrics = atomr._native.interpreter_metrics()
         labels = {m["label"] for m in metrics}
         assert "workers" in labels
         workers = [m for m in metrics if m["label"] == "workers"][0]
@@ -36,8 +36,8 @@ def test_configure_interpreter_with_quota():
 
 
 def test_compat_declare_and_lookup():
-    rakka.declare_compat("mylib", subinterpreter_safe=True, nogil_safe=False, notes="custom")
-    flags = rakka.compat_flags("mylib")
+    atomr.declare_compat("mylib", subinterpreter_safe=True, nogil_safe=False, notes="custom")
+    flags = atomr.compat_flags("mylib")
     assert flags["subinterpreter_safe"] is True
     assert flags["nogil_safe"] is False
     assert flags["notes"] == "custom"
@@ -53,7 +53,7 @@ def test_interpreter_quota_rejects_overload():
         try:
             sys.actor_of(props(Counter, interpreter_role="tiny"), "a3")
             raised = False
-        except rakka.InterpreterOverloaded:
+        except atomr.InterpreterOverloaded:
             raised = True
         assert raised, "third actor should be rejected"
     finally:

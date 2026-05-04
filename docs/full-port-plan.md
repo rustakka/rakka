@@ -17,8 +17,8 @@ The discipline is empirical. Every subsystem reports through:
 - **Audit metrics** (`cargo xtask audit`) — counts unwrap / panic /
   todo / placeholder / println sentinels; gated against the baseline
   in [`audit-2026-04.md`](audit-2026-04.md). Regressions fail CI.
-- **Conformance tests** — `rakka-persistence-tck` for storage
-  adapters; `rakka-streams` operator coverage; `rakka-cluster`
+- **Conformance tests** — `atomr-persistence-tck` for storage
+  adapters; `atomr-streams` operator coverage; `atomr-cluster`
   multi-node specs.
 - **Idiomatic invariants** — twelve principles in
   [`idiomatic-rust.md`](idiomatic-rust.md), each numbered so PRs and
@@ -53,7 +53,7 @@ apply to every PR. The most load-bearing ones for the depth program:
   contracts. These keep the actor model rigorous as the runtime
   fans out into multiple dispatch backends.
 
-### Actor surface (`rakka-core`)
+### Actor surface (`atomr-core`)
 
 The path from depth `c` to `b` is operator coverage on the rough
 edges of the surface that experienced users reach for:
@@ -74,7 +74,7 @@ edges of the surface that experienced users reach for:
 graph, reflection-style extension lookup that stays typed, FSM
 declarative macro coverage of the upstream feature surface.
 
-### Configuration (`rakka-config`)
+### Configuration (`atomr-config`)
 
 Path from `b` to `a` is HOCON edge cases — substitution within
 arrays, `?:` defaults, `+=` array append, deep `include` resolution
@@ -83,7 +83,7 @@ ergonomic for users who want strongly-typed config sections.
 
 ## Distribution
 
-### Remote (`rakka-remote`)
+### Remote (`atomr-remote`)
 
 Already at `b` with the major protocol pieces — TCP transport,
 framed PDU codec, ack'd delivery, endpoint state machine, watcher,
@@ -100,7 +100,7 @@ process integration tests.
 - Send-queue backpressure tuned for sustained throughput.
 - LRU caches sized for inflight envelope tracking.
 
-### Cluster (`rakka-cluster`)
+### Cluster (`atomr-cluster`)
 
 Already at `b` — membership, reachability, vector clock, five SBR
 strategies, gossip PDU, heartbeat sender, SBR runtime, multi-DC
@@ -111,13 +111,13 @@ leader-action ticks over a pluggable `GossipTransport`.
 handover over remote, member-up/leaving/exiting transitions
 exercised under packet loss, multi-DC quorum semantics.
 
-### Cluster-tools (`rakka-cluster-tools`)
+### Cluster-tools (`atomr-cluster-tools`)
 
 `b`. Path to `a` is full singleton handover under network partition,
 buffered-proxy semantics under reconnect storms, and stress-tested
 distributed pub/sub across a multi-DC cluster.
 
-### Cluster-sharding (`rakka-cluster-sharding`)
+### Cluster-sharding (`atomr-cluster-sharding`)
 
 `b`. Path to `a`:
 
@@ -128,19 +128,19 @@ distributed pub/sub across a multi-DC cluster.
   by multi-node spec.
 - Remember-entities cleanup on graceful and ungraceful shutdown.
 
-### Cluster-metrics (`rakka-cluster-metrics`)
+### Cluster-metrics (`atomr-cluster-metrics`)
 
 `d` → `b`: built-in `sysinfo`-backed probe, metrics gossip,
 adaptive load-balancer benchmarks.
 
-### Distributed data (`rakka-distributed-data`)
+### Distributed data (`atomr-distributed-data`)
 
 `b`. Path to `a` is delta-CRDT propagation under churn, durable
 store conformance, and consistency-level tests at multi-node scale.
 
 ## Persistence
 
-### Core (`rakka-persistence`)
+### Core (`atomr-persistence`)
 
 `b`. Path to `a` is recovery-permitter pressure tests, async
 snapshotter retention semantics, persistent FSM coverage of the
@@ -166,7 +166,7 @@ documented per backend.
 
 ## Reactive streams
 
-### `rakka-streams`
+### `atomr-streams`
 
 `b`. Operator coverage is broad. Path to `a`:
 
@@ -179,7 +179,7 @@ documented per backend.
 
 ## Hosting and integration
 
-### `rakka-coordination`, `rakka-discovery`, `rakka-di`, `rakka-hosting`
+### `atomr-coordination`, `atomr-discovery`, `atomr-di`, `atomr-hosting`
 
 `b`. Each gets to `a` when there's a non-trivial production-grade
 backend (lease impl over a real coordination service, discovery
@@ -188,7 +188,7 @@ service framework).
 
 ## Observability
 
-### `rakka-telemetry`, `rakka-dashboard`
+### `atomr-telemetry`, `atomr-dashboard`
 
 `b`. Path to `a`:
 
@@ -200,7 +200,7 @@ service framework).
 
 ## Tooling
 
-### `rakka-profiler`
+### `atomr-profiler`
 
 `b`. Path to `a` is more scenarios (steady-state cluster traffic,
 sharded-entity throughput, persistent recovery), per-scenario
@@ -216,7 +216,7 @@ audit baseline + LOC ratios.
 
 ## Forward-looking (beyond alignment)
 
-These aren't catch-up items. They are net-new directions that rakka
+These aren't catch-up items. They are net-new directions that atomr
 takes past prior art.
 
 ### GPU dispatcher
@@ -265,6 +265,6 @@ the right direction, it isn't done.
 - [`idiomatic-rust.md`](idiomatic-rust.md) — twelve invariants.
 - [`actors-and-agentic-computing.md`](actors-and-agentic-computing.md)
   — the unified-compute thesis.
-- [`PORTING.md`](https://github.com/rustakka/rakka/blob/main/PORTING.md) — alignment ledger.
-- [`PORTING_TODO.md`](https://github.com/rustakka/rakka/blob/main/PORTING_TODO.md) — depth roadmap by
+- [`PORTING.md`](https://github.com/rustakka/atomr/blob/main/PORTING.md) — alignment ledger.
+- [`PORTING_TODO.md`](https://github.com/rustakka/atomr/blob/main/PORTING_TODO.md) — depth roadmap by
   subsystem.

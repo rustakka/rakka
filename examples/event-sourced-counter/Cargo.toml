@@ -5,7 +5,7 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-rakka-persistence = { workspace = true }
+atomr-persistence = { workspace = true }
 tokio = { workspace = true }
 async-trait = { workspace = true }
 anyhow = { workspace = true }

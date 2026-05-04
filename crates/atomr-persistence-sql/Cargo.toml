@@ -1,0 +1,44 @@
+[package]
+name = "atomr-persistence-sql"
+description = "SQL journal and snapshot store for atomr — sqlx-backed; SQLite default; Postgres / MySQL / MSSQL features."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+documentation = "https://docs.rs/atomr-persistence-sql"
+keywords = ["actor", "event-sourcing", "sqlx", "postgres", "sqlite"]
+categories = ["database", "concurrency"]
+
+[features]
+default = ["sqlite"]
+sqlite = ["sqlx/sqlite"]
+postgres = ["sqlx/postgres"]
+mysql = ["sqlx/mysql"]
+mssql = []
+integration = []
+
+[dependencies]
+atomr-persistence = { workspace = true }
+atomr-persistence-query = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
+sqlx = { workspace = true }
+chrono = { workspace = true }
+
+[dev-dependencies]
+atomr-persistence-tck = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

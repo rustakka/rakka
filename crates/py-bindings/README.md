@@ -1,7 +1,7 @@
 # crates/py-bindings
 
 PyO3 bridge crates. All bindings currently compile into a single cdylib
-(`rakka._native`) produced by [`pycore`](pycore/). The sibling
+(`atomr._native`) produced by [`pycore`](pycore/). The sibling
 directories are structural placeholders so individual wheels can be
 split out later without renaming the Python facade.
 
@@ -9,7 +9,7 @@ split out later without renaming the Python facade.
 
 | Crate | Purpose |
 |-------|---------|
-| [`pycore`](pycore/) | **The actual bindings crate.** Exposes every subsystem as a submodule of `rakka._native`. |
+| [`pycore`](pycore/) | **The actual bindings crate.** Exposes every subsystem as a submodule of `atomr._native`. |
 | `pytestkit` / `pyremote` / `pycluster` / `pycluster-tools` / `pycluster-sharding` / `pyddata` / `pypersistence` / `pystreams` / `pycoordination` / `pydiscovery` / `pydi` / `pyhosting` | Placeholder crates that mirror the Rust workspace layout. `src/lib.rs` is empty on purpose. |
 
 ## Why a single cdylib?
@@ -19,7 +19,7 @@ split out later without renaming the Python facade.
   cross-module types (e.g. passing an `ActorRef` from `pycore` to
   `pycluster`) would require re-plumbing every class.
 - Splitting into per-crate wheels is a downstream packaging decision
-  and can happen later without touching the Python facade (`python/rakka/`).
+  and can happen later without touching the Python facade (`python/atomr/`).
 
 ## Building
 
@@ -34,8 +34,8 @@ maturin develop --release
 pytest python/tests -v
 
 # Type-check / clippy the bindings crate only
-cargo check  -p rakka-pycore
-cargo clippy -p rakka-pycore --no-deps
+cargo check  -p atomr-pycore
+cargo clippy -p atomr-pycore --no-deps
 ```
 
 ## Directory layout of `pycore`
@@ -66,4 +66,4 @@ crates/py-bindings/pycore/src/
   the shared Tokio runtime via `runtime::runtime()` and release the GIL
   with `py.allow_threads`.
 - Errors returned to Python use `crate::errors::map(e)` which wraps
-  anything `Display` as `RakkaError` or its subclasses.
+  anything `Display` as `AtomrError` or its subclasses.

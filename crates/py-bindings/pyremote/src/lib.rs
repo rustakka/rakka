@@ -1,4 +1,4 @@
-//! Pluggable Python codec for `rakka-remote`. Phase P3 / 5.K of
+//! Pluggable Python codec for `atomr-remote`. Phase P3 / 5.K of
 //! `docs/full-port-plan.md` and `PORTING_TODO.md`.
 //!
 //! akka.net's remoting allows users to plug in language-specific
@@ -11,7 +11,7 @@
 //!   codec (JSON / pickle / msgpack — pickle requires the GIL so the
 //!   trait is GIL-agnostic by accepting raw bytes).
 //! * [`PyCodecRegistry`] — a per-system map keyed by `manifest` that
-//!   plugs into [`rakka_remote::SerializerRegistry`] via [`as_remote_serializer`].
+//!   plugs into [`atomr_remote::SerializerRegistry`] via [`as_remote_serializer`].
 //! * [`JsonCodec`] / [`json_codec`] — a built-in JSON codec for tests
 //!   and the simplest Python use-case.
 //!
@@ -26,7 +26,7 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 use thiserror::Error;
 
-use rakka_remote::SerializerRegistry;
+use atomr_remote::SerializerRegistry;
 
 /// Error variants from the codec layer.
 #[derive(Debug, Error)]
@@ -102,9 +102,9 @@ impl PyCodecRegistry {
     }
 }
 
-/// Convert a [`PyCodecRegistry`] into a [`rakka_remote::SerializerRegistry`].
+/// Convert a [`PyCodecRegistry`] into a [`atomr_remote::SerializerRegistry`].
 ///
-/// The actual `SerializerRegistry` API in `rakka-remote` registers
+/// The actual `SerializerRegistry` API in `atomr-remote` registers
 /// typed serializers via `register_bincode::<T>()` / `register_json::<T>()`
 /// — both of which require a typed `T`. The Python side is type-erased
 /// (everything is `Vec<u8>`), so the integration point is a thin

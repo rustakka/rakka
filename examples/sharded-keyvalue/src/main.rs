@@ -15,7 +15,7 @@ use std::sync::{
 };
 use std::time::{Duration, Instant};
 
-use rakka_cluster_sharding::{MessageExtractor, PassivationTracker, ShardCoordinator, ShardRegion};
+use atomr_cluster_sharding::{MessageExtractor, PassivationTracker, ShardCoordinator, ShardRegion};
 
 /// One key/value command. The first character of the key picks the shard.
 #[derive(Clone, Debug)]

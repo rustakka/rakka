@@ -78,7 +78,7 @@ jobs:
     # workspace crate hits 1.0 (15.E gate). The version line below
     # is the single source of truth — flip from `0.` to `1.` to
     # arm the gate.
-    continue-on-error: ${{ !startsWith(vars.RAKKA_WORKSPACE_VERSION || '0.', '1.') }}
+    continue-on-error: ${{ !startsWith(vars.ATOMR_WORKSPACE_VERSION || '0.', '1.') }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -89,13 +89,13 @@ jobs:
         run: |
           set -e
           fails=0
-          for crate in rakka rakka-core rakka-config rakka-macros rakka-testkit \
-                       rakka-remote rakka-cluster rakka-cluster-tools \
-                       rakka-cluster-sharding rakka-cluster-metrics \
-                       rakka-distributed-data rakka-persistence \
-                       rakka-persistence-query rakka-persistence-tck \
-                       rakka-streams rakka-coordination rakka-discovery \
-                       rakka-di rakka-hosting; do
+          for crate in atomr atomr-core atomr-config atomr-macros atomr-testkit \
+                       atomr-remote atomr-cluster atomr-cluster-tools \
+                       atomr-cluster-sharding atomr-cluster-metrics \
+                       atomr-distributed-data atomr-persistence \
+                       atomr-persistence-query atomr-persistence-tck \
+                       atomr-streams atomr-coordination atomr-discovery \
+                       atomr-di atomr-hosting; do
             echo "==> $crate"
             cargo semver-checks check-release --package "$crate" || fails=$((fails+1))
           done

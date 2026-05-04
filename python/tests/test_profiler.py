@@ -1,13 +1,13 @@
-"""Smoke tests for rakka.profiler."""
+"""Smoke tests for atomr.profiler."""
 
 from __future__ import annotations
 
 import json
 
-import rakka
-from rakka.profiler import DEFAULT_MESSAGES, SCENARIOS, run
-from rakka.profiler._probes import best_dispatcher_for, rss_bytes
-from rakka.profiler._report import (
+import atomr
+from atomr.profiler import DEFAULT_MESSAGES, SCENARIOS, run
+from atomr.profiler._probes import best_dispatcher_for, rss_bytes
+from atomr.profiler._report import (
     Measurement,
     ProfilerReport,
     fmt_ns,
@@ -48,7 +48,7 @@ def test_percentile_and_format_helpers():
 def test_run_tiny_subset_produces_valid_report():
     report: ProfilerReport = run(("tell", "ask"), messages=200)
     assert report.runtime == "python"
-    assert report.version == rakka.__version__
+    assert report.version == atomr.__version__
     assert len(report.measurements) == 2
     tell = next(m for m in report.measurements if m.scenario == "tell")
     ask = next(m for m in report.measurements if m.scenario == "ask")

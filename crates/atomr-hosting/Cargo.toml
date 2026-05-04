@@ -1,0 +1,26 @@
+[package]
+name = "atomr-hosting"
+description = "Builder API for wiring a atomr system together — config, DI, setup hooks."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+documentation = "https://docs.rs/atomr-hosting"
+keywords = ["actor", "hosting", "dependency-injection"]
+categories = ["rust-patterns", "concurrency"]
+
+[dependencies]
+atomr-core = { workspace = true }
+atomr-config = { workspace = true }
+atomr-di = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

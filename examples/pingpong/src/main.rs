@@ -1,7 +1,7 @@
 //! PingPong example. akka.net: `src/examples/PingPong`.
 
 use async_trait::async_trait;
-use rakka::prelude::*;
+use atomr::prelude::*;
 
 #[derive(Debug)]
 enum PingMsg {

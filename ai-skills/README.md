@@ -1,24 +1,24 @@
 # ai-skills/
 
 Skills for AI coding assistants working on **projects that depend on
-rakka** — not for editing rakka itself. They follow the standard
+atomr** — not for editing atomr itself. They follow the standard
 `SKILL.md` + frontmatter convention used by Claude Code, Claude Agent
 SDK, and other agentic tools.
 
 These skills are deliberately separate from the repo's own dev tooling
 (`.claude/`, `xtask/`, etc.) so that distributing them to consumers
-does not entangle rakka's internal development workflow.
+does not entangle atomr's internal development workflow.
 
 ## What's here
 
 | Skill | Use when… |
 |---|---|
-| `rakka-actor-design` | Authoring or modifying an `impl Actor` — Msg types, supervision, lifecycle, FSM patterns |
-| `rakka-testing` | Writing tests against rakka actors using `rakka-testkit` |
-| `rakka-troubleshooting` | Debugging rakka-flavored errors — mailbox backpressure, missing features, restart loops, split-brain |
-| `rakka-cluster` | Bringing up clustering, sharding, singleton, pub/sub, distributed data |
-| `rakka-persistence` | Event sourcing — journals, snapshots, recovery, picking a storage adapter |
-| `rakka-python` | Using the Python bindings — GIL strategy, async ask/tell, mixing with Rust actors |
+| `atomr-actor-design` | Authoring or modifying an `impl Actor` — Msg types, supervision, lifecycle, FSM patterns |
+| `atomr-testing` | Writing tests against atomr actors using `atomr-testkit` |
+| `atomr-troubleshooting` | Debugging atomr-flavored errors — mailbox backpressure, missing features, restart loops, split-brain |
+| `atomr-cluster` | Bringing up clustering, sharding, singleton, pub/sub, distributed data |
+| `atomr-persistence` | Event sourcing — journals, snapshots, recovery, picking a storage adapter |
+| `atomr-python` | Using the Python bindings — GIL strategy, async ask/tell, mixing with Rust actors |
 
 Each `SKILL.md` is a thin router: it points at canonical docs in this
 repo (`docs/*.md`, `examples/*`) and at the relevant crate's API. It
@@ -33,19 +33,19 @@ vendor-neutral `SKILL.md` files — only the install mechanism differs.
 ### Claude Code (recommended: marketplace)
 
 If you use Claude Code, install via the plugin marketplace — this
-keeps the skills updated as rakka releases, with no manual copy step:
+keeps the skills updated as atomr releases, with no manual copy step:
 
 ```text
-/plugin marketplace add rustakka/rakka
-/plugin install rakka-ai-skills@rakka
+/plugin marketplace add rustakka/atomr
+/plugin install atomr-ai-skills@atomr
 ```
 
 You can also install from a local checkout (useful when developing
-against a rakka fork):
+against a atomr fork):
 
 ```text
-/plugin marketplace add /path/to/rakka
-/plugin install rakka-ai-skills@rakka
+/plugin marketplace add /path/to/atomr
+/plugin install atomr-ai-skills@atomr
 ```
 
 Skills auto-activate based on the `description` frontmatter — no need
@@ -58,11 +58,11 @@ from `.claude/skills/`, copy or symlink the skills in:
 
 ```bash
 # copy (snapshot)
-cp -r /path/to/rakka/ai-skills/skills/* .claude/skills/
+cp -r /path/to/atomr/ai-skills/skills/* .claude/skills/
 
 # symlink (track upstream)
-ln -s /path/to/rakka/ai-skills/skills/rakka-actor-design \
-      .claude/skills/rakka-actor-design
+ln -s /path/to/atomr/ai-skills/skills/atomr-actor-design \
+      .claude/skills/atomr-actor-design
 ```
 
 ### Cursor
@@ -73,7 +73,7 @@ the activation hint:
 
 ```bash
 mkdir -p .cursor/rules
-for s in /path/to/rakka/ai-skills/skills/*/SKILL.md; do
+for s in /path/to/atomr/ai-skills/skills/*/SKILL.md; do
   name=$(basename "$(dirname "$s")")
   cp "$s" ".cursor/rules/${name}.mdc"
 done
@@ -87,15 +87,15 @@ skills from `AGENTS.md` and let the model pull them in on demand:
 
 ```markdown
 <!-- in AGENTS.md -->
-## rakka skills
-When working on rakka actors, consult the matching skill in
+## atomr skills
+When working on atomr actors, consult the matching skill in
 `ai-skills/skills/<name>/SKILL.md`:
-- actor design / supervision → rakka-actor-design
-- tests with rakka-testkit   → rakka-testing
-- cluster / sharding / pubsub → rakka-cluster
-- event sourcing / journals  → rakka-persistence
-- Python bindings            → rakka-python
-- mailbox / restart / errors → rakka-troubleshooting
+- actor design / supervision → atomr-actor-design
+- tests with atomr-testkit   → atomr-testing
+- cluster / sharding / pubsub → atomr-cluster
+- event sourcing / journals  → atomr-persistence
+- Python bindings            → atomr-python
+- mailbox / restart / errors → atomr-troubleshooting
 ```
 
 ### Gemini CLI
@@ -105,12 +105,12 @@ Gemini CLI reads `GEMINI.md` and supports custom commands under
 
 ```markdown
 <!-- in GEMINI.md -->
-For rakka work, load the relevant skill from
+For atomr work, load the relevant skill from
 `ai-skills/skills/<name>/SKILL.md` before editing.
 ```
 
 Optionally wrap each skill as a slash command in
-`.gemini/commands/rakka-<name>.toml` whose `prompt` includes
+`.gemini/commands/atomr-<name>.toml` whose `prompt` includes
 `@ai-skills/skills/<name>/SKILL.md`.
 
 ### Other harnesses (Aider, Continue, Zed, etc.)
@@ -129,7 +129,7 @@ from your tool's rules file (`.aider.conf.yml`, `.continue/`, etc.).
   `examples/*` rather than restating them. Skills go stale; docs
   travel with the code.
 - **Vendor-neutral.** No references to a specific assistant, harness,
-  or tool. Describe rakka, not the runtime loading the skill.
+  or tool. Describe atomr, not the runtime loading the skill.
 - **Frontmatter.** Each skill begins with `---` frontmatter containing
   `name` and `description`. The description is a one-line activation
   hint — what the user is doing when this skill should kick in.

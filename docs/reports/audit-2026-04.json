@@ -208,7 +208,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka": {
+    "atomr": {
       "files": 1,
       "loc": 22,
       "unwrap_used": 0,
@@ -224,7 +224,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-cluster": {
+    "atomr-cluster": {
       "files": 16,
       "loc": 2297,
       "unwrap_used": 0,
@@ -240,7 +240,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-cluster-metrics": {
+    "atomr-cluster-metrics": {
       "files": 1,
       "loc": 399,
       "unwrap_used": 1,
@@ -256,7 +256,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-cluster-sharding": {
+    "atomr-cluster-sharding": {
       "files": 13,
       "loc": 1613,
       "unwrap_used": 0,
@@ -272,7 +272,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-cluster-tools": {
+    "atomr-cluster-tools": {
       "files": 4,
       "loc": 911,
       "unwrap_used": 0,
@@ -288,7 +288,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-config": {
+    "atomr-config": {
       "files": 6,
       "loc": 1060,
       "unwrap_used": 0,
@@ -304,7 +304,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-coordination": {
+    "atomr-coordination": {
       "files": 1,
       "loc": 101,
       "unwrap_used": 0,
@@ -320,7 +320,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-core": {
+    "atomr-core": {
       "files": 60,
       "loc": 5141,
       "unwrap_used": 0,
@@ -336,7 +336,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-dashboard": {
+    "atomr-dashboard": {
       "files": 18,
       "loc": 1062,
       "unwrap_used": 2,
@@ -352,7 +352,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-di": {
+    "atomr-di": {
       "files": 1,
       "loc": 54,
       "unwrap_used": 0,
@@ -368,7 +368,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-discovery": {
+    "atomr-discovery": {
       "files": 1,
       "loc": 62,
       "unwrap_used": 0,
@@ -384,7 +384,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-distributed-data": {
+    "atomr-distributed-data": {
       "files": 10,
       "loc": 1531,
       "unwrap_used": 5,
@@ -400,7 +400,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-hosting": {
+    "atomr-hosting": {
       "files": 1,
       "loc": 81,
       "unwrap_used": 0,
@@ -416,7 +416,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-macros": {
+    "atomr-macros": {
       "files": 1,
       "loc": 240,
       "unwrap_used": 0,
@@ -432,7 +432,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-persistence": {
+    "atomr-persistence": {
       "files": 11,
       "loc": 1569,
       "unwrap_used": 0,
@@ -448,7 +448,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-persistence-aws": {
+    "atomr-persistence-aws": {
       "files": 6,
       "loc": 492,
       "unwrap_used": 0,
@@ -464,7 +464,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-persistence-azure": {
+    "atomr-persistence-azure": {
       "files": 7,
       "loc": 722,
       "unwrap_used": 1,
@@ -480,7 +480,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-persistence-cassandra": {
+    "atomr-persistence-cassandra": {
       "files": 5,
       "loc": 467,
       "unwrap_used": 0,
@@ -496,7 +496,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-persistence-mongodb": {
+    "atomr-persistence-mongodb": {
       "files": 5,
       "loc": 424,
       "unwrap_used": 0,
@@ -512,7 +512,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-persistence-query": {
+    "atomr-persistence-query": {
       "files": 1,
       "loc": 198,
       "unwrap_used": 0,
@@ -528,7 +528,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-persistence-query-inmemory": {
+    "atomr-persistence-query-inmemory": {
       "files": 1,
       "loc": 12,
       "unwrap_used": 0,
@@ -544,7 +544,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-persistence-redis": {
+    "atomr-persistence-redis": {
       "files": 5,
       "loc": 459,
       "unwrap_used": 0,
@@ -560,7 +560,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-persistence-sql": {
+    "atomr-persistence-sql": {
       "files": 7,
       "loc": 586,
       "unwrap_used": 0,
@@ -576,7 +576,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-persistence-tck": {
+    "atomr-persistence-tck": {
       "files": 3,
       "loc": 244,
       "unwrap_used": 33,
@@ -592,7 +592,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-profiler": {
+    "atomr-profiler": {
       "files": 5,
       "loc": 737,
       "unwrap_used": 0,
@@ -608,7 +608,7 @@
       "eprintln_macro": 3,
       "dbg_macro": 0
     },
-    "rakka-remote": {
+    "atomr-remote": {
       "files": 36,
       "loc": 4907,
       "unwrap_used": 0,
@@ -624,7 +624,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-serialization-hyperion": {
+    "atomr-serialization-hyperion": {
       "files": 1,
       "loc": 95,
       "unwrap_used": 0,
@@ -640,7 +640,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-streams": {
+    "atomr-streams": {
       "files": 24,
       "loc": 3085,
       "unwrap_used": 6,
@@ -656,7 +656,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-telemetry": {
+    "atomr-telemetry": {
       "files": 15,
       "loc": 2327,
       "unwrap_used": 0,
@@ -672,7 +672,7 @@
       "eprintln_macro": 0,
       "dbg_macro": 0
     },
-    "rakka-testkit": {
+    "atomr-testkit": {
       "files": 6,
       "loc": 762,
       "unwrap_used": 12,

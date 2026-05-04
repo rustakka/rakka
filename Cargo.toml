@@ -1,35 +1,35 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/rakka",
-    "crates/rakka-core",
-    "crates/rakka-config",
-    "crates/rakka-macros",
-    "crates/rakka-testkit",
-    "crates/rakka-remote",
-    "crates/rakka-cluster",
-    "crates/rakka-cluster-tools",
-    "crates/rakka-cluster-sharding",
-    "crates/rakka-cluster-metrics",
-    "crates/rakka-distributed-data",
-    "crates/rakka-persistence",
-    "crates/rakka-persistence-query",
-    "crates/rakka-persistence-tck",
-    "crates/rakka-persistence-query-inmemory",
-    "crates/rakka-persistence-sql",
-    "crates/rakka-persistence-redis",
-    "crates/rakka-persistence-mongodb",
-    "crates/rakka-persistence-cassandra",
-    "crates/rakka-persistence-aws",
-    "crates/rakka-persistence-azure",
-    "crates/rakka-streams",
-    "crates/rakka-telemetry",
-    "crates/rakka-dashboard",
-    "crates/rakka-coordination",
-    "crates/rakka-discovery",
-    "crates/rakka-di",
-    "crates/rakka-hosting",
-    "crates/rakka-serialization-hyperion",
+    "crates/atomr",
+    "crates/atomr-core",
+    "crates/atomr-config",
+    "crates/atomr-macros",
+    "crates/atomr-testkit",
+    "crates/atomr-remote",
+    "crates/atomr-cluster",
+    "crates/atomr-cluster-tools",
+    "crates/atomr-cluster-sharding",
+    "crates/atomr-cluster-metrics",
+    "crates/atomr-distributed-data",
+    "crates/atomr-persistence",
+    "crates/atomr-persistence-query",
+    "crates/atomr-persistence-tck",
+    "crates/atomr-persistence-query-inmemory",
+    "crates/atomr-persistence-sql",
+    "crates/atomr-persistence-redis",
+    "crates/atomr-persistence-mongodb",
+    "crates/atomr-persistence-cassandra",
+    "crates/atomr-persistence-aws",
+    "crates/atomr-persistence-azure",
+    "crates/atomr-streams",
+    "crates/atomr-telemetry",
+    "crates/atomr-dashboard",
+    "crates/atomr-coordination",
+    "crates/atomr-discovery",
+    "crates/atomr-di",
+    "crates/atomr-hosting",
+    "crates/atomr-serialization-hyperion",
     "xtask",
     "examples/pingpong",
     "examples/chat",
@@ -38,7 +38,7 @@ members = [
     "examples/cluster-pubsub-chat",
     "examples/sharded-keyvalue",
     "benches/ping_throughput",
-    "crates/rakka-profiler",
+    "crates/atomr-profiler",
     "crates/py-bindings/pycore",
     "crates/py-bindings/pytestkit",
     "crates/py-bindings/pyremote",
@@ -56,13 +56,13 @@ members = [
 exclude = ["akka.net"]
 
 [workspace.package]
-version = "0.2.2"
+version = "0.1.0"
 edition = "2021"
 rust-version = "1.78"
 license = "Apache-2.0"
-repository = "https://github.com/rustakka/rakka"
-homepage = "https://github.com/rustakka/rakka"
-authors = ["rakka contributors"]
+repository = "https://github.com/rustakka/atomr"
+homepage = "https://github.com/rustakka/atomr"
+authors = ["atomr contributors"]
 
 [workspace.dependencies]
 # Async / runtime
@@ -133,7 +133,7 @@ sha2 = "0.10"
 base64 = "0.22"
 url = "2"
 
-# HTTP / web (rakka-dashboard)
+# HTTP / web (atomr-dashboard)
 axum = { version = "0.7", default-features = false, features = ["json", "ws", "http1", "tokio", "query", "matched-path"] }
 tower = { version = "0.5", default-features = false, features = ["util"] }
 tower-http = { version = "0.5", default-features = false, features = ["cors", "trace", "fs"] }
@@ -141,34 +141,34 @@ rust-embed = { version = "8" }
 clap = { version = "4", features = ["derive"] }
 
 # Internal
-rakka-rs = { path = "crates/rakka", version = "0.2.2" }
-rakka-core = { path = "crates/rakka-core", version = "0.2.2" }
-rakka-config = { path = "crates/rakka-config", version = "0.2.2" }
-rakka-macros = { path = "crates/rakka-macros", version = "0.2.2" }
-rakka-testkit = { path = "crates/rakka-testkit", version = "0.2.2" }
-rakka-remote = { path = "crates/rakka-remote", version = "0.2.2" }
-rakka-cluster = { path = "crates/rakka-cluster", version = "0.2.2" }
-rakka-cluster-tools = { path = "crates/rakka-cluster-tools", version = "0.2.2" }
-rakka-cluster-sharding = { path = "crates/rakka-cluster-sharding", version = "0.2.2" }
-rakka-cluster-metrics = { path = "crates/rakka-cluster-metrics", version = "0.2.2" }
-rakka-distributed-data = { path = "crates/rakka-distributed-data", version = "0.2.2" }
-rakka-persistence = { path = "crates/rakka-persistence", version = "0.2.2" }
-rakka-persistence-query = { path = "crates/rakka-persistence-query", version = "0.2.2" }
-rakka-persistence-query-inmemory = { path = "crates/rakka-persistence-query-inmemory", version = "0.2.2" }
-rakka-persistence-tck = { path = "crates/rakka-persistence-tck", version = "0.2.2" }
-rakka-persistence-sql = { path = "crates/rakka-persistence-sql", version = "0.2.2" }
-rakka-persistence-redis = { path = "crates/rakka-persistence-redis", version = "0.2.2" }
-rakka-persistence-mongodb = { path = "crates/rakka-persistence-mongodb", version = "0.2.2" }
-rakka-persistence-cassandra = { path = "crates/rakka-persistence-cassandra", version = "0.2.2" }
-rakka-persistence-aws = { path = "crates/rakka-persistence-aws", version = "0.2.2" }
-rakka-persistence-azure = { path = "crates/rakka-persistence-azure", version = "0.2.2" }
-rakka-streams = { path = "crates/rakka-streams", version = "0.2.2" }
-rakka-telemetry = { path = "crates/rakka-telemetry", version = "0.2.2" }
-rakka-dashboard = { path = "crates/rakka-dashboard", version = "0.2.2" }
-rakka-coordination = { path = "crates/rakka-coordination", version = "0.2.2" }
-rakka-discovery = { path = "crates/rakka-discovery", version = "0.2.2" }
-rakka-di = { path = "crates/rakka-di", version = "0.2.2" }
-rakka-hosting = { path = "crates/rakka-hosting", version = "0.2.2" }
+atomr = { path = "crates/atomr", version = "0.1.0" }
+atomr-core = { path = "crates/atomr-core", version = "0.1.0" }
+atomr-config = { path = "crates/atomr-config", version = "0.1.0" }
+atomr-macros = { path = "crates/atomr-macros", version = "0.1.0" }
+atomr-testkit = { path = "crates/atomr-testkit", version = "0.1.0" }
+atomr-remote = { path = "crates/atomr-remote", version = "0.1.0" }
+atomr-cluster = { path = "crates/atomr-cluster", version = "0.1.0" }
+atomr-cluster-tools = { path = "crates/atomr-cluster-tools", version = "0.1.0" }
+atomr-cluster-sharding = { path = "crates/atomr-cluster-sharding", version = "0.1.0" }
+atomr-cluster-metrics = { path = "crates/atomr-cluster-metrics", version = "0.1.0" }
+atomr-distributed-data = { path = "crates/atomr-distributed-data", version = "0.1.0" }
+atomr-persistence = { path = "crates/atomr-persistence", version = "0.1.0" }
+atomr-persistence-query = { path = "crates/atomr-persistence-query", version = "0.1.0" }
+atomr-persistence-query-inmemory = { path = "crates/atomr-persistence-query-inmemory", version = "0.1.0" }
+atomr-persistence-tck = { path = "crates/atomr-persistence-tck", version = "0.1.0" }
+atomr-persistence-sql = { path = "crates/atomr-persistence-sql", version = "0.1.0" }
+atomr-persistence-redis = { path = "crates/atomr-persistence-redis", version = "0.1.0" }
+atomr-persistence-mongodb = { path = "crates/atomr-persistence-mongodb", version = "0.1.0" }
+atomr-persistence-cassandra = { path = "crates/atomr-persistence-cassandra", version = "0.1.0" }
+atomr-persistence-aws = { path = "crates/atomr-persistence-aws", version = "0.1.0" }
+atomr-persistence-azure = { path = "crates/atomr-persistence-azure", version = "0.1.0" }
+atomr-streams = { path = "crates/atomr-streams", version = "0.1.0" }
+atomr-telemetry = { path = "crates/atomr-telemetry", version = "0.1.0" }
+atomr-dashboard = { path = "crates/atomr-dashboard", version = "0.1.0" }
+atomr-coordination = { path = "crates/atomr-coordination", version = "0.1.0" }
+atomr-discovery = { path = "crates/atomr-discovery", version = "0.1.0" }
+atomr-di = { path = "crates/atomr-di", version = "0.1.0" }
+atomr-hosting = { path = "crates/atomr-hosting", version = "0.1.0" }
 
 [profile.release]
 opt-level = 3

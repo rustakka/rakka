@@ -1,4 +1,4 @@
-# rakka
+# atomr
 
 A native Rust runtime for actor-based concurrent and distributed
 systems, with first-class Python bindings. One programming model —
@@ -89,7 +89,7 @@ cargo run   -p pingpong
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install rakka
+pip install atomr
 python python/examples/ml_inference.py
 ```
 
@@ -108,7 +108,7 @@ python python/examples/ml_inference.py
 - [Remoting](remoting.md) — cross-process actor messaging.
 - [Persistence providers](persistence-providers.md) — storage adapters
   and the shared TCK.
-- [Streams](https://github.com/rustakka/rakka#whats-in-the-box) — reactive stream DSL.
+- [Streams](https://github.com/rustakka/atomr#whats-in-the-box) — reactive stream DSL.
 - [Dashboard](dashboard.md) — live system UI.
 - [Observability](observability.md) — exporters and integration
   points.
@@ -121,7 +121,7 @@ python python/examples/ml_inference.py
   baseline tracked by CI.
 - [Migration playbook](migrating-from-akka-net.md) — for teams coming
   from a JVM/CLR actor runtime.
-- [`../README.md`](https://github.com/rustakka/rakka) — repository overview.
-- [`../PORTING.md`](https://github.com/rustakka/rakka/blob/main/PORTING.md) — alignment with prior-art
+- [`../README.md`](https://github.com/rustakka/atomr) — repository overview.
+- [`../PORTING.md`](https://github.com/rustakka/atomr/blob/main/PORTING.md) — alignment with prior-art
   runtimes.
-- [`../PORTING_TODO.md`](https://github.com/rustakka/rakka/blob/main/PORTING_TODO.md) — depth roadmap.
+- [`../PORTING_TODO.md`](https://github.com/rustakka/atomr/blob/main/PORTING_TODO.md) — depth roadmap.

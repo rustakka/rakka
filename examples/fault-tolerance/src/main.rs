@@ -3,7 +3,7 @@
 //! Demonstrates supervision with OneForOne strategy and restart semantics.
 
 use async_trait::async_trait;
-use rakka::prelude::*;
+use atomr::prelude::*;
 
 #[derive(Debug)]
 enum Cmd {

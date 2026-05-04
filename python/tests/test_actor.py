@@ -1,7 +1,7 @@
 """Ping-pong actor via the Python facade."""
 
-import rakka
-from rakka import Actor, ActorSystem, props
+import atomr
+from atomr import Actor, ActorSystem, props
 
 
 class Pong(Actor):

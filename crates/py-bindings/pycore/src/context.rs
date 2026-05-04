@@ -12,7 +12,7 @@ use pyo3::prelude::*;
 
 use crate::actor_ref::PyActorRef;
 
-#[pyclass(name = "Context", module = "rakka._native")]
+#[pyclass(name = "Context", module = "atomr._native")]
 pub struct PyContext {
     pub(crate) self_ref: Py<PyActorRef>,
     pub(crate) path: String,

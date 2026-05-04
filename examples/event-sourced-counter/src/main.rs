@@ -11,7 +11,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rakka_persistence::{
+use atomr_persistence::{
     AsyncSnapshotter, Eventsourced, EventsourcedError, InMemoryJournal, InMemorySnapshotStore,
     RecoveryPermitter, SnapshotPolicy,
 };

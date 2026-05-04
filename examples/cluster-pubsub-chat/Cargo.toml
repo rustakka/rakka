@@ -5,9 +5,9 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-rakka-core = { workspace = true }
-rakka-config = { workspace = true }
-rakka-cluster-tools = { workspace = true }
+atomr-core = { workspace = true }
+atomr-config = { workspace = true }
+atomr-cluster-tools = { workspace = true }
 tokio = { workspace = true }
 async-trait = { workspace = true }
 anyhow = { workspace = true }

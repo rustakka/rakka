@@ -1,4 +1,4 @@
-"""Smoke test for rakka.dashboard.
+"""Smoke test for atomr.dashboard.
 
 Starts the service bound to an ephemeral port, hits a handful of REST
 endpoints with the stdlib HTTP client, and shuts down.
@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import urllib.request
 
-from rakka import dashboard
+from atomr import dashboard
 
 
 def _fetch_json(url: str) -> dict:

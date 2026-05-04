@@ -1,11 +1,11 @@
 """Surface-level checks for every extension submodule."""
 
-import rakka
+import atomr
 
 
 def test_ddata_gcounter_merge():
-    a = rakka.ddata.GCounter()
-    b = rakka.ddata.GCounter()
+    a = atomr.ddata.GCounter()
+    b = atomr.ddata.GCounter()
     a.increment("n1", 5)
     b.increment("n1", 3)
     b.increment("n2", 7)
@@ -14,15 +14,15 @@ def test_ddata_gcounter_merge():
 
 
 def test_ddata_pncounter():
-    c = rakka.ddata.PNCounter()
+    c = atomr.ddata.PNCounter()
     c.increment("n1", 10)
     c.decrement("n1", 3)
     assert c.value() == 7
 
 
 def test_ddata_gset_merges_union():
-    a = rakka.ddata.GSet()
-    b = rakka.ddata.GSet()
+    a = atomr.ddata.GSet()
+    b = atomr.ddata.GSet()
     a.add("x")
     b.add("y")
     a.merge(b)
@@ -30,7 +30,7 @@ def test_ddata_gset_merges_union():
 
 
 def test_ddata_orset_add_remove():
-    s = rakka.ddata.ORSet()
+    s = atomr.ddata.ORSet()
     s.add("k")
     assert s.contains("k")
     s.remove("k")
@@ -38,7 +38,7 @@ def test_ddata_orset_add_remove():
 
 
 def test_persistence_journal_roundtrip():
-    j = rakka.persistence.InMemoryJournal()
+    j = atomr.persistence.InMemoryJournal()
     j.write("pid1", 1, b"a")
     j.write("pid1", 2, b"b")
     seen = j.replay("pid1")
@@ -47,7 +47,7 @@ def test_persistence_journal_roundtrip():
 
 
 def test_coordination_lease_acquire_release():
-    l = rakka.coordination.InMemoryLease()
+    l = atomr.coordination.InMemoryLease()
     assert l.acquire("owner1") is True
     assert l.check() == "owner1"
     l.release("owner1")
@@ -55,7 +55,7 @@ def test_coordination_lease_acquire_release():
 
 
 def test_discovery_static():
-    d = rakka.discovery.StaticDiscovery()
+    d = atomr.discovery.StaticDiscovery()
     d.register("svc", "1.2.3.4", 8080)
     targets = d.lookup("svc")
     assert len(targets) == 1
@@ -65,14 +65,14 @@ def test_discovery_static():
 
 
 def test_di_container():
-    c = rakka.di.ServiceContainer()
+    c = atomr.di.ServiceContainer()
     c.register("greeting", "hello")
     assert c.resolve("greeting") == "hello"
     assert "greeting" in c.keys()
 
 
 def test_pubsub_local():
-    ps = rakka.cluster_tools.DistributedPubSub()
+    ps = atomr.cluster_tools.DistributedPubSub()
     seen = []
     ps.subscribe("t", lambda m: seen.append(m))
     ps.publish("t", {"n": 1})
@@ -81,15 +81,15 @@ def test_pubsub_local():
 
 
 def test_cluster_membership():
-    state = rakka.cluster.MembershipState()
-    m = rakka.cluster.Member("node1")
+    state = atomr.cluster.MembershipState()
+    m = atomr.cluster.Member("node1")
     state.add_or_update(m)
     assert state.member_count() == 1
 
 
 def test_vector_clock_compare():
-    a = rakka.cluster.VectorClock()
-    b = rakka.cluster.VectorClock()
+    a = atomr.cluster.VectorClock()
+    b = atomr.cluster.VectorClock()
     a.tick("A")
     b.tick("A")
     assert a.compare(b) == "same"
@@ -98,7 +98,7 @@ def test_vector_clock_compare():
 
 
 def test_streams_map_reduce():
-    total = rakka.streams.map_reduce(
+    total = atomr.streams.map_reduce(
         range(5), lambda x: x * 2, lambda acc, x: acc + x, 0
     )
     assert total == 0 + 2 + 4 + 6 + 8
@@ -120,7 +120,7 @@ def test_sharding_routes_to_entity():
     def extractor(msg):
         return (str(msg["id"]), msg["payload"])
 
-    region = rakka.cluster_sharding.ShardRegion(factory, extractor)
+    region = atomr.cluster_sharding.ShardRegion(factory, extractor)
     a = region.deliver({"id": 1, "payload": "x"})
     b = region.deliver({"id": 1, "payload": "y"})
     c = region.deliver({"id": 2, "payload": "z"})

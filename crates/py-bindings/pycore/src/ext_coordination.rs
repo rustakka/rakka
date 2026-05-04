@@ -4,12 +4,12 @@ use std::sync::Arc;
 
 use pyo3::prelude::*;
 
-use rakka_coordination::{InMemoryLease, Lease};
+use atomr_coordination::{InMemoryLease, Lease};
 
 use crate::errors;
 use crate::runtime::runtime;
 
-#[pyclass(name = "InMemoryLease", module = "rakka._native.coordination")]
+#[pyclass(name = "InMemoryLease", module = "atomr._native.coordination")]
 pub struct PyInMemoryLease {
     inner: Arc<InMemoryLease>,
 }

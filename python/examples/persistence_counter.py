@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from rakka import persistence
+from atomr import persistence
 
 
 def main() -> None:

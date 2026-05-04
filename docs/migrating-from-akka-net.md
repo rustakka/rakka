@@ -1,19 +1,19 @@
-# Migrating to rakka from a prior-art actor runtime
+# Migrating to atomr from a prior-art actor runtime
 
 A pragmatic guide for engineers coming from a mature typed-actor
 runtime in another language. The vocabulary here is common to most of
 those runtimes — `IActorRef`, `Props`, `ReceiveActor`, `Eventsourced`,
-`DistributedPubSub`, `ShardRegion` — and translates onto the rakka
+`DistributedPubSub`, `ShardRegion` — and translates onto the atomr
 surface with predictable Rust shapes.
 
-rakka is **not** wire-compatible with any prior runtime. The goal is
+atomr is **not** wire-compatible with any prior runtime. The goal is
 **conceptual** alignment with Rust-native shapes, plus a forward path
 to features prior art does not have (e.g. accelerator dispatchers; see
 [`actors-and-agentic-computing.md`](actors-and-agentic-computing.md)).
 
 ## At-a-glance translation table
 
-| Prior-art concept | rakka equivalent |
+| Prior-art concept | atomr equivalent |
 |---|---|
 | Untyped `IActorRef` | `ActorRef<M>` (typed) / `UntypedActorRef` |
 | Untyped actor context | `Context<A>` (typed by actor) |
@@ -47,8 +47,8 @@ to features prior art does not have (e.g. accelerator dispatchers; see
 | `KillSwitch` | `streams::KillSwitch` |
 | `RestartSource` | `streams::RestartSource` + `RestartSettings` |
 | HOCON configuration | `Config::from_hocon_str` / `from_hocon_file` |
-| TestKit / TestProbe | `rakka_testkit::TestProbe` |
-| Multi-node spec | `rakka_testkit::MultiNodeSpec` (in-process N-node) |
+| TestKit / TestProbe | `atomr_testkit::TestProbe` |
+| Multi-node spec | `atomr_testkit::MultiNodeSpec` (in-process N-node) |
 
 ## Idioms that look different
 
@@ -57,7 +57,7 @@ to features prior art does not have (e.g. accelerator dispatchers; see
 The sender enum preserves identity at compile time:
 
 ```rust
-use rakka_core::actor::{Sender, UntypedActorRef};
+use atomr_core::actor::{Sender, UntypedActorRef};
 recipient.tell_from(MyMsg::Ping, Sender::Local(self_ref.clone()));
 
 match ctx.sender() {
@@ -142,14 +142,14 @@ let _handle = bus.subscribe(|ev| match ev {
 ## Things that don't translate
 
 - **Reflection-based serializers.** Wire formats that depend on
-  runtime reflection (e.g. CLR Hyperion) have no rakka equivalent.
-  Use the typed serializer registry: bincode for inter-rakka traffic,
+  runtime reflection (e.g. CLR Hyperion) have no atomr equivalent.
+  Use the typed serializer registry: bincode for inter-atomr traffic,
   or register a typed codec when you need a specific shape.
 - **Process-only test harnesses** that need separate JVM/CLR
   processes per node. `MultiNodeSpec` runs in-process with shared
   barriers; an out-of-process variant is on the roadmap.
 - **Reactive HTTP integrations** that ship with the upstream actor
-  runtime. rakka keeps HTTP out of the core; reach for an HTTP crate
+  runtime. atomr keeps HTTP out of the core; reach for an HTTP crate
   from the wider ecosystem.
 
 ## Migration playbook
@@ -178,5 +178,5 @@ let _handle = bus.subscribe(|ev| match ev {
   explain *why* the Rust shape differs.
 - [`parity.md`](parity.md) — per-crate depth grades.
 - [`actors-and-agentic-computing.md`](actors-and-agentic-computing.md)
-  — what rakka adds beyond the inherited shape (agentic systems +
+  — what atomr adds beyond the inherited shape (agentic systems +
   unified CPU + GPU compute).

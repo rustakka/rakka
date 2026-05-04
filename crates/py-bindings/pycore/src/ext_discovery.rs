@@ -5,11 +5,11 @@ use std::sync::Arc;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
 
-use rakka_discovery::{ResolvedTarget, ServiceDiscovery, StaticDiscovery};
+use atomr_discovery::{ResolvedTarget, ServiceDiscovery, StaticDiscovery};
 
 use crate::runtime::runtime;
 
-#[pyclass(name = "StaticDiscovery", module = "rakka._native.discovery")]
+#[pyclass(name = "StaticDiscovery", module = "atomr._native.discovery")]
 pub struct PyStaticDiscovery {
     inner: Arc<StaticDiscovery>,
 }

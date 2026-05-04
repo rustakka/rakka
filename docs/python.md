@@ -1,9 +1,9 @@
-# rakka Python bindings
+# atomr Python bindings
 
-`rakka` ships first-class Python bindings that let you author actors in
+`atomr` ships first-class Python bindings that let you author actors in
 Python while keeping the Rust scheduler, mailbox, supervision, clustering,
 persistence, and streams machinery below. The native extension is built
-with [PyO3] + [maturin]; the Python facade lives in `python/rakka/`.
+with [PyO3] + [maturin]; the Python facade lives in `python/atomr/`.
 
 ## Install
 
@@ -21,7 +21,7 @@ Supported Python: 3.10+ (abi3). 3.12 enables subinterpreters; 3.13t
 ## Hello, actor
 
 ```python
-from rakka import Actor, ActorSystem, props
+from atomr import Actor, ActorSystem, props
 
 class Greeter(Actor):
     async def handle(self, ctx, msg):
@@ -39,18 +39,18 @@ The Python package mirrors the Rust workspace:
 
 | Rust crate                     | Python module                |
 |--------------------------------|------------------------------|
-| `rakka-core`                | `rakka` (Actor, Props…)   |
-| `rakka-testkit`             | `rakka.testkit`           |
-| `rakka-cluster`             | `rakka.cluster`           |
-| `rakka-cluster-tools`       | `rakka.cluster_tools`     |
-| `rakka-cluster-sharding`    | `rakka.cluster_sharding`  |
-| `rakka-distributed-data`    | `rakka.ddata`             |
-| `rakka-persistence`         | `rakka.persistence`       |
-| `rakka-streams`             | `rakka.streams`           |
-| `rakka-coordination`        | `rakka.coordination`      |
-| `rakka-discovery`           | `rakka.discovery`         |
-| `rakka-di`                  | `rakka.di`                |
-| `rakka-hosting`             | `rakka.hosting`           |
+| `atomr-core`                | `atomr` (Actor, Props…)   |
+| `atomr-testkit`             | `atomr.testkit`           |
+| `atomr-cluster`             | `atomr.cluster`           |
+| `atomr-cluster-tools`       | `atomr.cluster_tools`     |
+| `atomr-cluster-sharding`    | `atomr.cluster_sharding`  |
+| `atomr-distributed-data`    | `atomr.ddata`             |
+| `atomr-persistence`         | `atomr.persistence`       |
+| `atomr-streams`             | `atomr.streams`           |
+| `atomr-coordination`        | `atomr.coordination`      |
+| `atomr-discovery`           | `atomr.discovery`         |
+| `atomr-di`                  | `atomr.di`                |
+| `atomr-hosting`             | `atomr.hosting`           |
 
 ## GIL tuning guide
 
@@ -74,7 +74,7 @@ extensions you import are subinterpreter-safe; see the compatibility
 registry below).
 
 ```python
-from rakka import InterpreterQuota
+from atomr import InterpreterQuota
 
 system.configure_interpreter(
     "ml-inference",
@@ -84,7 +84,7 @@ system.configure_interpreter(
         max_actors=32,
         max_handler_ms=250,
         memory_soft_limit_bytes=2 * 1024**3,
-        module_allowlist=["numpy", "torch", "rakka"],
+        module_allowlist=["numpy", "torch", "atomr"],
         import_policy="eager",
     ),
 )
@@ -95,7 +95,7 @@ system.configure_interpreter(
 Free-threaded CPython 3.13+ (PEP 703). Single interpreter, but no GIL;
 `count` becomes the number of OS worker threads. Only useful if your
 deployment runs a no-GIL CPython build — check with
-`rakka.nogil_supported()`.
+`atomr.nogil_supported()`.
 
 ### `python-subprocess`
 
@@ -119,7 +119,7 @@ used for untrusted handlers or hard memory caps.
 ### Metrics
 
 ```python
-for pool in rakka._native.interpreter_metrics():
+for pool in atomr._native.interpreter_metrics():
     print(pool["label"], pool["kind"], pool["messages_handled"])
 ```
 
@@ -133,9 +133,9 @@ registry. Defaults ship for stdlib, `numpy`, `msgpack`, `pydantic`, etc.
 Operators or library authors can declare their own:
 
 ```python
-import rakka
+import atomr
 
-rakka.declare_compat(
+atomr.declare_compat(
     "my_fast_lib",
     subinterpreter_safe=True,
     nogil_safe=False,
@@ -144,13 +144,13 @@ rakka.declare_compat(
 ```
 
 Handlers that try to import a module flagged as unsafe for the
-selected dispatcher raise `rakka.InterpreterCompatError` — see
-`rakka.compat_list()` for the current registry contents.
+selected dispatcher raise `atomr.InterpreterCompatError` — see
+`atomr.compat_list()` for the current registry contents.
 
 ## Testing
 
 ```python
-from rakka.testkit import testkit  # pytest fixture
+from atomr.testkit import testkit  # pytest fixture
 
 def test_my_actor(testkit):
     probe = testkit.probe()
@@ -166,29 +166,29 @@ def test_my_actor(testkit):
 ## API surface summary
 
 ```python
-rakka.Actor                       # subclass and implement async def handle
-rakka.ActorSystem                 # .create / .create_blocking / .actor_of
-rakka.Props, rakka.props()     # (factory, dispatcher, interpreter_role, mailbox)
-rakka.ActorRef                    # .tell / .ask (asyncio) / .ask_blocking
-rakka.Context                     # .self_ref, .path
-rakka.Config                      # .from_toml / .empty
+atomr.Actor                       # subclass and implement async def handle
+atomr.ActorSystem                 # .create / .create_blocking / .actor_of
+atomr.Props, atomr.props()     # (factory, dispatcher, interpreter_role, mailbox)
+atomr.ActorRef                    # .tell / .ask (asyncio) / .ask_blocking
+atomr.Context                     # .self_ref, .path
+atomr.Config                      # .from_toml / .empty
 
-rakka.InterpreterQuota            # per-pool resource + import policy
-rakka.subinterpreters_supported() # CPython >= 3.12
-rakka.nogil_supported()           # CPython 3.13t (free-threaded)
-rakka.declare_compat / compat_flags / compat_list
+atomr.InterpreterQuota            # per-pool resource + import policy
+atomr.subinterpreters_supported() # CPython >= 3.12
+atomr.nogil_supported()           # CPython 3.13t (free-threaded)
+atomr.declare_compat / compat_flags / compat_list
 
-rakka.testkit.TestKit / TestProbe / testkit (pytest fixture)
-rakka.cluster.Member / MembershipState / VectorClock
-rakka.cluster_tools.DistributedPubSub
-rakka.cluster_sharding.ShardRegion
-rakka.ddata.GCounter / PNCounter / GSet / ORSet
-rakka.persistence.InMemoryJournal
-rakka.streams.map_reduce
-rakka.coordination.InMemoryLease
-rakka.discovery.StaticDiscovery
-rakka.di.ServiceContainer
-rakka.hosting.Builder / ActorSystemBuilder
+atomr.testkit.TestKit / TestProbe / testkit (pytest fixture)
+atomr.cluster.Member / MembershipState / VectorClock
+atomr.cluster_tools.DistributedPubSub
+atomr.cluster_sharding.ShardRegion
+atomr.ddata.GCounter / PNCounter / GSet / ORSet
+atomr.persistence.InMemoryJournal
+atomr.streams.map_reduce
+atomr.coordination.InMemoryLease
+atomr.discovery.StaticDiscovery
+atomr.di.ServiceContainer
+atomr.hosting.Builder / ActorSystemBuilder
 ```
 
 ## Known limitations

@@ -1,22 +1,22 @@
 # Persistence Providers
 
-`rakka-persistence` defines the plugin traits (`Journal`,
+`atomr-persistence` defines the plugin traits (`Journal`,
 `SnapshotStore`, `ReadJournal`). Each backend lives in its own crate so
 applications only pull in the drivers they actually use. Every provider
 is validated against the shared conformance suite exposed by
-`rakka-persistence-tck` (`journal_suite`, `journal_tag_suite`,
+`atomr-persistence-tck` (`journal_suite`, `journal_tag_suite`,
 `snapshot_suite`).
 
 ## Provider matrix
 
 | Crate | Backend | Default feature | Integration test env var |
 | ---- | ---- | ---- | ---- |
-| `rakka-persistence-sql` | SQLite, Postgres, MySQL, MSSQL (via `sqlx`) | `sqlite` | none (`sqlite::memory:`) |
-| `rakka-persistence-redis` | Redis / KeyDB (via `fred`) | — | `RAKKA_IT_REDIS_URL` |
-| `rakka-persistence-mongodb` | MongoDB (official driver) | — | `RAKKA_IT_MONGO_URL` |
-| `rakka-persistence-cassandra` | Cassandra / ScyllaDB (`scylla`) | — | `RAKKA_IT_CASSANDRA_NODES` |
-| `rakka-persistence-aws` | DynamoDB single-table | — | `RAKKA_IT_DYNAMO_ENDPOINT` |
-| `rakka-persistence-azure` | Azure Table Storage (SharedKeyLite) | — | `RAKKA_IT_AZURE_CONNECTION_STRING` |
+| `atomr-persistence-sql` | SQLite, Postgres, MySQL, MSSQL (via `sqlx`) | `sqlite` | none (`sqlite::memory:`) |
+| `atomr-persistence-redis` | Redis / KeyDB (via `fred`) | — | `ATOMR_IT_REDIS_URL` |
+| `atomr-persistence-mongodb` | MongoDB (official driver) | — | `ATOMR_IT_MONGO_URL` |
+| `atomr-persistence-cassandra` | Cassandra / ScyllaDB (`scylla`) | — | `ATOMR_IT_CASSANDRA_NODES` |
+| `atomr-persistence-aws` | DynamoDB single-table | — | `ATOMR_IT_DYNAMO_ENDPOINT` |
+| `atomr-persistence-azure` | Azure Table Storage (SharedKeyLite) | — | `ATOMR_IT_AZURE_CONNECTION_STRING` |
 
 Integration tests short-circuit cleanly when the env var is absent, so
 `cargo test --workspace` remains hermetic.
@@ -25,15 +25,15 @@ Integration tests short-circuit cleanly when the env var is absent, so
 
 ```toml
 [dependencies]
-rakka-persistence = "0.1"
+atomr-persistence = "0.1"
 # Pick ONE (or more) backend:
-rakka-persistence-sql = { version = "0.1", default-features = false, features = ["postgres"] }
+atomr-persistence-sql = { version = "0.1", default-features = false, features = ["postgres"] }
 ```
 
 At runtime the provider crate exposes:
 
 - `*Config::from_env()` — loads connection settings from
-  `RAKKA_PERSISTENCE_*` or provider-specific env vars.
+  `ATOMR_PERSISTENCE_*` or provider-specific env vars.
 - `*Journal::connect(cfg)` / `*SnapshotStore::connect(cfg)` — returns
   `Arc<impl Journal>` / `Arc<impl SnapshotStore>` that plugs directly
   into the core `PersistentActor` machinery.
@@ -42,7 +42,7 @@ At runtime the provider crate exposes:
 ### SQL (unified via `sqlx`)
 
 ```rust
-use rakka_persistence_sql::{SqlConfig, SqlJournal, SqlSnapshotStore};
+use atomr_persistence_sql::{SqlConfig, SqlJournal, SqlSnapshotStore};
 
 let cfg = SqlConfig::new("postgres://app:app@db/app");
 let journal = SqlJournal::connect(cfg.clone()).await?;
@@ -93,7 +93,7 @@ Every provider crate includes a `tests/tck.rs` that wraps the shared
 suite:
 
 ```rust
-use rakka_persistence_tck::{journal_suite, journal_tag_suite, snapshot_suite};
+use atomr_persistence_tck::{journal_suite, journal_tag_suite, snapshot_suite};
 
 #[tokio::test]
 async fn my_journal_is_conformant() {
@@ -118,6 +118,6 @@ cover the non-default SQL feature flags.
 ## Release
 
 `.github/workflows/release.yml` publishes crates in dependency order
-(`rakka-persistence` → `-tck` → `-query` → each provider) when a
+(`atomr-persistence` → `-tck` → `-query` → each provider) when a
 GitHub Release is published. Use the `workflow_dispatch` with
 `dry_run=true` to rehearse publishing without touching crates.io.

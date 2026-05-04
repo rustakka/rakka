@@ -1,6 +1,6 @@
 [package]
-name = "rakka-pycore"
-description = "Python bindings for rakka-core via PyO3."
+name = "atomr-pycore"
+description = "Python bindings for atomr-core via PyO3."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -16,22 +16,22 @@ default = ["extension-module"]
 extension-module = ["pyo3/extension-module"]
 
 [dependencies]
-rakka-core = { workspace = true }
-rakka-config = { workspace = true }
-rakka-testkit = { workspace = true }
-rakka-remote = { workspace = true }
-rakka-cluster = { workspace = true }
-rakka-cluster-tools = { workspace = true }
-rakka-cluster-sharding = { workspace = true }
-rakka-distributed-data = { workspace = true }
-rakka-persistence = { workspace = true }
-rakka-streams = { workspace = true }
-rakka-coordination = { workspace = true }
-rakka-discovery = { workspace = true }
-rakka-di = { workspace = true }
-rakka-hosting = { workspace = true }
-rakka-telemetry = { workspace = true }
-rakka-dashboard = { workspace = true, features = ["aggregator"] }
+atomr-core = { workspace = true }
+atomr-config = { workspace = true }
+atomr-testkit = { workspace = true }
+atomr-remote = { workspace = true }
+atomr-cluster = { workspace = true }
+atomr-cluster-tools = { workspace = true }
+atomr-cluster-sharding = { workspace = true }
+atomr-distributed-data = { workspace = true }
+atomr-persistence = { workspace = true }
+atomr-streams = { workspace = true }
+atomr-coordination = { workspace = true }
+atomr-discovery = { workspace = true }
+atomr-di = { workspace = true }
+atomr-hosting = { workspace = true }
+atomr-telemetry = { workspace = true }
+atomr-dashboard = { workspace = true, features = ["aggregator"] }
 
 pyo3 = { workspace = true, features = ["abi3-py310", "macros"] }
 pyo3-async-runtimes = { workspace = true }

@@ -1,9 +1,9 @@
 # Release pipeline
 
-`/.github/workflows/release.yml` ships rakka to three places on every
+`/.github/workflows/release.yml` ships atomr to three places on every
 `v*` tag:
 
-1. **GitHub Releases** — pre-built `rakka-dashboard` and `rakka-profiler`
+1. **GitHub Releases** — pre-built `atomr-dashboard` and `atomr-profiler`
    binaries plus all built Python wheels.
 2. **crates.io** — every publishable Rust crate, in dependency order.
 3. **PyPI** — platform-specific wheels (Linux x86_64/aarch64, Linux musl
@@ -49,7 +49,7 @@ appropriate `manylinux` / `musllinux` container; the action's
 
 ### sdist (`build-sdist`)
 
-A single source distribution `rakka-X.Y.Z.tar.gz`, used by PyPI for
+A single source distribution `atomr-X.Y.Z.tar.gz`, used by PyPI for
 platforms that have no pre-built wheel.
 
 ## Required secrets / config
@@ -68,7 +68,7 @@ Trusted publishing avoids long-lived API tokens. One-time setup:
 2. Go to *Manage → Publishing → Add a new publisher → GitHub*.
 3. Fill in:
    * Owner: `<your-gh-org>`
-   * Repository: `rakka`
+   * Repository: `atomr`
    * Workflow name: `release.yml`
    * Environment: `pypi`
 4. Repeat for TestPyPI with environment `testpypi` if you want
@@ -112,6 +112,6 @@ gh workflow run release.yml -f dry_run=true
 ```
 
 This runs the verify gate, builds every binary + wheel, and uploads
-to TestPyPI (`https://test.pypi.org/p/rakka`) without touching crates.io
+to TestPyPI (`https://test.pypi.org/p/atomr`) without touching crates.io
 or production PyPI. The artifacts also land on the workflow's
 *Artifacts* panel so you can download and smoke-test before tagging.

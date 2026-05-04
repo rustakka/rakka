@@ -2,14 +2,14 @@
 
 ## Telemetry pipeline
 
-`rakka-telemetry` installs **per-subsystem probes** (see the [Dashboard
-view across crates](dashboard.md#viewing-behavior-across-rakka-crates)
+`atomr-telemetry` installs **per-subsystem probes** (see the [Dashboard
+view across crates](dashboard.md#viewing-behavior-across-atomr-crates)
 table) that publish typed events to a `TelemetryBus`. The optional
-**rakka-dashboard** subscribes to the same data for a **web UI and REST
+**atomr-dashboard** subscribes to the same data for a **web UI and REST
 API**; this document is about the **exporters** that turn that bus into
 Prometheus and OpenTelemetry for long-term store and alert routing.
 
-The telemetry bus inside `rakka-telemetry` can optionally push data
+The telemetry bus inside `atomr-telemetry` can optionally push data
 to external observability backends. Two exporters ship in-tree:
 
 - **Prometheus** — pull-model `/metrics` scrape endpoint on the
@@ -25,13 +25,13 @@ for the full feature matrix and metric reference.
 
 1. Build the dashboard with the `metrics-prometheus` feature:
    ```bash
-   cargo build -p rakka-dashboard --features bin,metrics-prometheus
+   cargo build -p atomr-dashboard --features bin,metrics-prometheus
    ```
 2. Either pass `--prometheus` to the CLI, set
    ```toml
    [exporters.prometheus]
    enabled = true
-   namespace = "rakka"
+   namespace = "atomr"
    ```
    in your dashboard config, or pass
    ```python
@@ -41,7 +41,7 @@ for the full feature matrix and metric reference.
 3. Scrape with:
    ```yaml
    scrape_configs:
-     - job_name: rakka
+     - job_name: atomr
        metrics_path: /metrics
        static_configs:
          - targets: ["worker-1:9100"]
@@ -58,7 +58,7 @@ for the full feature matrix and metric reference.
    [exporters.otlp]
    endpoint = "http://otel-collector:4317"
    protocol = "grpc"
-   service_name = "rakka-app"
+   service_name = "atomr-app"
    interval_secs = 15
    traces = true
    [exporters.otlp.headers]
@@ -71,7 +71,7 @@ for the full feature matrix and metric reference.
            "otlp": {
                "endpoint": "http://otel-collector:4317",
                "protocol": "grpc",
-               "service_name": "rakka-app",
+               "service_name": "atomr-app",
                "interval_secs": 15,
            },
        },

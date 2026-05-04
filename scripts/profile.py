@@ -16,7 +16,7 @@ Usage::
 The orchestrator expects:
 
 * ``cargo`` on PATH (to build/run the Rust binary), OR
-* ``target/release/rakka-profiler`` to already exist.
+* ``target/release/atomr-profiler`` to already exist.
 
 and the Python bindings to already be built
 (``maturin develop --release``).
@@ -39,16 +39,16 @@ SCENARIOS = ("tell", "ask", "fanout", "cpu")
 
 def run_rust(messages: Optional[int]) -> dict:
     """Build (if needed) and invoke the Rust profiler, return parsed JSON."""
-    exe = ROOT / "target" / "release" / "rakka-profiler"
+    exe = ROOT / "target" / "release" / "atomr-profiler"
     if not exe.exists():
         cargo = shutil.which("cargo")
         if not cargo:
             raise RuntimeError(
                 "Rust profiler binary not found and `cargo` missing from PATH. "
-                "Build with `cargo build --release -p rakka-profiler`."
+                "Build with `cargo build --release -p atomr-profiler`."
             )
         subprocess.check_call(
-            [cargo, "build", "--release", "-p", "rakka-profiler"], cwd=ROOT
+            [cargo, "build", "--release", "-p", "atomr-profiler"], cwd=ROOT
         )
     args = [str(exe), "--format", "json", "--scenario", "all"]
     if messages is not None:
@@ -59,7 +59,7 @@ def run_rust(messages: Optional[int]) -> dict:
 
 def run_python(messages: Optional[int]) -> dict:
     """Run the Python profiler module in the current interpreter."""
-    from rakka.profiler import run
+    from atomr.profiler import run
 
     report = run(SCENARIOS, messages=messages)
     return json.loads(report.to_json())
@@ -104,7 +104,7 @@ def _index(report: dict) -> Dict[str, dict]:
 
 
 def merge_markdown(rust: Optional[dict], py: Optional[dict]) -> str:
-    out: List[str] = ["# rakka profiler — cross-runtime comparison", ""]
+    out: List[str] = ["# atomr profiler — cross-runtime comparison", ""]
     for label, rpt in (("rust", rust), ("python", py)):
         if rpt:
             out.append(f"- **{label}** v{rpt.get('version')} host=`{rpt.get('host')}`")

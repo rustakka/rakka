@@ -1,0 +1,39 @@
+[package]
+name = "atomr-profiler"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Cross-runtime actor profiler for atomr — same scenarios in Rust and Python with a shared JSON schema."
+homepage.workspace = true
+readme = "../../README.md"
+documentation = "https://docs.rs/atomr-profiler"
+keywords = ["actor", "profiler", "benchmark"]
+categories = ["development-tools::profiling", "concurrency"]
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "atomr-profiler"
+path = "src/bin/atomr_profiler.rs"
+
+[dependencies]
+atomr = { path = "../atomr", version = "0.1.0" }
+atomr-core = { workspace = true }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

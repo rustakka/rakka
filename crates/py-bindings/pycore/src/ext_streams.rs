@@ -1,4 +1,4 @@
-//! Python streams submodule. Exposes the `rakka-streams` DSL through a
+//! Python streams submodule. Exposes the `atomr-streams` DSL through a
 //! small Python surface: `map_reduce` (Python-only convenience) plus
 //! `run_collect`/`run_fold` entry-points that materialize a source
 //! (defined by a Python iterable + a Python mapper closure) using the
@@ -6,7 +6,7 @@
 
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio as pyo3_tokio;
-use rakka_streams::{ActorMaterializer, Flow, Sink, Source};
+use atomr_streams::{ActorMaterializer, Flow, Sink, Source};
 
 /// `map_reduce(iter, transform, reducer, zero)` — synchronous one-shot
 /// pipeline. Runs entirely in Python; kept for backward compatibility

@@ -1,6 +1,6 @@
-# rakka — Python bindings
+# atomr — Python bindings
 
-First-class Python bindings for the Rust [`rakka`](../) actor
+First-class Python bindings for the Rust [`atomr`](../) actor
 framework. Write actors in Python, run them under the Rust scheduler
 with supervision, clustering, persistence, and streams — and pick a
 dispatcher that matches your workload's GIL tolerance.
@@ -31,7 +31,7 @@ Supported Python: 3.10+ (abi3). 3.12 enables subinterpreters;
 ## Hello, actor
 
 ```python
-from rakka import Actor, ActorSystem, props
+from atomr import Actor, ActorSystem, props
 
 class Greeter(Actor):
     async def handle(self, ctx, msg):
@@ -47,11 +47,11 @@ system.terminate_blocking()
 
 ```
 python/
-├── rakka/                Python facade — import this
+├── atomr/                Python facade — import this
 │   ├── __init__.py          re-exports Actor / ActorSystem / ...
 │   ├── actor.py             Actor base class
 │   ├── system.py            ActorSystem, Props, ActorRef, props()
-│   ├── errors.py            RakkaError, InterpreterOverloaded, ...
+│   ├── errors.py            AtomrError, InterpreterOverloaded, ...
 │   ├── interpreter.py       InterpreterQuota + capability probes
 │   ├── compat.py            C-extension compatibility registry
 │   ├── testkit.py           TestKit, TestProbe, pytest fixture
@@ -84,15 +84,15 @@ python/
 Capability probes:
 
 ```python
-import rakka
-rakka.subinterpreters_supported()   # True on CPython 3.12+
-rakka.nogil_supported()             # True on CPython 3.13t
+import atomr
+atomr.subinterpreters_supported()   # True on CPython 3.12+
+atomr.nogil_supported()             # True on CPython 3.13t
 ```
 
 ### Quotas per interpreter pool
 
 ```python
-from rakka import InterpreterQuota
+from atomr import InterpreterQuota
 
 system.configure_interpreter(
     "ml-inference",
@@ -104,7 +104,7 @@ system.configure_interpreter(
         memory_soft_limit_bytes=2 * 1024**3,
         cpu_share=0.5,
         max_handler_ms=250,
-        module_allowlist=["numpy", "torch", "rakka"],
+        module_allowlist=["numpy", "torch", "atomr"],
         import_policy="eager",
     ),
 )
@@ -113,7 +113,7 @@ system.configure_interpreter(
 ### Metrics
 
 ```python
-for pool in rakka._native.interpreter_metrics():
+for pool in atomr._native.interpreter_metrics():
     print(pool["label"], pool["kind"], pool["messages_handled"])
 ```
 
@@ -128,8 +128,8 @@ known C extensions. Baseline defaults ship for stdlib, `numpy`,
 own:
 
 ```python
-import rakka
-rakka.declare_compat(
+import atomr
+atomr.declare_compat(
     "my_fast_lib",
     subinterpreter_safe=True,
     nogil_safe=False,
@@ -139,12 +139,12 @@ rakka.declare_compat(
 
 ## Profiling
 
-A `rakka.profiler` sub-package mirrors the Rust `rakka-profiler`
+A `atomr.profiler` sub-package mirrors the Rust `atomr-profiler`
 binary:
 
 ```bash
-python -m rakka.profiler --scenario all --format md
-python -m rakka.profiler --scenario cpu --messages 5000 --format json -o cpu.json
+python -m atomr.profiler --scenario all --format md
+python -m atomr.profiler --scenario cpu --messages 5000 --format json -o cpu.json
 ```
 
 It autoconfigures the fastest dispatcher per scenario (`python-nogil` →
@@ -158,7 +158,7 @@ guide in [`../docs/profiler.md`](../docs/profiler.md).
 Use the `testkit` fixture:
 
 ```python
-from rakka.testkit import testkit
+from atomr.testkit import testkit
 
 def test_my_actor(testkit):
     probe = testkit.probe()

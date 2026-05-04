@@ -1,6 +1,6 @@
 # Alignment with prior-art actor runtimes
 
-rakka stands on its own as a native Rust actor runtime. It also draws
+atomr stands on its own as a native Rust actor runtime. It also draws
 on the design vocabulary of decades of mature actor runtimes — the
 module boundaries, the supervision idioms, the persistence and
 clustering primitives, the testkit shape. Keeping our crate boundaries
@@ -16,55 +16,55 @@ production users expect.
 
 ## Crate alignment
 
-| rakka crate | Prior-art module shape |
+| atomr crate | Prior-art module shape |
 |---|---|
-| `rakka-core` | actor system, supervision, dispatch, mailbox, FSM, event stream, coordinated shutdown |
-| `rakka-config` | layered configuration (HOCON-style) |
-| `rakka-testkit` | probes, virtual time, multi-node spec, event filters |
-| `rakka-remote` | location-transparent messaging, framed PDU, ack'd delivery, watcher |
-| `rakka-cluster` | membership, gossip, reachability, split-brain resolvers |
-| `rakka-cluster-tools` | singleton, distributed pub/sub, cluster client |
-| `rakka-cluster-sharding` | shard regions, allocation, rebalance, remember-entities |
-| `rakka-cluster-metrics` | adaptive load balancing |
-| `rakka-distributed-data` | CRDT replicator |
-| `rakka-persistence` | event sourcing, journals, snapshots, recovery permitter |
-| `rakka-persistence-query` | tagged event streams over journals |
-| `rakka-persistence-tck` | conformance suite |
-| `rakka-streams` | typed reactive streams DSL |
-| `rakka-coordination` | lease primitives |
-| `rakka-discovery` | service discovery |
-| `rakka-di` | dependency-injection container |
-| `rakka-hosting` | builder API for system + config + DI |
+| `atomr-core` | actor system, supervision, dispatch, mailbox, FSM, event stream, coordinated shutdown |
+| `atomr-config` | layered configuration (HOCON-style) |
+| `atomr-testkit` | probes, virtual time, multi-node spec, event filters |
+| `atomr-remote` | location-transparent messaging, framed PDU, ack'd delivery, watcher |
+| `atomr-cluster` | membership, gossip, reachability, split-brain resolvers |
+| `atomr-cluster-tools` | singleton, distributed pub/sub, cluster client |
+| `atomr-cluster-sharding` | shard regions, allocation, rebalance, remember-entities |
+| `atomr-cluster-metrics` | adaptive load balancing |
+| `atomr-distributed-data` | CRDT replicator |
+| `atomr-persistence` | event sourcing, journals, snapshots, recovery permitter |
+| `atomr-persistence-query` | tagged event streams over journals |
+| `atomr-persistence-tck` | conformance suite |
+| `atomr-streams` | typed reactive streams DSL |
+| `atomr-coordination` | lease primitives |
+| `atomr-discovery` | service discovery |
+| `atomr-di` | dependency-injection container |
+| `atomr-hosting` | builder API for system + config + DI |
 
 ## Python bindings
 
 The Python facade exposes the Rust crates above through PyO3 plus a
 GIL-isolation layer (`InterpreterInstance`, `InterpreterQuota`,
-`InterpreterMetrics`) that is rakka-native — it has no direct prior-
+`InterpreterMetrics`) that is atomr-native — it has no direct prior-
 art equivalent. See [`docs/python.md`](docs/python.md).
 
 | Python surface | Aligned with |
 |---|---|
-| `rakka._native.ActorSystem` | actor system |
-| `rakka._native.Props` | actor configuration / construction |
-| `rakka._native.ActorRef` | typed addressable reference |
-| `rakka._native.testkit.*` | testkit |
-| `rakka._native.cluster.*` | cluster (Member, Membership, VectorClock) |
-| `rakka._native.cluster_tools.DistributedPubSub` | distributed pub/sub |
-| `rakka._native.cluster_sharding.ShardRegion` | shard region |
-| `rakka._native.ddata.*` | CRDT replicator |
-| `rakka._native.persistence.InMemoryJournal` | in-memory journal |
-| `rakka._native.coordination.InMemoryLease` | lease primitive |
-| `rakka._native.discovery.StaticDiscovery` | service discovery |
-| `rakka._native.di.ServiceContainer` | DI container |
-| `rakka._native.hosting.ActorSystemBuilder` | hosting builder |
+| `atomr._native.ActorSystem` | actor system |
+| `atomr._native.Props` | actor configuration / construction |
+| `atomr._native.ActorRef` | typed addressable reference |
+| `atomr._native.testkit.*` | testkit |
+| `atomr._native.cluster.*` | cluster (Member, Membership, VectorClock) |
+| `atomr._native.cluster_tools.DistributedPubSub` | distributed pub/sub |
+| `atomr._native.cluster_sharding.ShardRegion` | shard region |
+| `atomr._native.ddata.*` | CRDT replicator |
+| `atomr._native.persistence.InMemoryJournal` | in-memory journal |
+| `atomr._native.coordination.InMemoryLease` | lease primitive |
+| `atomr._native.discovery.StaticDiscovery` | service discovery |
+| `atomr._native.di.ServiceContainer` | DI container |
+| `atomr._native.hosting.ActorSystemBuilder` | hosting builder |
 
 ## Deliberate divergences
 
-These are places where rakka does *not* line up with prior art, on
+These are places where atomr does *not* line up with prior art, on
 purpose:
 
-- **Wire format.** rakka uses Tokio + a serde / bincode framed PDU
+- **Wire format.** atomr uses Tokio + a serde / bincode framed PDU
   codec. There is no wire compatibility with JVM or CLR actor
   runtimes. The remote story is a clean native transport — see
   [`docs/remoting.md`](docs/remoting.md).
@@ -81,12 +81,12 @@ purpose:
   similar markers are sealed so that downstream crates extend by
   composition, not by re-implementing the contract.
 
-## Why this matters even when rakka grows past prior art
+## Why this matters even when atomr grows past prior art
 
-The alignment ledger is a discipline, not a ceiling. As rakka grows —
+The alignment ledger is a discipline, not a ceiling. As atomr grows —
 GPU dispatchers, agent-graph integrations, native streaming codecs —
 those new directions stand on top of the same module boundaries. The
-boundary between `rakka-core` and `rakka-cluster` is the same boundary
+boundary between `atomr-core` and `atomr-cluster` is the same boundary
 mature systems have used for years; staying inside it keeps our
 abstractions clean even when we're inventing.
 

@@ -11,7 +11,7 @@ static INIT: Once = Once::new();
 pub fn ensure_initialized() {
     INIT.call_once(|| {
         let mut b = Builder::new_multi_thread();
-        b.enable_all().thread_name("rakka-py");
+        b.enable_all().thread_name("atomr-py");
         pyo3_async_runtimes::tokio::init(b);
     });
 }

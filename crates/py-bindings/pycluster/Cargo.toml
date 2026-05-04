@@ -1,6 +1,6 @@
 [package]
-name = "rakka-pycluster"
-description = "Placeholder sub-crate (bindings aggregated in rakka-pycore)."
+name = "atomr-pycluster"
+description = "Placeholder sub-crate (bindings aggregated in atomr-pycore)."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

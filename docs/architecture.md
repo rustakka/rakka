@@ -1,6 +1,6 @@
 # Architecture
 
-How rakka is laid out, what each crate does, where the dispatch and
+How atomr is laid out, what each crate does, where the dispatch and
 supervision boundaries fall, and where the heterogeneous-compute hooks
 slot in. This is the map for somebody who wants to understand or
 extend the runtime.
@@ -8,28 +8,28 @@ extend the runtime.
 ## Crate stack (bottom → top)
 
 ```
-                         rakka-dashboard / rakka-telemetry
+                         atomr-dashboard / atomr-telemetry
                                         ▲
                                         │
        ┌────────────┬───────────┬───────┼────────┬───────────┐
        │            │           │       │        │           │
        ▼            ▼           ▼       ▼        ▼           ▼
-rakka-streams  rakka-persistence  rakka-cluster-sharding  rakka-cluster-tools
+atomr-streams  atomr-persistence  atomr-cluster-sharding  atomr-cluster-tools
        │            │           │       │        │
        │            │           ▼       ▼        ▼
-       │            │     rakka-cluster ─► rakka-distributed-data
+       │            │     atomr-cluster ─► atomr-distributed-data
        │            │           │       │
        ▼            ▼           ▼       ▼
-                rakka-remote ◄──────── rakka-coordination
-                        ▲              rakka-discovery
-                        │              rakka-di
-                        │              rakka-hosting
+                atomr-remote ◄──────── atomr-coordination
+                        ▲              atomr-discovery
+                        │              atomr-di
+                        │              atomr-hosting
                         ▼
-                  rakka-core
+                  atomr-core
                         ▲
                         │
-                  rakka-config
-                  rakka-macros
+                  atomr-config
+                  atomr-macros
 ```
 
 Each crate owns one concern — picking it up in isolation gives you the
@@ -84,7 +84,7 @@ contract.
   `current_*` variants.
 - Storage adapters (`-sql`, `-redis`, `-mongodb`, `-cassandra`,
   `-aws`, `-azure`) implement the journal + snapshot traits. The TCK
-  in `rakka-persistence-tck` is the conformance contract — every
+  in `atomr-persistence-tck` is the conformance contract — every
   backend must pass.
 
 ### Cluster
@@ -161,9 +161,9 @@ contract.
 
 ### Telemetry and dashboard
 
-- `rakka-telemetry` exposes probes for actors, dead letters, cluster,
+- `atomr-telemetry` exposes probes for actors, dead letters, cluster,
   sharding, persistence, remote, streams, and distributed data.
-- `rakka-dashboard` is an `axum` REST + WebSocket server with an
+- `atomr-dashboard` is an `axum` REST + WebSocket server with an
   embedded React UI (`embed-ui` feature). Cluster-mode aggregator fans
   out across peers so the same UI shows the whole fleet.
 - Prometheus and OTLP exporters cover the same metric surface.
@@ -228,6 +228,6 @@ shouldn't be a new framework — it should be a `with_dispatcher("gpu")`.
 - [Remoting](remoting.md) — the transport layer.
 - [Persistence providers](persistence-providers.md) — the storage
   adapter contract.
-- [Streams](https://github.com/rustakka/rakka#whats-in-the-box) — reactive stream DSL.
+- [Streams](https://github.com/rustakka/atomr#whats-in-the-box) — reactive stream DSL.
 - [Dashboard](dashboard.md) — live system view.
 - [Full port plan](full-port-plan.md) — depth roadmap.

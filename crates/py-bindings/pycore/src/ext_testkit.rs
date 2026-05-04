@@ -12,12 +12,12 @@ use crate::errors;
 use crate::py_actor::{PyActor, PyMessage};
 use crate::runtime::runtime;
 
-use rakka_core::actor::{ActorRef as RustRef, ActorSystem as RustSystem, Props as RustProps};
-use rakka_core::supervision::SupervisorStrategy;
+use atomr_core::actor::{ActorRef as RustRef, ActorSystem as RustSystem, Props as RustProps};
+use atomr_core::supervision::SupervisorStrategy;
 
 /// A TestProbe is a lightweight actor that records every message received
 /// and lets the caller assert on the stream.
-#[pyclass(name = "TestProbe", module = "rakka._native.testkit")]
+#[pyclass(name = "TestProbe", module = "atomr._native.testkit")]
 pub struct PyTestProbe {
     inbox: Arc<Mutex<Vec<Py<PyAny>>>>,
     notify_rx: Arc<tokio::sync::Mutex<mpsc::UnboundedReceiver<()>>>,
@@ -59,16 +59,16 @@ impl PyTestProbe {
             match tokio::time::timeout(dur, recv_fut).await {
                 Ok(Some(())) => {
                     let mut guard = inbox.lock();
-                    guard.pop().ok_or_else(|| PyErr::new::<errors::RakkaError, _>("probe spurious wakeup"))
+                    guard.pop().ok_or_else(|| PyErr::new::<errors::AtomrError, _>("probe spurious wakeup"))
                 }
-                _ => Err(PyErr::new::<errors::RakkaError, _>("probe timeout")),
+                _ => Err(PyErr::new::<errors::AtomrError, _>("probe timeout")),
             }
         })
     }
 }
 
 /// A `TestKit` binds a fresh ActorSystem + helpers.
-#[pyclass(name = "TestKit", module = "rakka._native.testkit")]
+#[pyclass(name = "TestKit", module = "atomr._native.testkit")]
 pub struct PyTestKit {
     pub(crate) system: RustSystem,
     pub(crate) next_probe: Mutex<u64>,
@@ -81,7 +81,7 @@ impl PyTestKit {
     fn new(py: Python<'_>, name: String) -> PyResult<Self> {
         let rt = runtime();
         let system = py
-            .allow_threads(|| rt.block_on(RustSystem::create(name, rakka_config::Config::empty())))
+            .allow_threads(|| rt.block_on(RustSystem::create(name, atomr_config::Config::empty())))
             .map_err(errors::map)?;
         Ok(Self { system, next_probe: Mutex::new(0) })
     }
@@ -118,10 +118,10 @@ struct ProbeActor {
 }
 
 #[async_trait::async_trait]
-impl rakka_core::actor::Actor for ProbeActor {
+impl atomr_core::actor::Actor for ProbeActor {
     type Msg = PyMessage;
 
-    async fn handle(&mut self, _ctx: &mut rakka_core::actor::Context<Self>, msg: Self::Msg) {
+    async fn handle(&mut self, _ctx: &mut atomr_core::actor::Context<Self>, msg: Self::Msg) {
         let payload = msg.payload;
         self.inbox.lock().push(payload);
         let _ = self.tx.send(());

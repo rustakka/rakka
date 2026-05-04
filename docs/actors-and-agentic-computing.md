@@ -136,7 +136,7 @@ deterministic story; the system is concurrent and partially ordered
 unless you add coordination. That's exactly the landscape most
 agentic and distributed applications live in.
 
-## What rakka adds in this picture
+## What atomr adds in this picture
 
 - **Native efficiency**: predictable cost per message, fine-grained
   per-actor footprint, no heavyweight runtime to fight.
@@ -167,4 +167,4 @@ one core to many machines to many compute substrates.
 - [Python bindings](python.md) — interpreter strategies and quotas.
 - [Dashboard](dashboard.md) — live cross-subsystem visibility.
 - [Observability](observability.md) — metrics and tracing exporters.
-- [Repository README](https://github.com/rustakka/rakka) — quick start.
+- [Repository README](https://github.com/rustakka/atomr) — quick start.
