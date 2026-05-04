@@ -6,6 +6,15 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- `pyproject.toml`: explicitly include `LICENSE` in the maturin sdist so
+  PyPI's strict `License-File` metadata check passes. The `0.1.0` PyPI
+  upload published all four wheels but rejected the sdist with
+  `400 License-File LICENSE does not exist in distribution file`.
+  Wheels cover Linux x64 (manylinux + musllinux), macOS universal2, and
+  Windows x64 — sdist install (e.g. aarch64 Linux) requires the next
+  release.
+
 ## [0.1.0] — 2026-05-03
 
 ### Changed

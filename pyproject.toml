@@ -45,6 +45,13 @@ module-name = "atomr._native"
 python-source = "python"
 features = ["pyo3/extension-module"]
 strip = true
+# Maturin auto-emits `License-File: LICENSE` in the package metadata
+# whenever a LICENSE exists next to pyproject.toml. PyPI strictly
+# validates that any declared License-File is physically present in
+# the distribution, so the workspace-root LICENSE must be packed into
+# the sdist + wheel. Without this, `twine upload` of the sdist fails
+# with `400 License-File LICENSE does not exist in distribution file`.
+include = ["LICENSE"]
 
 [tool.pytest.ini_options]
 testpaths = ["python/tests"]
