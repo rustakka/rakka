@@ -13,10 +13,10 @@
 
 use std::sync::Arc;
 
-use parking_lot::RwLock;
 use atomr_core::actor::{ActorRef, ActorSystem, Address, Context, Props};
 use atomr_core::prelude::*;
 use atomr_remote::{RemoteSettings, RemoteSystem};
+use parking_lot::RwLock;
 
 use crate::gossip::Gossip;
 use crate::reachability::ReachabilityStatus;

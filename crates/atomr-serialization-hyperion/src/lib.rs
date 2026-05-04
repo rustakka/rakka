@@ -12,8 +12,8 @@
 
 use std::marker::PhantomData;
 
-use bincode::config;
 use atomr_core::serialization::{Serializer, SerializerError};
+use bincode::config;
 use serde::{de::DeserializeOwned, Serialize};
 
 /// Default identifier for the Hyperion-compat slot. akka.net reserves

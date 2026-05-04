@@ -3,8 +3,8 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use fred::prelude::*;
 use atomr_persistence::{Journal, JournalError, PersistentRepr};
+use fred::prelude::*;
 
 use crate::codec::StoredRepr;
 use crate::config::RedisConfig;

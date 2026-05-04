@@ -14,8 +14,8 @@
 
 use std::sync::Arc;
 
-use parking_lot::RwLock;
 use atomr_core::actor::Address;
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 
 use crate::member::{Member, MemberStatus};

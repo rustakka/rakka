@@ -1,8 +1,8 @@
 //! Criterion bench sending N messages to a null actor.
 
 use async_trait::async_trait;
-use criterion::{criterion_group, criterion_main, Criterion, Throughput};
 use atomr::prelude::*;
+use criterion::{criterion_group, criterion_main, Criterion, Throughput};
 
 struct Null;
 

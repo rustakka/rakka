@@ -3,8 +3,8 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use parking_lot::Mutex;
 use atomr_config::Config;
+use parking_lot::Mutex;
 use thiserror::Error;
 use tokio::sync::{mpsc, Notify};
 

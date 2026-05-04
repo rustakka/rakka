@@ -3,11 +3,11 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use atomr_persistence::{Journal, JournalError, PersistentRepr};
 use futures::TryStreamExt;
 use mongodb::bson::doc;
 use mongodb::options::{FindOptions, IndexOptions};
 use mongodb::{Client, Collection, IndexModel};
-use atomr_persistence::{Journal, JournalError, PersistentRepr};
 
 use crate::config::MongoConfig;
 use crate::documents::EventDoc;

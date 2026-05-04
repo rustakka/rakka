@@ -4,8 +4,8 @@
 //! and the Azurite emulator) and wraps only the handful of operations the
 //! provider crates need. Not a general-purpose Azure SDK.
 
-use chrono::Utc;
 use atomr_persistence::JournalError;
+use chrono::Utc;
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{Client, Method};
 use serde::de::DeserializeOwned;

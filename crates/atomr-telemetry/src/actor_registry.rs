@@ -6,8 +6,8 @@
 
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use dashmap::DashMap;
 use atomr_core::actor::{ActorPath, SpawnObserver};
+use dashmap::DashMap;
 
 use crate::bus::{TelemetryBus, TelemetryEvent};
 use crate::dto::{ActorSnapshot, ActorStatus, ActorTreeNode};

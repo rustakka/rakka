@@ -5,10 +5,10 @@
 
 use std::net::SocketAddr;
 
-use clap::Parser;
 use atomr_dashboard::{DashboardConfig, DashboardMode, DashboardServer};
 use atomr_telemetry::exporters::config::{ExportersConfig, OtlpConfig, PrometheusConfig};
 use atomr_telemetry::TelemetryExtension;
+use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[command(name = "atomr-dashboard", about = "Serve the atomr telemetry dashboard", version)]

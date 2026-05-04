@@ -4,10 +4,10 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use atomr_persistence::{Journal, JournalError, PersistentRepr};
 use aws_sdk_dynamodb::primitives::Blob;
 use aws_sdk_dynamodb::types::{AttributeValue, ReturnValue};
 use aws_sdk_dynamodb::Client;
-use atomr_persistence::{Journal, JournalError, PersistentRepr};
 
 use crate::config::DynamoConfig;
 use crate::keys::{event_sk, parse_sequence, EVENT_PREFIX};

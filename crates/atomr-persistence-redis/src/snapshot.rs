@@ -3,8 +3,8 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use fred::prelude::*;
 use atomr_persistence::{JournalError, SnapshotMetadata, SnapshotStore};
+use fred::prelude::*;
 
 use crate::codec::StoredSnapshot;
 use crate::config::RedisConfig;

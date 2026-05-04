@@ -1,7 +1,7 @@
 //! JSON payload shapes stored alongside the sequence number score.
 
-use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
 use atomr_persistence::{PersistentRepr, SnapshotMetadata};
+use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

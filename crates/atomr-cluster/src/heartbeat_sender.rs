@@ -12,8 +12,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use parking_lot::RwLock;
 use atomr_core::actor::Address;
+use parking_lot::RwLock;
 
 /// Per-peer heartbeat record kept by the sender.
 #[derive(Debug, Clone)]

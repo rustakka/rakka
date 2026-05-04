@@ -4,9 +4,9 @@
 //! (defined by a Python iterable + a Python mapper closure) using the
 //! native Tokio runtime.
 
+use atomr_streams::{ActorMaterializer, Flow, Sink, Source};
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio as pyo3_tokio;
-use atomr_streams::{ActorMaterializer, Flow, Sink, Source};
 
 /// `map_reduce(iter, transform, reducer, zero)` — synchronous one-shot
 /// pipeline. Runs entirely in Python; kept for backward compatibility

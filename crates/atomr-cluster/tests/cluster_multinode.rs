@@ -9,9 +9,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use parking_lot::Mutex;
 use atomr_cluster::{spawn_daemon, ClusterEventBus, DaemonConfig, GossipPdu, GossipTransport, Member};
 use atomr_core::actor::Address;
+use parking_lot::Mutex;
 use tokio::sync::mpsc;
 
 #[derive(Default, Clone)]

@@ -6,8 +6,8 @@
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use parking_lot::Mutex;
 use atomr_core::actor::{ActorPath, DeadLetterObserver};
+use parking_lot::Mutex;
 
 use crate::bus::{TelemetryBus, TelemetryEvent};
 use crate::dto::DeadLetterRecord;

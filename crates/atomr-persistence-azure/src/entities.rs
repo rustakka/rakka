@@ -2,8 +2,8 @@
 //! base64-encoded because Table Storage doesn't support raw binary
 //! natively, only "typed" properties.
 
-use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
 use atomr_persistence::{PersistentRepr, SnapshotMetadata};
+use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
 use serde::{Deserialize, Serialize};
 
 fn row_key(sequence_nr: u64) -> String {

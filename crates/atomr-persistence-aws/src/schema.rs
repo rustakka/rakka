@@ -1,10 +1,10 @@
 //! Idempotent single-table bootstrap.
 
+use atomr_persistence::JournalError;
 use aws_sdk_dynamodb::types::{
     AttributeDefinition, BillingMode, KeySchemaElement, KeyType, ScalarAttributeType,
 };
 use aws_sdk_dynamodb::Client;
-use atomr_persistence::JournalError;
 
 use crate::config::DynamoConfig;
 

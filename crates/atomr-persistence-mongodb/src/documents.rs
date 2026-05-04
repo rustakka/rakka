@@ -1,8 +1,8 @@
 //! BSON-friendly document shapes. `payload` is stored as raw bytes
 //! via BSON `Binary`.
 
-use mongodb::bson::{spec::BinarySubtype, Binary};
 use atomr_persistence::{PersistentRepr, SnapshotMetadata};
+use mongodb::bson::{spec::BinarySubtype, Binary};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

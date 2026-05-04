@@ -29,8 +29,8 @@ pub mod streams;
 
 use std::sync::Arc;
 
-use parking_lot::RwLock;
 use atomr_core::actor::ActorSystem;
+use parking_lot::RwLock;
 
 use crate::actor_registry::ActorRegistry;
 use crate::bus::TelemetryBus;

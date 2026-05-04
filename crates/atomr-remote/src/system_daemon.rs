@@ -11,8 +11,8 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use parking_lot::RwLock;
 use atomr_core::actor::{ActorPath, ActorSystem, RemoteSystemMsg, UntypedActorRef};
+use parking_lot::RwLock;
 
 use crate::endpoint_manager::EndpointManager;
 use crate::serialization::{SerializeError, SerializerRegistry};
