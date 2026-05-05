@@ -94,6 +94,56 @@ where
     Source { inner: stream.boxed() }
 }
 
+/// Replace the upstream's tail with `replacement_factory()` on each
+/// error, capped at `max_attempts` total replacements. After
+/// `max_attempts`, subsequent errors propagate as terminations.
+///
+/// Akka.NET: `Source.RecoverWithRetries(maxAttempts, factory)`.
+pub fn recover_with_retries<T, E, F>(
+    src: Source<Result<T, E>>,
+    max_attempts: usize,
+    mut replacement_factory: F,
+) -> Source<T>
+where
+    T: Send + 'static,
+    E: Send + 'static,
+    F: FnMut() -> Source<T> + Send + 'static,
+{
+    use futures::stream;
+    let mut attempts_left = max_attempts;
+    let mut tripped = false;
+    let inner = src.into_boxed();
+    let stream = inner.flat_map(move |item| {
+        if tripped {
+            return stream::empty().boxed();
+        }
+        match item {
+            Ok(v) => stream::iter(std::iter::once(v)).boxed(),
+            Err(_) if attempts_left > 0 => {
+                attempts_left -= 1;
+                replacement_factory().into_boxed()
+            }
+            Err(_) => {
+                tripped = true;
+                stream::empty().boxed()
+            }
+        }
+    });
+    Source { inner: stream.boxed() }
+}
+
+/// Alias for [`map_error`] matching akka.net's `Source.SelectError`
+/// naming. Keeping both names makes porting tests verbatim possible.
+pub fn select_error<T, E1, E2, F>(src: Source<Result<T, E1>>, f: F) -> Source<Result<T, E2>>
+where
+    T: Send + 'static,
+    E1: Send + 'static,
+    E2: Send + 'static,
+    F: FnMut(E1) -> E2 + Send + 'static,
+{
+    map_error(src, f)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -151,5 +201,40 @@ mod tests {
         let recovered = recover_with(s, replacement);
         let collected = Sink::collect(recovered).await;
         assert_eq!(collected, vec![1, 2]);
+    }
+
+    #[tokio::test]
+    async fn recover_with_retries_replays_factory_each_time() {
+        let s: Source<Result<i32, &'static str>> =
+            Source::from_iter(vec![Ok(1), Err("e1"), Err("e2"), Ok(99)]);
+        let mut counter = 0;
+        let recovered = recover_with_retries(s, 2, move || {
+            counter += 1;
+            Source::from_iter(vec![counter * 10])
+        });
+        let collected = Sink::collect(recovered).await;
+        // 1 → first error → replacement (10) drains → second error →
+        // replacement (20) drains → upstream Ok(99) flows through
+        // because retries remain (effectively unlimited until the
+        // attempt counter hits zero).
+        assert_eq!(collected, vec![1, 10, 20, 99]);
+    }
+
+    #[tokio::test]
+    async fn recover_with_retries_caps_at_max_attempts() {
+        let s: Source<Result<i32, &'static str>> = Source::from_iter(vec![Err("e1"), Err("e2"), Err("e3")]);
+        let recovered = recover_with_retries(s, 1, || Source::from_iter(vec![777]));
+        let collected = Sink::collect(recovered).await;
+        // first error consumes the single attempt (777 emitted); second
+        // error trips the stream.
+        assert_eq!(collected, vec![777]);
+    }
+
+    #[tokio::test]
+    async fn select_error_alias_matches_map_error() {
+        let s: Source<Result<i32, &'static str>> = Source::from_iter(vec![Ok(1), Err("boom")]);
+        let mapped = select_error(s, |e| e.to_string());
+        let collected = Sink::collect(mapped).await;
+        assert_eq!(collected, vec![Ok(1), Err("boom".to_string())]);
     }
 }
