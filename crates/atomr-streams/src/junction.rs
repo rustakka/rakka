@@ -49,6 +49,110 @@ pub fn zip_with_index<T: Send + 'static>(source: Source<T>) -> Source<(u64, T)> 
     Source { inner: source.into_boxed().enumerate().map(|(i, v)| (i as u64, v)).boxed() }
 }
 
+/// akka.net: `MergeSorted<T>` — merge two **already-sorted** sources
+/// preserving total order. Both inputs must be ascending; output is
+/// ascending. Buffers one element per side via tokio mpsc.
+pub fn merge_sorted<T: Ord + Send + 'static>(a: Source<T>, b: Source<T>) -> Source<T> {
+    let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<T>();
+    let mut sa = a.into_boxed();
+    let mut sb = b.into_boxed();
+    tokio::spawn(async move {
+        let mut head_a = sa.next().await;
+        let mut head_b = sb.next().await;
+        loop {
+            match (head_a.take(), head_b.take()) {
+                (None, None) => return,
+                (Some(x), None) => {
+                    if tx.send(x).is_err() {
+                        return;
+                    }
+                    while let Some(rest) = sa.next().await {
+                        if tx.send(rest).is_err() {
+                            return;
+                        }
+                    }
+                    return;
+                }
+                (None, Some(y)) => {
+                    if tx.send(y).is_err() {
+                        return;
+                    }
+                    while let Some(rest) = sb.next().await {
+                        if tx.send(rest).is_err() {
+                            return;
+                        }
+                    }
+                    return;
+                }
+                (Some(x), Some(y)) => {
+                    if x <= y {
+                        if tx.send(x).is_err() {
+                            return;
+                        }
+                        head_b = Some(y);
+                        head_a = sa.next().await;
+                    } else {
+                        if tx.send(y).is_err() {
+                            return;
+                        }
+                        head_a = Some(x);
+                        head_b = sb.next().await;
+                    }
+                }
+            }
+        }
+    });
+    Source::from_receiver(rx)
+}
+
+/// akka.net: `MergePrioritized` — every input contributes elements in
+/// proportion to its weight when both have items pending, falling
+/// through to whichever side has work otherwise. Weights ≥ 1.
+pub fn merge_prioritized<T: Send + 'static>(
+    a: Source<T>,
+    weight_a: u32,
+    b: Source<T>,
+    weight_b: u32,
+) -> Source<T> {
+    assert!(weight_a >= 1 && weight_b >= 1, "merge_prioritized weights must be >= 1");
+    let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<T>();
+    let mut sa = a.into_boxed();
+    let mut sb = b.into_boxed();
+    tokio::spawn(async move {
+        let mut budget_a = weight_a;
+        let mut budget_b = weight_b;
+        loop {
+            tokio::select! {
+                biased;
+                ax = sa.next(), if budget_a > 0 => match ax {
+                    Some(v) => {
+                        if tx.send(v).is_err() { return; }
+                        budget_a -= 1;
+                        if budget_a == 0 && budget_b == 0 {
+                            budget_a = weight_a;
+                            budget_b = weight_b;
+                        }
+                    }
+                    None => budget_a = 0,
+                },
+                bx = sb.next(), if budget_b > 0 => match bx {
+                    Some(v) => {
+                        if tx.send(v).is_err() { return; }
+                        budget_b -= 1;
+                        if budget_a == 0 && budget_b == 0 {
+                            budget_a = weight_a;
+                            budget_b = weight_b;
+                        }
+                    }
+                    None => budget_b = 0,
+                },
+                else => return,
+            }
+        }
+    });
+    Source::from_receiver(rx)
+}
+
 /// akka.net: `Broadcast(2)` — cheap fan-out into two independent sources
 /// using cloned items and a bounded channel per downstream.
 pub fn broadcast<T>(source: Source<T>) -> (Source<T>, Source<T>)

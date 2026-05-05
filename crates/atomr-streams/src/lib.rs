@@ -49,7 +49,9 @@ pub use flow::Flow;
 pub use framing::{Framing, FramingError};
 pub use graph::GraphDsl;
 pub use hub::{BroadcastHub, MergeHub};
-pub use junction::{broadcast, concat, merge, merge_all, zip, zip_with, zip_with_index};
+pub use junction::{
+    broadcast, concat, merge, merge_all, merge_prioritized, merge_sorted, zip, zip_with, zip_with_index,
+};
 pub use kill_switch::KillSwitch;
 pub use lifecycle::{count_elements, monitor, watch_termination};
 pub use materializer::ActorMaterializer;
