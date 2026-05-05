@@ -92,18 +92,16 @@ Plus a Python facade — `pip install atomr` — that exposes the same
 actor model with GIL-isolated interpreter pools for CPU-bound work and
 async-native `tell` / `ask`.
 
-## Spec parity & test coverage
+## Test coverage
 
-atomr ships with a deep prior-art parity suite — ~545 lib tests plus
-~420 integration / spec tests across the workspace. Subsystem coverage
-includes:
+atomr ships ~545 lib tests plus ~420 integration tests across the
+workspace. Subsystem coverage includes:
 
-- **Cluster.** `vector_clock_spec`, `member_ordering_spec`,
-  `reachability_spec`, `cluster_event_spec`, `gossip_spec`,
-  `sbr_strategy_spec`, `heartbeat_spec`, `membership_state_spec`, plus
-  a `LeaderHandover` watcher and a multinode harness.
+- **Cluster.** Vector clock, member ordering, reachability, cluster
+  events, gossip, SBR strategies, heartbeat, membership state, plus a
+  `LeaderHandover` watcher and a multinode harness.
 - **Cluster tools / sharding.** Singleton, ClusterClient, distributed
-  PubSub, shard allocation + handoff, `at-least-once-delivery`.
+  PubSub, shard allocation + handoff, at-least-once-delivery.
 - **Distributed data.** `OrMap` / `LWWMap` / `PNCounterMap` /
   `ORMultiMap`, CRDT laws, replicator subscribe, three-node convergence
   suites, redb-backed durable store (`atomr-distributed-data-lmdb`).
@@ -114,12 +112,11 @@ includes:
 - **Streams.** FlowOperator, Hub, SubStream, Recovery, conflate /
   expand, merge_sorted / merge_prioritized, Queue / Restart.
 - **Core runtime.** Scheduler, Stash, Extensions, Lifecycle, IO
-  managers (TcpManager outbound `Connect` + IO spec), ActorPath /
+  managers (TcpManager outbound `Connect` + IO coverage), ActorPath /
   Address, FailureDetector, EndpointState, Routing.
 - **Hosting / DI / lease.** ServiceContainer, Hosting builder, Lease.
 - **Out-of-process multinode.** `MultiNodeOopController` and
-  `MultiNodeOopNode` drive cross-process spec scenarios from the
-  testkit.
+  `MultiNodeOopNode` drive cross-process scenarios from the testkit.
 
 ## Quick start (Rust)
 
@@ -236,5 +233,6 @@ xtask/                  Cargo xtask (audit, profile, bump, verify)
 - [`docs/dashboard.md`](docs/dashboard.md) — live system UI.
 - [`docs/observability.md`](docs/observability.md) — tracing + metrics exporters.
 - [`docs/profiler.md`](docs/profiler.md) — cross-runtime profiler.
-- [`PORTING.md`](PORTING.md) — alignment with prior-art runtimes.
-- [`PORTING_TODO.md`](PORTING_TODO.md) — depth roadmap.
+- [`docs/alignment-ledger.md`](docs/alignment-ledger.md) — crate-by-crate
+  alignment of the runtime surface.
+- [`docs/depth-roadmap.md`](docs/depth-roadmap.md) — depth roadmap.

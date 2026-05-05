@@ -115,13 +115,11 @@ python python/examples/ml_inference.py
 - [Profiler](profiler.md) — cross-runtime profiler with baseline
   numbers.
 - [Release pipeline](release-pipeline.md) — how artifacts ship.
-- [Parity](parity.md) — alignment surface and depth grades by crate.
-- [Full port plan](full-port-plan.md) — depth roadmap.
+- [Parity](parity.md) — feature surface and depth grades by crate.
+- [Depth program](full-port-plan.md) — long-form depth roadmap.
 - [Audit 2026-04](audit-2026-04.md) — empirical depth + anti-pattern
   baseline tracked by CI.
-- [Migration playbook](migrating-from-akka-net.md) — for teams coming
-  from a JVM/CLR actor runtime.
 - [`../README.md`](https://github.com/rustakka/atomr) — repository overview.
-- [`../PORTING.md`](https://github.com/rustakka/atomr/blob/main/PORTING.md) — alignment with prior-art
-  runtimes.
-- [`../PORTING_TODO.md`](https://github.com/rustakka/atomr/blob/main/PORTING_TODO.md) — depth roadmap.
+- [Alignment ledger](alignment-ledger.md) — crate-by-crate alignment
+  of the runtime surface.
+- [Depth roadmap](depth-roadmap.md) — depth roadmap.

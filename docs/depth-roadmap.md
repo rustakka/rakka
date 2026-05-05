@@ -1,17 +1,17 @@
 # Depth roadmap
 
-This document tracks the **alignment surface** of each atomr subsystem
-against the feature shape that mature actor runtimes have converged on
-over the last decade. It is not a percent-complete ledger. The goal
-is to call out, per subsystem, where we are aligned and where we
-deliberately go further or differently.
+This document tracks the **feature surface** of each atomr subsystem
+against the shape that mature actor runtimes have converged on. It is
+not a percent-complete ledger. The goal is to call out, per
+subsystem, where we are deep and where we deliberately go further or
+differently.
 
 For measured depth metrics (LOC ratios, anti-pattern counts) see
-[`docs/audit-2026-04.md`](docs/audit-2026-04.md). For per-crate depth
-grades see [`docs/parity.md`](docs/parity.md). For the longer
-architectural plan see [`docs/full-port-plan.md`](docs/full-port-plan.md).
+[`audit-2026-04.md`](audit-2026-04.md). For per-crate depth grades
+see [`parity.md`](parity.md). For the longer architectural plan see
+[`full-port-plan.md`](full-port-plan.md).
 
-## Recent spec-parity wave (Phases A → FFF)
+## Recent depth wave (Phases A → FFF)
 
 The roadmap below captures the long-form goals. Many of the items
 listed under "Depth in progress" / "Path to a" have shipped between
@@ -43,7 +43,7 @@ listed under "Depth in progress" / "Path to a" have shipped between
   three-node convergence spec, OrSet::iter, replicator subscribe
   spec, CRDT laws spec, map-CRDT spec.
 - **atomr-distributed-data-lmdb** (new crate): redb-backed
-  `RedbDurableStore` (akka.net analog `LmdbDurableStore`).
+  `RedbDurableStore`.
 - **atomr-persistence**: events_by_tag + all_persistence_ids on
   `Journal`, ALOD spec, eventsourced integration spec, persistent-FSM
   spec.
@@ -66,11 +66,8 @@ listed under "Depth in progress" / "Path to a" have shipped between
 - **CI**: persistence integration matrix gains real-service Postgres
   and MySQL jobs plus a ddata-lmdb job.
 
-Workspace currently runs **546 lib tests** plus ~200+ integration /
-spec tests across 30+ spec files, all green. The `atomr` ↔ akka.net
-spec-class mapping in
-[`/home/mattbragaw/.claude/plans/review-the-specification-tests-giggly-pearl.md`](../../../.claude/plans/review-the-specification-tests-giggly-pearl.md)
-captures the catalog of asserted invariants.
+Workspace currently runs **546 lib tests** plus ~200+ integration
+tests across 30+ test files, all green.
 
 ## Foundations
 
@@ -265,8 +262,7 @@ All adapters share the TCK as their conformance contract.
 ## Python bindings
 
 A separate facade — `pip install atomr` — that re-exposes every
-subsystem above through PyO3 plus a GIL-isolation layer that has no
-direct prior-art equivalent.
+subsystem above through PyO3 plus a native GIL-isolation layer.
 
 - `atomr._native.ActorSystem`, `Actor`, `Props`, `ActorRef`,
   `Context`, plus the `PyActor` shim, `pinned` and
@@ -306,9 +302,9 @@ The roadmap items below are *new*, not catch-up:
 
 ## See also
 
-- [`docs/parity.md`](docs/parity.md) — depth grades by crate.
-- [`docs/audit-2026-04.md`](docs/audit-2026-04.md) — measured depth
-  baseline.
-- [`docs/full-port-plan.md`](docs/full-port-plan.md) — long-form
-  architectural plan.
-- [`PORTING.md`](PORTING.md) — alignment ledger.
+- [`parity.md`](parity.md) — depth grades by crate.
+- [`audit-2026-04.md`](audit-2026-04.md) — measured depth baseline.
+- [`full-port-plan.md`](full-port-plan.md) — long-form architectural
+  plan.
+- [`alignment-ledger.md`](alignment-ledger.md) — crate-by-crate
+  alignment of the runtime surface.

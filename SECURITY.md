@@ -67,8 +67,6 @@ Out of scope:
 
 - Third-party storage backends and transports (report to those
   upstreams).
-- The akka.net upstream clone under `akka.net/` (developer-local; not
-  shipped).
 - Examples in `examples/` are illustrative and not security-hardened.
 
 ## Hardening guidance
