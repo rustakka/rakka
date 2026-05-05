@@ -5,7 +5,8 @@ use std::env;
 
 use atomr_persistence_aws::{DynamoConfig, DynamoJournal, DynamoSnapshotStore};
 use atomr_persistence_tck::{
-    journal_concurrent_suite, journal_extended_suite, journal_suite, snapshot_round_trip, snapshot_suite,
+    journal_concurrent_suite, journal_extended_suite, journal_replay_edge_cases, journal_suite,
+    snapshot_extended_suite, snapshot_round_trip, snapshot_suite,
 };
 
 fn it_endpoint() -> Option<String> {
@@ -28,6 +29,7 @@ async fn dynamo_journal_passes_tck() {
     let j = DynamoJournal::connect(cfg).await.expect("dynamo journal");
     journal_suite(j.clone(), "dynamo-j").await;
     journal_extended_suite(j.clone(), "dynamo-j").await;
+    journal_replay_edge_cases(j.clone(), "dynamo-j").await;
     journal_concurrent_suite(j, "dynamo-j").await;
 }
 
@@ -40,5 +42,6 @@ async fn dynamo_snapshot_passes_tck() {
     let cfg = DynamoConfig::new(unique_table()).with_endpoint(endpoint).with_region("us-east-1");
     let s = DynamoSnapshotStore::connect(cfg).await.expect("dynamo snapshot");
     assert!(snapshot_round_trip(s.clone(), "dynamo-s").await);
-    snapshot_suite(s, "dynamo-s-full").await;
+    snapshot_suite(s.clone(), "dynamo-s-full").await;
+    snapshot_extended_suite(s, "dynamo-s-ext").await;
 }

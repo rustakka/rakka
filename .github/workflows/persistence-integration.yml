@@ -12,6 +12,7 @@ on:
       - "crates/atomr-persistence-cassandra/**"
       - "crates/atomr-persistence-aws/**"
       - "crates/atomr-persistence-azure/**"
+      - "crates/atomr-distributed-data-lmdb/**"
       - ".github/workflows/persistence-integration.yml"
       - "Cargo.toml"
       - "Cargo.lock"
@@ -25,6 +26,7 @@ on:
       - "crates/atomr-persistence-cassandra/**"
       - "crates/atomr-persistence-aws/**"
       - "crates/atomr-persistence-azure/**"
+      - "crates/atomr-distributed-data-lmdb/**"
       - ".github/workflows/persistence-integration.yml"
       - "Cargo.toml"
       - "Cargo.lock"
@@ -36,7 +38,7 @@ concurrency:
 
 jobs:
   sql:
-    name: SQL (sqlite / postgres / mysql feature builds)
+    name: SQL (sqlite hermetic test + postgres/mysql/mssql compile-check)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,6 +52,66 @@ jobs:
         run: cargo check -p atomr-persistence-sql --no-default-features --features mysql --tests
       - name: Compile-check MSSQL feature
         run: cargo check -p atomr-persistence-sql --no-default-features --features mssql --tests
+
+  postgres:
+    name: SQL — Postgres (real service)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: atomr
+          POSTGRES_PASSWORD: atomr
+          POSTGRES_DB: atomr_tck
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U atomr"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - env:
+          ATOMR_IT_SQL_URL: postgres://atomr:atomr@127.0.0.1:5432/atomr_tck
+        run: cargo test -p atomr-persistence-sql --no-default-features --features postgres
+
+  mysql:
+    name: SQL — MySQL (real service)
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: atomr
+          MYSQL_DATABASE: atomr_tck
+          MYSQL_USER: atomr
+          MYSQL_PASSWORD: atomr
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -P 3306 --silent"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - env:
+          ATOMR_IT_SQL_URL: mysql://atomr:atomr@127.0.0.1:3306/atomr_tck
+        run: cargo test -p atomr-persistence-sql --no-default-features --features mysql
+
+  ddata-lmdb:
+    name: ddata — redb durable store
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test -p atomr-distributed-data-lmdb
 
   redis:
     name: Redis

@@ -6,7 +6,8 @@ use std::env;
 
 use atomr_persistence_azure::{AzureConfig, AzureJournal, AzureSnapshotStore};
 use atomr_persistence_tck::{
-    journal_concurrent_suite, journal_extended_suite, journal_suite, snapshot_round_trip, snapshot_suite,
+    journal_concurrent_suite, journal_extended_suite, journal_replay_edge_cases, journal_suite,
+    snapshot_extended_suite, snapshot_round_trip, snapshot_suite,
 };
 
 fn it_cfg() -> Option<AzureConfig> {
@@ -32,6 +33,7 @@ async fn azure_journal_passes_tck() {
     let journal = AzureJournal::connect(cfg).await.expect("azure journal");
     journal_suite(journal.clone(), "azure-j").await;
     journal_extended_suite(journal.clone(), "azure-j").await;
+    journal_replay_edge_cases(journal.clone(), "azure-j").await;
     journal_concurrent_suite(journal, "azure-j").await;
 }
 
@@ -46,5 +48,6 @@ async fn azure_snapshot_passes_tck() {
     cfg.snapshot_table = s;
     let store = AzureSnapshotStore::connect(cfg).await.expect("azure snapshot");
     assert!(snapshot_round_trip(store.clone(), "azure-s").await);
-    snapshot_suite(store, "azure-s-full").await;
+    snapshot_suite(store.clone(), "azure-s-full").await;
+    snapshot_extended_suite(store, "azure-s-ext").await;
 }
