@@ -170,10 +170,7 @@ fn heartbeat_state_records_per_peer_last_seen() {
     let mut state = HeartbeatState::new();
     let a = addr("a", 1);
     state.heartbeat(a.clone());
-    assert!(
-        state.detectors.contains_key(&a),
-        "heartbeat creates a per-peer failure-detector entry"
-    );
+    assert!(state.detectors.contains_key(&a), "heartbeat creates a per-peer failure-detector entry");
 }
 
 #[test]
@@ -196,11 +193,7 @@ fn heartbeat_state_is_idempotent_per_address() {
     state.heartbeat(a.clone());
     state.heartbeat(a.clone());
     state.heartbeat(a.clone());
-    assert_eq!(
-        state.detectors.len(),
-        1,
-        "repeated heartbeats from the same address share one detector"
-    );
+    assert_eq!(state.detectors.len(), 1, "repeated heartbeats from the same address share one detector");
 }
 
 #[test]

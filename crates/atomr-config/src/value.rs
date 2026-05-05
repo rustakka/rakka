@@ -168,8 +168,7 @@ impl Config {
 
     /// Deserialize the entire root config into `T`.
     pub fn extract_root<T: serde::de::DeserializeOwned>(&self) -> Result<T, ConfigError> {
-        let json =
-            config_value_to_json(&ConfigValue::Object(self.root.clone()));
+        let json = config_value_to_json(&ConfigValue::Object(self.root.clone()));
         serde_json::from_value(json)
             .map_err(|e| ConfigError::WrongType { path: "".into(), expected: leak(e.to_string()) })
     }
@@ -184,9 +183,9 @@ fn config_value_to_json(v: &ConfigValue) -> serde_json::Value {
         ConfigValue::Null => serde_json::Value::Null,
         ConfigValue::Bool(b) => serde_json::Value::Bool(*b),
         ConfigValue::Int(i) => serde_json::Value::Number((*i).into()),
-        ConfigValue::Float(f) => serde_json::Number::from_f64(*f)
-            .map(serde_json::Value::Number)
-            .unwrap_or(serde_json::Value::Null),
+        ConfigValue::Float(f) => {
+            serde_json::Number::from_f64(*f).map(serde_json::Value::Number).unwrap_or(serde_json::Value::Null)
+        }
         ConfigValue::String(s) => serde_json::Value::String(s.clone()),
         ConfigValue::Array(items) => {
             serde_json::Value::Array(items.iter().map(config_value_to_json).collect())

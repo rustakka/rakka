@@ -16,9 +16,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use atomr_persistence::{
-    EventsourcedError, InMemoryJournal, Journal, PersistentFSM, RecoveryPermitter,
-};
+use atomr_persistence::{EventsourcedError, InMemoryJournal, Journal, PersistentFSM, RecoveryPermitter};
 
 // ---------------------------------------------------------------------------
 // Counter FSM domain — exercises both state-mutation and data-mutation events.
@@ -44,9 +42,9 @@ enum CounterCmd {
 
 #[derive(Clone, Debug, PartialEq)]
 enum CounterEvent {
-    Started,         // mutates S: Idle -> Running
-    Stopped,         // mutates S: Running -> Idle
-    Ticked(i64),     // mutates D: n += delta
+    Started,     // mutates S: Idle -> Running
+    Stopped,     // mutates S: Running -> Idle
+    Ticked(i64), // mutates D: n += delta
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -117,16 +115,10 @@ async fn events_are_recorded_in_order() {
     assert_eq!(highest, 4, "one event per accepted command");
 
     let reprs = journal.replay_messages("counter-record", 1, highest, u64::MAX).await.unwrap();
-    let decoded: Vec<CounterEvent> =
-        reprs.iter().map(|r| decode(&r.payload).unwrap()).collect();
+    let decoded: Vec<CounterEvent> = reprs.iter().map(|r| decode(&r.payload).unwrap()).collect();
     assert_eq!(
         decoded,
-        vec![
-            CounterEvent::Started,
-            CounterEvent::Ticked(3),
-            CounterEvent::Ticked(4),
-            CounterEvent::Stopped,
-        ]
+        vec![CounterEvent::Started, CounterEvent::Ticked(3), CounterEvent::Ticked(4), CounterEvent::Stopped,]
     );
     // Sequence numbers are monotonic and contiguous from 1.
     let seqs: Vec<u64> = reprs.iter().map(|r| r.sequence_nr).collect();
@@ -179,14 +171,14 @@ async fn interleaved_state_and_data_events_replay() {
     let permits = RecoveryPermitter::new(1);
 
     let mut fsm = make_fsm("counter-mixed");
-    fsm.handle(journal.clone(), CounterCmd::Start).await.unwrap();      // S mutate
-    fsm.handle(journal.clone(), CounterCmd::Tick(5)).await.unwrap();    // D mutate
-    fsm.handle(journal.clone(), CounterCmd::Stop).await.unwrap();       // S mutate
-    // Domain reject — no event should land in the journal.
+    fsm.handle(journal.clone(), CounterCmd::Start).await.unwrap(); // S mutate
+    fsm.handle(journal.clone(), CounterCmd::Tick(5)).await.unwrap(); // D mutate
+    fsm.handle(journal.clone(), CounterCmd::Stop).await.unwrap(); // S mutate
+                                                                  // Domain reject — no event should land in the journal.
     let r = fsm.handle(journal.clone(), CounterCmd::Tick(99)).await;
     assert!(matches!(r, Err(EventsourcedError::Domain(CounterErr))));
-    fsm.handle(journal.clone(), CounterCmd::Start).await.unwrap();      // S mutate
-    fsm.handle(journal.clone(), CounterCmd::Tick(-2)).await.unwrap();   // D mutate
+    fsm.handle(journal.clone(), CounterCmd::Start).await.unwrap(); // S mutate
+    fsm.handle(journal.clone(), CounterCmd::Tick(-2)).await.unwrap(); // D mutate
 
     assert_eq!(fsm.state(), Some(&CounterState::Running));
     assert_eq!(fsm.data(), Some(&CounterData { n: 3 }));

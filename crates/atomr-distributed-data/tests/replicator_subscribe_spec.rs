@@ -53,11 +53,7 @@ fn drop_token_silences_subsequent_updates() {
 
     r.update("k", GCounter::new());
     r.update("k", GCounter::new());
-    assert_eq!(
-        hits.load(Ordering::SeqCst),
-        1,
-        "callback must not fire after token drop"
-    );
+    assert_eq!(hits.load(Ordering::SeqCst), 1, "callback must not fire after token drop");
 }
 
 /// Multiple subscribers on the same key all see every update — akka.net
@@ -171,11 +167,7 @@ fn delta_crdt_disjoint_increments_merge_to_sum() {
 
     r.update(key, from_n2);
     let merged: GCounter = r.get(key).unwrap();
-    assert_eq!(
-        merged.value(),
-        3 + 5,
-        "disjoint per-node deltas must merge to the sum"
-    );
+    assert_eq!(merged.value(), 3 + 5, "disjoint per-node deltas must merge to the sum");
 }
 
 /// Reordered delta application converges to the same merged sum, and

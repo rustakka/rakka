@@ -55,8 +55,7 @@ fn rebalance_at_threshold_picks_shards_from_max_region() {
 fn rebalance_caps_at_max_simultaneous() {
     let s = LeastShardAllocationStrategy { rebalance_threshold: 1, max_simultaneous_rebalance: 2 };
     let r = regions(&[("r1", 5), ("r2", 0)]);
-    let cur =
-        current_allocs(&[("s1", "r1"), ("s2", "r1"), ("s3", "r1"), ("s4", "r1"), ("s5", "r1")]);
+    let cur = current_allocs(&[("s1", "r1"), ("s2", "r1"), ("s3", "r1"), ("s4", "r1"), ("s5", "r1")]);
     assert_eq!(s.rebalance(&cur, &r).len(), 2);
 }
 

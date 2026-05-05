@@ -96,8 +96,7 @@ mod tests {
 
     #[test]
     fn default_shrinks_when_idle() {
-        let r =
-            ResizerConfig { lower_bound: 1, upper_bound: 10, backoff_rate: 0.5, ..Default::default() };
+        let r = ResizerConfig { lower_bound: 1, upper_bound: 10, backoff_rate: 0.5, ..Default::default() };
         let advice = r.compute_delta(8, 0);
         assert!(advice.delta < 0, "expected shrink, got {:?}", advice);
     }
@@ -138,11 +137,7 @@ mod tests {
 
     #[test]
     fn no_change_when_load_in_band() {
-        let r = ResizerConfig {
-            pressure_threshold: 0.9,
-            backoff_threshold: 0.1,
-            ..Default::default()
-        };
+        let r = ResizerConfig { pressure_threshold: 0.9, backoff_threshold: 0.1, ..Default::default() };
         let advice = r.compute_delta(5, 3);
         assert_eq!(advice.delta, 0);
     }

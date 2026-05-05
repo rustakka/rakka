@@ -88,7 +88,10 @@ impl TelemetryBus {
     /// events whose `topic()` matches `wanted`. Backed by a forwarder
     /// task that filters the broadcast stream — drop the receiver to
     /// stop the forwarder.
-    pub fn subscribe_topic(&self, wanted: &'static str) -> tokio::sync::mpsc::UnboundedReceiver<TelemetryEvent> {
+    pub fn subscribe_topic(
+        &self,
+        wanted: &'static str,
+    ) -> tokio::sync::mpsc::UnboundedReceiver<TelemetryEvent> {
         let mut src = self.tx.subscribe();
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
         tokio::spawn(async move {
