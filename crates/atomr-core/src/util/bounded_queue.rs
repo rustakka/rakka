@@ -43,6 +43,12 @@ impl<T> BoundedQueue<T> {
         self.inner.pop_front()
     }
 
+    /// Remove and return the most-recently-enqueued element, if any.
+    /// Used by [`OverflowStrategy::DropTail`].
+    pub fn pop_back(&mut self) -> Option<T> {
+        self.inner.pop_back()
+    }
+
     pub fn push_front(&mut self, item: T) -> Result<(), T> {
         if self.is_full() {
             Err(item)

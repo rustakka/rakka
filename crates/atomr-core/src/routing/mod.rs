@@ -8,7 +8,9 @@
 
 mod broadcast;
 mod consistent_hash;
+mod listener;
 mod random;
+mod resizer;
 mod round_robin;
 mod scatter_gather;
 mod smallest_mailbox;
@@ -16,7 +18,9 @@ mod tail_chopping;
 
 pub use broadcast::BroadcastRouter;
 pub use consistent_hash::ConsistentHashRouter;
+pub use listener::ListenerRouter;
 pub use random::RandomRouter;
+pub use resizer::{ResizeAdvice, ResizerConfig};
 pub use round_robin::RoundRobinRouter;
 pub use scatter_gather::ScatterGatherFirstCompletedRouter;
 pub use smallest_mailbox::SmallestMailboxRouter;
