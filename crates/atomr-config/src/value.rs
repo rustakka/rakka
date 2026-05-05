@@ -152,6 +152,51 @@ impl Config {
             _ => None,
         }
     }
+
+    /// Deserialize a sub-tree at `path` into a strongly-typed value `T`.
+    /// Bridge through `serde_json::Value` so any `serde::Deserialize`
+    /// type composes. Akka.NET-equivalent of typed `Config.As<T>()`
+    /// extension.
+    ///
+    /// Returns [`ConfigError::NotFound`] if `path` is absent.
+    pub fn extract<T: serde::de::DeserializeOwned>(&self, path: &str) -> Result<T, ConfigError> {
+        let v = self.get(path).ok_or_else(|| ConfigError::NotFound(path.into()))?;
+        let json = config_value_to_json(v);
+        serde_json::from_value(json)
+            .map_err(|e| ConfigError::WrongType { path: path.into(), expected: leak(e.to_string()) })
+    }
+
+    /// Deserialize the entire root config into `T`.
+    pub fn extract_root<T: serde::de::DeserializeOwned>(&self) -> Result<T, ConfigError> {
+        let json =
+            config_value_to_json(&ConfigValue::Object(self.root.clone()));
+        serde_json::from_value(json)
+            .map_err(|e| ConfigError::WrongType { path: "".into(), expected: leak(e.to_string()) })
+    }
+}
+
+fn leak(s: String) -> &'static str {
+    Box::leak(s.into_boxed_str())
+}
+
+fn config_value_to_json(v: &ConfigValue) -> serde_json::Value {
+    match v {
+        ConfigValue::Null => serde_json::Value::Null,
+        ConfigValue::Bool(b) => serde_json::Value::Bool(*b),
+        ConfigValue::Int(i) => serde_json::Value::Number((*i).into()),
+        ConfigValue::Float(f) => serde_json::Number::from_f64(*f)
+            .map(serde_json::Value::Number)
+            .unwrap_or(serde_json::Value::Null),
+        ConfigValue::String(s) => serde_json::Value::String(s.clone()),
+        ConfigValue::Array(items) => {
+            serde_json::Value::Array(items.iter().map(config_value_to_json).collect())
+        }
+        ConfigValue::Object(o) => {
+            let map: serde_json::Map<String, serde_json::Value> =
+                o.iter().map(|(k, v)| (k.clone(), config_value_to_json(v))).collect();
+            serde_json::Value::Object(map)
+        }
+    }
 }
 
 fn lookup<'a>(root: &'a BTreeMap<String, ConfigValue>, segs: &[String]) -> Option<&'a ConfigValue> {
@@ -252,5 +297,32 @@ mod tests {
         let c = Config::reference();
         let actor = c.get_sub("akka.actor").unwrap();
         assert!(actor.get_string("provider").is_ok());
+    }
+
+    #[test]
+    fn extract_typed_value() {
+        #[derive(serde::Deserialize, PartialEq, Debug)]
+        struct Cluster {
+            seed_nodes: Vec<String>,
+            min_members: u32,
+        }
+        let toml = "[akka.cluster]\nseed_nodes = [\"a\", \"b\"]\nmin_members = 3\n";
+        let c = Config::from_toml_str(toml).unwrap();
+        let cl: Cluster = c.extract("akka.cluster").unwrap();
+        assert_eq!(cl, Cluster { seed_nodes: vec!["a".into(), "b".into()], min_members: 3 });
+    }
+
+    #[test]
+    fn extract_returns_not_found_for_missing_path() {
+        let c = Config::empty();
+        let r: Result<u32, _> = c.extract("missing.key");
+        assert!(matches!(r, Err(ConfigError::NotFound(_))));
+    }
+
+    #[test]
+    fn extract_returns_wrong_type_for_mismatch() {
+        let c = Config::from_toml_str("[x]\ny = \"not a number\"\n").unwrap();
+        let r: Result<u32, _> = c.extract("x.y");
+        assert!(matches!(r, Err(ConfigError::WrongType { .. })));
     }
 }

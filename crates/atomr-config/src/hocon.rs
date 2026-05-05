@@ -154,31 +154,41 @@ impl<'a> Parser<'a> {
                 continue;
             }
 
-            // key (.key)*  ('=' | ':' | '{')  value
+            // key (.key)*  ('=' | ':' | '{' | '+=')  value
             let key = self.parse_key()?;
             self.skip_ws_inline();
             let next = self.peek();
-            let value = match next {
+            let (value, append) = match next {
                 Some(b'{') => {
                     self.advance(1);
                     let inner = self.parse_object_body(b'}')?;
-                    ConfigValue::Object(inner)
+                    (ConfigValue::Object(inner), false)
+                }
+                Some(b'+') if self.peek_at(1) == Some(b'=') => {
+                    // akka HOCON `key += value` — append to existing array.
+                    self.advance(2);
+                    self.skip_ws_inline();
+                    (self.parse_value()?, true)
                 }
                 Some(b'=') | Some(b':') => {
                     self.advance(1);
                     self.skip_ws_inline();
-                    self.parse_value()?
+                    (self.parse_value()?, false)
                 }
                 Some(c) => {
                     return Err(HoconError::Expected {
-                        expected: "= or : or {",
+                        expected: "= or : or { or +=",
                         found: format!("{}", c as char),
                         line: self.line,
                     })
                 }
                 None => return Err(HoconError::Unterminated { kind: "assignment", line: self.line }),
             };
-            insert_dotted(&mut obj, &key, value);
+            if append {
+                append_dotted(&mut obj, &key, value);
+            } else {
+                insert_dotted(&mut obj, &key, value);
+            }
         }
     }
 
@@ -499,6 +509,34 @@ fn scalar_from_str(s: &str) -> ConfigValue {
     ConfigValue::String(s.to_string())
 }
 
+/// Walk `obj` along `key`, ensuring nested objects exist, then append
+/// `value` to the array at the leaf. If the leaf does not exist yet,
+/// create a fresh array; if it exists but is not an array, replace it
+/// with a single-element array. Akka HOCON `key += value`.
+fn append_dotted(obj: &mut BTreeMap<String, ConfigValue>, key: &[String], value: ConfigValue) {
+    if key.is_empty() {
+        return;
+    }
+    if key.len() == 1 {
+        let leaf = obj.entry(key[0].clone()).or_insert_with(|| ConfigValue::Array(Vec::new()));
+        match leaf {
+            ConfigValue::Array(items) => items.push(value),
+            other => {
+                *other = ConfigValue::Array(vec![value]);
+            }
+        }
+        return;
+    }
+    let entry = obj.entry(key[0].clone()).or_insert_with(|| ConfigValue::Object(BTreeMap::new()));
+    if let ConfigValue::Object(child) = entry {
+        append_dotted(child, &key[1..], value);
+    } else {
+        let mut new_child: BTreeMap<String, ConfigValue> = BTreeMap::new();
+        append_dotted(&mut new_child, &key[1..], value);
+        *entry = ConfigValue::Object(new_child);
+    }
+}
+
 fn insert_dotted(obj: &mut BTreeMap<String, ConfigValue>, key: &[String], value: ConfigValue) {
     if key.is_empty() {
         return;
@@ -694,5 +732,46 @@ mod tests {
     fn triple_quoted_string() {
         let v = parse_str("x = \"\"\"line1\nline2\"\"\"");
         assert_eq!(lookup_path(&v, "x"), Some(ConfigValue::String("line1\nline2".into())));
+    }
+
+    #[test]
+    fn append_creates_array_when_absent() {
+        let v = parse_str("xs += 1\nxs += 2");
+        if let Some(ConfigValue::Array(items)) = lookup_path(&v, "xs") {
+            assert_eq!(items, vec![ConfigValue::Int(1), ConfigValue::Int(2)]);
+        } else {
+            panic!("expected array");
+        }
+    }
+
+    #[test]
+    fn append_extends_existing_array() {
+        let v = parse_str("xs = [1, 2]\nxs += 3");
+        if let Some(ConfigValue::Array(items)) = lookup_path(&v, "xs") {
+            assert_eq!(items.len(), 3);
+            assert_eq!(items[2], ConfigValue::Int(3));
+        } else {
+            panic!("expected array");
+        }
+    }
+
+    #[test]
+    fn append_with_dotted_key() {
+        let v = parse_str("akka.actor.deployers += \"local\"\nakka.actor.deployers += \"remote\"");
+        if let Some(ConfigValue::Array(items)) = lookup_path(&v, "akka.actor.deployers") {
+            assert_eq!(items.len(), 2);
+        } else {
+            panic!("expected nested array");
+        }
+    }
+
+    #[test]
+    fn substitution_inside_array_resolves() {
+        let v = parse_str("base = \"x\"\nxs = [${base}, ${base}]");
+        if let Some(ConfigValue::Array(items)) = lookup_path(&v, "xs") {
+            assert_eq!(items, vec![ConfigValue::String("x".into()), ConfigValue::String("x".into())]);
+        } else {
+            panic!("expected array");
+        }
     }
 }
