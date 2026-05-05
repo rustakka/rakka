@@ -47,7 +47,7 @@ impl PyMember {
         Self { inner: self.inner.copy_with_status(s) }
     }
 
-    /// Compare two members by age. Returns -1, 0, or 1 (akka.net:
+    /// Compare two members by age. Returns -1, 0, or 1 (
     /// `Member.AgeOrdering`).
     #[staticmethod]
     fn age_ordering(a: &PyMember, b: &PyMember) -> i32 {
@@ -129,7 +129,7 @@ impl PyVectorClock {
 }
 
 /// Event emitted by a `LeaderHandover` watcher when the elected
-/// leader address changes between snapshots. akka.net analog:
+/// leader address changes between snapshots. 
 /// `Cluster.LeaderChanged`.
 #[pyclass(name = "LeaderHandoverEvent", module = "atomr._native.cluster")]
 #[derive(Clone)]
@@ -159,8 +159,8 @@ impl PyLeaderHandoverEvent {
 }
 
 /// Watcher that detects leader transitions across successive
-/// `MembershipState` snapshots. akka.net analog:
-/// `Akka.Cluster.LeaderChanged` event with stateful detection.
+/// `MembershipState` snapshots. 
+/// `` event with stateful detection.
 #[pyclass(name = "LeaderHandover", module = "atomr._native.cluster")]
 pub struct PyLeaderHandover {
     inner: Mutex<LeaderHandover>,

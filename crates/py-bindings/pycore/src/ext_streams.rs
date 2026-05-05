@@ -124,21 +124,19 @@ where
 }
 
 /// `keep_alive(items, idle_secs, filler)` — emit `filler` after each
-/// quiet interval of `idle_secs`. akka.net: `KeepAlive`.
+/// quiet interval of `idle_secs`..
 #[pyfunction]
 fn via_keep_alive(py: Python<'_>, items: Vec<i64>, idle_secs: f64, filler: i64) -> Vec<i64> {
     run_to_vec(py, move || keep_alive(Source::from_iter(items), Duration::from_secs_f64(idle_secs), move || filler))
 }
 
 /// `initial_delay(items, delay_secs)` — delay the first element.
-/// akka.net: `InitialDelay`.
 #[pyfunction]
 fn via_initial_delay(py: Python<'_>, items: Vec<i64>, delay_secs: f64) -> Vec<i64> {
     run_to_vec(py, move || initial_delay(Source::from_iter(items), Duration::from_secs_f64(delay_secs)))
 }
 
 /// `conflate(items, fold)` — coalesce backed-up upstream elements.
-/// akka.net: `Conflate`. The first element of each conflation window
 /// becomes the seed; `fold(acc, next)` folds subsequent elements.
 #[pyfunction]
 fn via_conflate(py: Python<'_>, items: Vec<i64>, fold: Py<PyAny>) -> Vec<i64> {
@@ -159,7 +157,7 @@ fn via_conflate(py: Python<'_>, items: Vec<i64>, fold: Py<PyAny>) -> Vec<i64> {
 }
 
 /// `expand(items, extrapolate)` — replace each element with an iterator
-/// of values via `extrapolate(x) -> List[int]`. akka.net: `Expand`.
+/// of values via `extrapolate(x) -> List[int]`..
 #[pyfunction]
 fn via_expand(py: Python<'_>, items: Vec<i64>, extrapolate: Py<PyAny>) -> Vec<i64> {
     let cb = extrapolate;
@@ -181,7 +179,7 @@ fn via_expand(py: Python<'_>, items: Vec<i64>, extrapolate: Py<PyAny>) -> Vec<i6
 }
 
 /// `merge_sorted(left, right)` — merge two sorted streams preserving
-/// total order. akka.net: `MergeSorted`.
+/// total order..
 #[pyfunction]
 fn merge_sorted_(py: Python<'_>, left: Vec<i64>, right: Vec<i64>) -> Vec<i64> {
     run_to_vec(py, move || merge_sorted(Source::from_iter(left), Source::from_iter(right)))
@@ -189,7 +187,6 @@ fn merge_sorted_(py: Python<'_>, left: Vec<i64>, right: Vec<i64>) -> Vec<i64> {
 
 /// `merge_prioritized(left, left_weight, right, right_weight)` — merge
 /// with weighted bias to one input. Weights must be ≥ 1.
-/// akka.net: `MergePrioritized`.
 #[pyfunction]
 fn merge_prioritized_(
     py: Python<'_>,
@@ -206,7 +203,6 @@ fn merge_prioritized_(
 /// `split_after(items, predicate)` — split into substreams every time
 /// `predicate(x)` is true; element causing the split lands in the
 /// previous substream. Returns the count of substreams emitted.
-/// akka.net: `SplitAfter`.
 #[pyfunction]
 fn via_split_after_count(py: Python<'_>, items: Vec<i64>, pred: Py<PyAny>) -> usize {
     let cb = pred;
@@ -228,7 +224,6 @@ fn via_split_after_count(py: Python<'_>, items: Vec<i64>, pred: Py<PyAny>) -> us
 
 /// `prefix_and_tail(items, n)` — return the first `n` elements as a
 /// list and the count of remaining tail elements.
-/// akka.net: `PrefixAndTail`.
 #[pyfunction]
 fn via_prefix_and_tail(py: Python<'_>, items: Vec<i64>, n: usize) -> (Vec<i64>, usize) {
     py.allow_threads(|| {
@@ -249,7 +244,7 @@ fn via_prefix_and_tail(py: Python<'_>, items: Vec<i64>, n: usize) -> (Vec<i64>, 
 
 /// `recover_with_retries(items_with_errors, replacement, attempts)` —
 /// each item is `(value, is_error)`. On error, replay `replacement` up
-/// to `attempts` times. akka.net: `RecoverWithRetries`.
+/// to `attempts` times..
 #[pyfunction]
 fn via_recover_with_retries(
     py: Python<'_>,
@@ -271,7 +266,7 @@ fn via_recover_with_retries(
 
 /// `select_error(items, mapper)` — map error variants through a Python
 /// callback. The Python callback receives the original error label and
-/// returns a replacement label. akka.net: `SelectError`.
+/// returns a replacement label..
 #[pyfunction]
 fn via_select_error(py: Python<'_>, items_with_errors: Vec<(i64, Option<String>)>, mapper: Py<PyAny>) -> Vec<i64> {
     let cb = mapper;

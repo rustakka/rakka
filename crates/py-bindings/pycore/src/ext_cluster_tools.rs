@@ -103,7 +103,6 @@ impl PyClusterSingletonManager {
 }
 
 /// Server-side registry mapping logical names to actor refs.
-/// akka.net: `Akka.Cluster.Tools.Client.ClusterReceptionist`.
 #[pyclass(name = "ClusterReceptionist", module = "atomr._native.cluster_tools")]
 pub struct PyClusterReceptionist {
     inner: Arc<ClusterReceptionist>,
@@ -137,7 +136,6 @@ impl PyClusterReceptionist {
 }
 
 /// Client-side proxy settings (initial-contact list, retry limit).
-/// akka.net: `Akka.Cluster.Tools.Client.ClusterClientSettings`.
 #[pyclass(name = "ClusterClientSettings", module = "atomr._native.cluster_tools")]
 #[derive(Clone)]
 pub struct PyClusterClientSettings {

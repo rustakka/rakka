@@ -75,7 +75,7 @@ impl PyInMemoryJournal {
 
     /// Replay all events tagged with `tag` starting at `from_offset`.
     /// Returns a list of `(persistence_id, sequence_nr, payload, tags)`
-    /// tuples. akka.net: `IEventsByTagQuery`.
+    /// tuples..
     #[pyo3(signature = (tag, from_offset=0, max=u64::MAX))]
     fn events_by_tag<'py>(
         &self,
@@ -106,7 +106,6 @@ impl PyInMemoryJournal {
     }
 
     /// Return distinct persistence ids known to the journal.
-    /// akka.net: `IPersistenceIdsQuery.AllPersistenceIds`.
     fn all_persistence_ids<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
         let inner = self.inner.clone();
         let rt = runtime();

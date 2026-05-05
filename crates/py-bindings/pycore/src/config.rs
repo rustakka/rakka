@@ -38,7 +38,7 @@ impl PyConfig {
     /// Deserialize the subtree at `key` into a Python object via JSON.
     /// Mirrors the typed `Config::extract<T>` Rust API: the subtree is
     /// converted to JSON, parsed, and returned as the natural Python
-    /// dict/list/scalar tree. akka.net: `Config.GetConfig(...).Get<T>()`
+    /// dict/list/scalar tree.
     /// then JSON serialize for the cross-language bridge.
     pub fn extract<'py>(&self, py: Python<'py>, key: &str) -> PyResult<Bound<'py, PyAny>> {
         let value: serde_json::Value = self

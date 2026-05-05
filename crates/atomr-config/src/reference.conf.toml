@@ -1,5 +1,4 @@
 # atomr reference configuration.
-# Keys mirror akka.net/src/core/Akka/Configuration/Pigeon.conf.
 # Keep in sync with upstream via `cargo xtask sync-upstream`.
 
 [akka]

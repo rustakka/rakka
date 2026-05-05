@@ -1,5 +1,5 @@
-//! redb-backed durable distributed-data store. akka.net analog:
-//! `Akka.DistributedData.LightningDB.LmdbDurableStore`.
+//! redb-backed durable distributed-data store. 
+//! ``.
 //!
 //! Implementation note: the spec requested a separate `pyddata-lmdb`
 //! py-binding crate, but pycore is currently the only binding crate

@@ -54,7 +54,7 @@ members = [
     "crates/py-bindings/pydi",
     "crates/py-bindings/pyhosting",
 ]
-exclude = ["akka.net"]
+exclude = []
 
 [workspace.package]
 version = "0.1.0"

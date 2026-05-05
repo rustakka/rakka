@@ -26,7 +26,7 @@ use atomr_core::dispatch::message_queues::{ControlAware, ControlAwareQueue};
 use atomr_core::event::{DeadLetterFilter, DeadLetterReason};
 use atomr_core::routing::ResizerConfig;
 
-/// Throughput / deadline knobs for any dispatcher. akka.net:
+/// Throughput / deadline knobs for any dispatcher. 
 /// `Dispatcher` config keys.
 #[pyclass(name = "DispatcherConfig", module = "atomr._native.core")]
 #[derive(Clone)]
@@ -58,7 +58,7 @@ impl PyDispatcherConfig {
     }
 }
 
-/// Bounded mailbox overflow strategy. akka.net:
+/// Bounded mailbox overflow strategy. 
 /// `BoundedMessageQueueSettings` policy.
 #[pyclass(name = "OverflowStrategy", module = "atomr._native.core")]
 #[derive(Clone, Copy)]
@@ -131,7 +131,6 @@ impl PyStashOverflow {
 }
 
 /// Bounded stash buffer with a configurable overflow policy.
-/// akka.net: `BoundedStash`.
 #[pyclass(name = "BoundedStash", module = "atomr._native.core")]
 pub struct PyBoundedStash {
     inner: Mutex<BoundedStash<Py<PyAny>>>,
@@ -187,7 +186,7 @@ impl PyBoundedStash {
     }
 }
 
-/// Control-aware mailbox. akka.net:
+/// Control-aware mailbox. 
 /// `UnboundedControlAwareMessageQueue`.
 #[pyclass(name = "ControlAwareQueue", module = "atomr._native.core")]
 pub struct PyControlAwareQueue {
@@ -223,7 +222,6 @@ impl PyControlAwareQueue {
 }
 
 /// Resizer that decides how to grow / shrink an actor pool.
-/// akka.net: `Resizer`.
 #[pyclass(name = "ResizerConfig", module = "atomr._native.core")]
 #[derive(Clone)]
 pub struct PyResizerConfig {
@@ -319,7 +317,7 @@ impl PyDeadLetterFilter {
     }
 }
 
-/// Python-driven FSM builder. akka.net analog: `FSM<S, D>` /
+/// Python-driven FSM builder. /
 /// `FsmBuilder` chained DSL.
 ///
 /// State names and message tags are strings; data is an arbitrary

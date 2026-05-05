@@ -116,7 +116,7 @@ impl PyORSet {
         let o = other.inner.lock().clone();
         self.inner.lock().merge(&o);
     }
-    /// Snapshot of current set elements (akka.net: `ORSet.Elements`).
+    /// Snapshot of current set elements.
     fn elements(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
         let list = PyList::empty_bound(py);
         for v in self.inner.lock().iter() {
@@ -127,7 +127,6 @@ impl PyORSet {
 }
 
 /// Pruning bookkeeping for CRDTs after a node leaves the cluster.
-/// akka.net: `Akka.DistributedData.PruningState`.
 #[pyclass(name = "PruningState", module = "atomr._native.ddata")]
 pub struct PyPruningState {
     inner: Mutex<PruningState>,
@@ -183,7 +182,7 @@ fn pruning_phases() -> Vec<String> {
     vec!["initialized".into(), "performed".into()]
 }
 
-/// Quorum-write tracker. akka.net: `Akka.DistributedData.WriteAggregator`.
+/// Quorum-write tracker..
 #[pyclass(name = "WriteAggregator", module = "atomr._native.ddata")]
 pub struct PyWriteAggregator {
     inner: Mutex<WriteAggregator>,
@@ -217,7 +216,7 @@ impl PyWriteAggregator {
     }
 }
 
-/// Quorum-read tracker. akka.net: `Akka.DistributedData.ReadAggregator`.
+/// Quorum-read tracker..
 #[pyclass(name = "ReadAggregator", module = "atomr._native.ddata")]
 pub struct PyReadAggregator {
     inner: Mutex<ReadAggregator>,

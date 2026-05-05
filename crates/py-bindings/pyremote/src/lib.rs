@@ -1,7 +1,6 @@
 //! Pluggable Python codec for `atomr-remote`. Phase P3 / 5.K of
 //! `docs/full-port-plan.md` and `PORTING_TODO.md`.
 //!
-//! akka.net's remoting allows users to plug in language-specific
 //! serializers (e.g. Hyperion for .NET, Java serialization for the JVM
 //! port). The Python bindings need an analogous knob — Python users
 //! want their actor messages serialized via JSON / msgpack / pickle.
@@ -42,7 +41,7 @@ pub enum PyCodecError {
 
 /// Trait every Python codec implements. The codec is responsible for
 /// serializing and deserializing arbitrary opaque bytes — typed
-/// dispatch happens on the `manifest` string (akka.net parity:
+/// dispatch happens on the `manifest` string ( parity:
 /// the manifest is the payload's logical class name).
 pub trait PyCodec: Send + Sync + 'static {
     /// Stable identifier (e.g. "json", "msgpack", "pickle").

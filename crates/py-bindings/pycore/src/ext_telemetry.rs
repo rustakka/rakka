@@ -1,4 +1,4 @@
-//! Telemetry submodule. akka.net analog: dashboard / exporters
+//! Telemetry submodule. dashboard / exporters
 //! plumbing, but at the bus level.
 //!
 //! Exposes the topic catalog (`ALL_TOPICS`) and a topic-scoped
@@ -16,7 +16,7 @@ use atomr_telemetry::bus::{TelemetryBus, TelemetryEvent};
 
 use crate::runtime::runtime;
 
-/// All known telemetry topic names. akka.net: stable list shared with
+/// All known telemetry topic names. stable list shared with
 /// the dashboard frontend.
 #[pyfunction]
 fn all_topics(py: Python<'_>) -> PyResult<Py<PyList>> {

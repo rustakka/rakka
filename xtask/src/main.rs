@@ -1,11 +1,9 @@
 //! `xtask` — developer tooling for the atomr workspace.
 //!
 //! Subcommands:
-//! * `sync-upstream` — diff against the tracked Akka.NET commit and print
-//!   a checklist of files that changed upstream since last sync.
 //! * `parity` — emit a presence report for the workspace crates.
 //! * `audit` — count placeholder/anti-pattern sentinels per crate
-//!   (Phase 0 baseline tracker; CI fails on regression).
+//!   (baseline tracker; CI fails on regression).
 //! * `profile` — run the actor perf profiler (rust only).
 //! * `dashboard` — run the atomr-dashboard with embed-ui.
 
@@ -21,7 +19,6 @@ fn main() -> Result<()> {
     let mut args = env::args().skip(1);
     let cmd = args.next().unwrap_or_else(|| "help".into());
     match cmd.as_str() {
-        "sync-upstream" => sync_upstream(args.collect()),
         "parity" => parity(),
         "audit" => audit(args.collect()),
         "verify" => verify(),
@@ -44,7 +41,6 @@ fn print_help() {
     println!("  cargo xtask <subcommand>");
     println!();
     println!("SUBCOMMANDS:");
-    println!("  sync-upstream [--since <sha>]  diff akka.net since last synced commit");
     println!("  parity                          regenerate docs/reports/parity-presence.json");
     println!("  audit [--check] [--json <out>]  count anti-pattern sentinels per crate");
     println!("  verify                          run build + test + clippy + audit-check (1.0-rc gate)");
@@ -71,39 +67,6 @@ fn dashboard(mut extra: Vec<String>) -> Result<()> {
         return Err(anyhow!("atomr-dashboard exited with {status}"));
     }
     Ok(())
-}
-
-fn sync_upstream(args: Vec<String>) -> Result<()> {
-    let mut extra: Vec<String> = args;
-    if extra.first().map(|s| s.as_str()) == Some("--") {
-        extra.remove(0);
-    }
-    let python = which_python().context(
-        "Python 3 is required to run scripts/sync-upstream.py. Install python3 or run \
-         the script directly with your chosen interpreter.",
-    )?;
-    let script = Path::new("scripts").join("sync-upstream.py");
-    if !script.exists() {
-        return Err(anyhow!("scripts/sync-upstream.py not found (cwd must be the workspace root)"));
-    }
-    let status = Command::new(python)
-        .arg(&script)
-        .args(&extra)
-        .status()
-        .context("spawning python for scripts/sync-upstream.py")?;
-    if !status.success() {
-        return Err(anyhow!("sync-upstream.py exited with {status}"));
-    }
-    Ok(())
-}
-
-fn which_python() -> Result<String> {
-    for candidate in ["python3", "python"] {
-        if Command::new(candidate).arg("--version").output().is_ok() {
-            return Ok(candidate.to_string());
-        }
-    }
-    Err(anyhow!("no python3 / python found on PATH"))
 }
 
 fn profile(mut extra: Vec<String>) -> Result<()> {
