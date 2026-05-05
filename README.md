@@ -72,12 +72,15 @@ A longer argument is in
 | `atomr-cluster-tools` | Singleton, pub/sub, cluster-client patterns |
 | `atomr-cluster-sharding` | Shard regions, rebalance, remember-entities, persistent coordinator |
 | `atomr-cluster-metrics` | Adaptive load balancing |
-| `atomr-distributed-data` | Convergent replicated data types (CRDTs) over the cluster |
-| `atomr-persistence` | Event sourcing — journals, snapshots, recovery, async snapshotting |
+| `atomr-distributed-data` | Convergent replicated data types (CRDTs) over the cluster — `OrMap`, `LWWMap`, `PNCounterMap`, `ORMultiMap`, replicator subscribe |
+| `atomr-distributed-data-lmdb` | redb-backed `DurableStore` for distributed-data |
+| `atomr-persistence` | Event sourcing — journals, snapshots, recovery, async snapshotting, persistent FSM, ALOD |
 | `atomr-persistence-query` | Tagged event streams over journals |
-| `atomr-persistence-{sql,redis,mongodb,cassandra,aws,azure}` | Storage adapters |
-| `atomr-persistence-tck` | Conformance suite for journal + snapshot implementations |
-| `atomr-streams` | Typed reactive streams (sources, flows, sinks, junctions, hubs, kill switches) |
+| `atomr-persistence-query-inmemory` | In-memory query journal for tests + samples |
+| `atomr-persistence-{sql,redis,mongodb,cassandra,aws,azure}` | Storage adapters (Postgres / MySQL / Redis / Mongo / Cassandra / DynamoDB / Azurite) |
+| `atomr-persistence-tck` | Conformance suite — `journal_replay_edge_cases`, `snapshot_extended_suite`, concurrent + extended journal suites |
+| `atomr-streams` | Typed reactive streams (sources, flows, sinks, junctions, hubs, kill switches, sub-streams, conflate/expand, merge_sorted/merge_prioritized, queue/restart) |
+| `atomr-serialization-hyperion` | Hyperion-compatible serializer surface |
 | `atomr-coordination` | Lease-based leadership primitives |
 | `atomr-discovery` | Pluggable service discovery |
 | `atomr-di` | Dependency-injection container |
@@ -88,6 +91,35 @@ A longer argument is in
 Plus a Python facade — `pip install atomr` — that exposes the same
 actor model with GIL-isolated interpreter pools for CPU-bound work and
 async-native `tell` / `ask`.
+
+## Spec parity & test coverage
+
+atomr ships with a deep prior-art parity suite — ~545 lib tests plus
+~420 integration / spec tests across the workspace. Subsystem coverage
+includes:
+
+- **Cluster.** `vector_clock_spec`, `member_ordering_spec`,
+  `reachability_spec`, `cluster_event_spec`, `gossip_spec`,
+  `sbr_strategy_spec`, `heartbeat_spec`, `membership_state_spec`, plus
+  a `LeaderHandover` watcher and a multinode harness.
+- **Cluster tools / sharding.** Singleton, ClusterClient, distributed
+  PubSub, shard allocation + handoff, `at-least-once-delivery`.
+- **Distributed data.** `OrMap` / `LWWMap` / `PNCounterMap` /
+  `ORMultiMap`, CRDT laws, replicator subscribe, three-node convergence
+  suites, redb-backed durable store (`atomr-distributed-data-lmdb`).
+- **Persistence.** PersistentFSM, EventSourced, ALOD, snapshot
+  retention, plus the TCK's `journal_replay_edge_cases` and
+  `snapshot_extended_suite` exercised against every backend (Postgres,
+  MySQL, Redis, MongoDB, Cassandra, DynamoDB, Azurite, redb) in CI.
+- **Streams.** FlowOperator, Hub, SubStream, Recovery, conflate /
+  expand, merge_sorted / merge_prioritized, Queue / Restart.
+- **Core runtime.** Scheduler, Stash, Extensions, Lifecycle, IO
+  managers (TcpManager outbound `Connect` + IO spec), ActorPath /
+  Address, FailureDetector, EndpointState, Routing.
+- **Hosting / DI / lease.** ServiceContainer, Hosting builder, Lease.
+- **Out-of-process multinode.** `MultiNodeOopController` and
+  `MultiNodeOopNode` drive cross-process spec scenarios from the
+  testkit.
 
 ## Quick start (Rust)
 

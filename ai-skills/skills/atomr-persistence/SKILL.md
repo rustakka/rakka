@@ -32,6 +32,10 @@ conformance suite — if the suite passes, the adapter is interchangeable.
 
 See `docs/persistence-providers.md` for the full provider matrix and
 the integration-test environment variables (`ATOMR_IT_REDIS_URL`, etc.).
+CI runs the integration matrix against Postgres, MySQL, Redis,
+MongoDB, Cassandra, DynamoDB (local), Azurite (Azure Table emulator),
+and redb on every PR — treat a green matrix as the bar for adapter
+changes.
 
 ## The `Eventsourced` trait
 
@@ -153,6 +157,10 @@ A passing TCK run is the bar for "compatible with atomr-persistence".
 - `crates/atomr-persistence/src/async_snapshot.rs` — `AsyncSnapshotter`
 - `crates/atomr-persistence-tck/` — conformance suite
 - `docs/persistence-providers.md` — provider matrix and env vars
+
+Spec parity tests cover the recovery and event-sourcing semantics:
+look for `EventsourcedSpec`, `RecoverySpec`, `PersistentFSMSpec`, and
+`ALODSpec` (at-least-once delivery) when verifying corner cases.
 
 ## Common mistakes
 

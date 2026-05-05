@@ -18,19 +18,23 @@ production users expect.
 
 | atomr crate | Prior-art module shape |
 |---|---|
-| `atomr-core` | actor system, supervision, dispatch, mailbox, FSM, event stream, coordinated shutdown |
+| `atomr-core` | actor system, supervision, dispatch, mailbox, FSM, event stream, coordinated shutdown, IO managers (TCP/UDP) |
 | `atomr-config` | layered configuration (HOCON-style) |
-| `atomr-testkit` | probes, virtual time, multi-node spec, event filters |
+| `atomr-testkit` | probes, virtual time, multi-node spec, event filters, out-of-process multi-node (`MultiNodeOopController` / `MultiNodeOopNode`) |
 | `atomr-remote` | location-transparent messaging, framed PDU, ack'd delivery, watcher |
-| `atomr-cluster` | membership, gossip, reachability, split-brain resolvers |
+| `atomr-cluster` | membership, gossip, reachability, split-brain resolvers, leader handover |
 | `atomr-cluster-tools` | singleton, distributed pub/sub, cluster client |
 | `atomr-cluster-sharding` | shard regions, allocation, rebalance, remember-entities |
 | `atomr-cluster-metrics` | adaptive load balancing |
-| `atomr-distributed-data` | CRDT replicator |
-| `atomr-persistence` | event sourcing, journals, snapshots, recovery permitter |
+| `atomr-distributed-data` | CRDT replicator (`OrMap`, `LWWMap`, `PNCounterMap`, `ORMultiMap`, subscribe) |
+| `atomr-distributed-data-lmdb` | redb-backed `DurableStore` (Akka.NET analog: `Akka.DistributedData.LightningDB`) |
+| `atomr-persistence` | event sourcing, journals, snapshots, recovery permitter, persistent FSM, at-least-once delivery |
 | `atomr-persistence-query` | tagged event streams over journals |
-| `atomr-persistence-tck` | conformance suite |
-| `atomr-streams` | typed reactive streams DSL |
+| `atomr-persistence-query-inmemory` | in-memory query journal |
+| `atomr-persistence-{sql,redis,mongodb,cassandra,aws,azure}` | storage adapters (Postgres / MySQL / Redis / Mongo / Cassandra / DynamoDB / Azurite) |
+| `atomr-persistence-tck` | conformance suite (journal + snapshot, replay edge cases, extended suites) |
+| `atomr-serialization-hyperion` | Hyperion-compatible serializer surface |
+| `atomr-streams` | typed reactive streams DSL (FlowOperator, Hub, SubStream, conflate/expand, merge_sorted/merge_prioritized, queue/restart) |
 | `atomr-coordination` | lease primitives |
 | `atomr-discovery` | service discovery |
 | `atomr-di` | dependency-injection container |
