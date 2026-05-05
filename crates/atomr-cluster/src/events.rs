@@ -25,6 +25,7 @@ use crate::member::{Member, MemberStatus};
 #[non_exhaustive]
 pub enum ClusterEvent {
     MemberJoined(Member),
+    MemberWeaklyUp(Member),
     MemberUp(Member),
     MemberLeft(Member),
     MemberExited(Member),
@@ -34,6 +35,28 @@ pub enum ClusterEvent {
     LeaderChanged { from: Option<Address>, to: Option<Address> },
     ClusterShuttingDown,
     Convergence(bool),
+}
+
+impl ClusterEvent {
+    /// Translate a status transition `(old, new)` into the
+    /// corresponding `ClusterEvent`, mirroring akka.net's
+    /// `ClusterCoreDaemon` event-emission rules. Returns `None` when
+    /// the transition is a no-op (`old == new`).
+    pub fn from_status_transition(member: Member, old: MemberStatus) -> Option<ClusterEvent> {
+        let new = member.status;
+        if old == new {
+            return None;
+        }
+        Some(match new {
+            MemberStatus::Joining => ClusterEvent::MemberJoined(member),
+            MemberStatus::WeaklyUp => ClusterEvent::MemberWeaklyUp(member),
+            MemberStatus::Up => ClusterEvent::MemberUp(member),
+            MemberStatus::Leaving => ClusterEvent::MemberLeft(member),
+            MemberStatus::Exiting => ClusterEvent::MemberExited(member),
+            MemberStatus::Down => ClusterEvent::UnreachableMember(member),
+            MemberStatus::Removed => ClusterEvent::MemberRemoved(member, old),
+        })
+    }
 }
 
 type Subscriber = Arc<dyn Fn(&ClusterEvent) + Send + Sync + 'static>;
