@@ -128,14 +128,14 @@ impl<J: Journal> ReadJournal for SimpleReadJournal<J> {
 
     async fn events_by_tag(&self, tag: &str, offset: Offset) -> Result<Vec<EventEnvelope>, JournalError> {
         let from_seq = offset.as_sequence().unwrap_or(0);
-        // For backends that don't have a tag index, we have to fall
-        // back to scanning known persistence ids. The Journal trait
-        // doesn't expose enumeration, so we ask the backend for the
-        // list via a downcast-free path: we use `current_persistence_ids`
-        // (default impl returns empty for in-memory). Production
-        // backends override `events_by_tag` directly with an indexed
-        // query.
-        let ids = self.current_persistence_ids().await?;
+        // Prefer the backend's indexed query when available.
+        let backend_results = self.journal.events_by_tag(tag, from_seq, u64::MAX).await?;
+        if !backend_results.is_empty() {
+            return Ok(backend_results.into_iter().map(Into::into).collect());
+        }
+        // Fall back to scanning per-pid when the backend hasn't
+        // implemented its own tag index.
+        let ids = self.journal.all_persistence_ids().await?;
         let mut out = Vec::new();
         for id in ids {
             let reprs = self.journal.replay_messages(&id, from_seq, u64::MAX, u64::MAX).await?;
@@ -146,6 +146,10 @@ impl<J: Journal> ReadJournal for SimpleReadJournal<J> {
             }
         }
         Ok(out)
+    }
+
+    async fn all_persistence_ids(&self) -> Result<Vec<String>, JournalError> {
+        self.journal.all_persistence_ids().await
     }
 }
 
@@ -193,5 +197,47 @@ mod tests {
         assert_eq!(Offset::Sequence(7).as_sequence(), Some(7));
         assert_eq!(Offset::NoOffset.as_sequence(), Some(0));
         assert_eq!(Offset::TimeBased(123).as_sequence(), None);
+    }
+
+    #[tokio::test]
+    async fn events_by_tag_returns_tagged_events_across_pids() {
+        let j = Arc::new(InMemoryJournal::default());
+        j.write_messages(vec![
+            repr("a", 1, &["red"]),
+            repr("a", 2, &["blue"]),
+            repr("b", 1, &["red", "hot"]),
+            repr("b", 2, &["green"]),
+        ])
+        .await
+        .unwrap();
+        let q = SimpleReadJournal::new(j);
+        let red = q.events_by_tag("red", Offset::NoOffset).await.unwrap();
+        assert_eq!(red.len(), 2);
+        let blue = q.events_by_tag("blue", Offset::NoOffset).await.unwrap();
+        assert_eq!(blue.len(), 1);
+        let none = q.events_by_tag("nope", Offset::NoOffset).await.unwrap();
+        assert!(none.is_empty());
+    }
+
+    #[tokio::test]
+    async fn events_by_tag_respects_offset() {
+        let j = Arc::new(InMemoryJournal::default());
+        j.write_messages(vec![repr("a", 1, &["t"]), repr("a", 2, &["t"]), repr("a", 3, &["t"])])
+            .await
+            .unwrap();
+        let q = SimpleReadJournal::new(j);
+        let from2 = q.events_by_tag("t", Offset::Sequence(2)).await.unwrap();
+        assert_eq!(from2.len(), 2);
+        assert_eq!(from2[0].sequence_nr, 2);
+    }
+
+    #[tokio::test]
+    async fn all_persistence_ids_lists_distinct_writers() {
+        let j = Arc::new(InMemoryJournal::default());
+        j.write_messages(vec![repr("a", 1, &[]), repr("b", 1, &[]), repr("a", 2, &[])]).await.unwrap();
+        let q = SimpleReadJournal::new(j);
+        let mut ids = q.all_persistence_ids().await.unwrap();
+        ids.sort();
+        assert_eq!(ids, vec!["a".to_string(), "b".to_string()]);
     }
 }
