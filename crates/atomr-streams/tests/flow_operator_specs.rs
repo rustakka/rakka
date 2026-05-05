@@ -45,8 +45,7 @@ async fn skip_more_than_length_yields_empty() {
 
 #[tokio::test]
 async fn scan_emits_running_aggregate() {
-    let out: Vec<i32> =
-        Sink::collect(Source::from_iter(vec![1, 2, 3, 4, 5]).scan(0, |acc, x| acc + x)).await;
+    let out: Vec<i32> = Sink::collect(Source::from_iter(vec![1, 2, 3, 4, 5]).scan(0, |acc, x| acc + x)).await;
     assert_eq!(out, vec![1, 3, 6, 10, 15]);
 }
 
@@ -140,18 +139,8 @@ async fn throttle_rate_limits_elements_roughly_linearly() {
     assert_eq!(out, (0..n).collect::<Vec<_>>());
     let lower = expected / 2;
     let upper = expected * 3;
-    assert!(
-        elapsed >= lower,
-        "throttle elapsed {:?} below lower bound {:?}",
-        elapsed,
-        lower
-    );
-    assert!(
-        elapsed <= upper,
-        "throttle elapsed {:?} above upper bound {:?}",
-        elapsed,
-        upper
-    );
+    assert!(elapsed >= lower, "throttle elapsed {:?} below lower bound {:?}", elapsed, lower);
+    assert!(elapsed <= upper, "throttle elapsed {:?} above upper bound {:?}", elapsed, upper);
 }
 
 #[tokio::test]

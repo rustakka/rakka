@@ -14,9 +14,7 @@ use std::time::Duration;
 
 use atomr_core::actor::Address;
 use atomr_remote::failure_detector::FailureDetector;
-use atomr_remote::{
-    DeadlineFailureDetector, FailureDetectorRegistry, PhiAccrualFailureDetector,
-};
+use atomr_remote::{DeadlineFailureDetector, FailureDetectorRegistry, PhiAccrualFailureDetector};
 
 /// Build a phi-accrual detector tuned for fast tests: tiny first-heartbeat
 /// estimate and min std deviation so a few ms past the acceptable pause is

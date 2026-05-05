@@ -172,8 +172,6 @@ async fn merge_hub_second_source_call_yields_empty() {
     let _first = hub.source();
     let second = hub.source();
 
-    let v = tokio::time::timeout(Duration::from_millis(50), Sink::collect(second))
-        .await
-        .unwrap_or_default();
+    let v = tokio::time::timeout(Duration::from_millis(50), Sink::collect(second)).await.unwrap_or_default();
     assert!(v.is_empty(), "second source() must be empty, got {:?}", v);
 }

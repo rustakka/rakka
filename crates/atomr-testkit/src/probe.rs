@@ -180,7 +180,11 @@ impl<M: Send + 'static> TestProbe<M> {
         M: PartialEq + std::fmt::Debug,
     {
         let received = self.receive_n(expected.len(), timeout).await?;
-        if received == expected { Ok(()) } else { Err(TestProbeError::Unexpected) }
+        if received == expected {
+            Ok(())
+        } else {
+            Err(TestProbeError::Unexpected)
+        }
     }
 }
 

@@ -19,9 +19,7 @@
 //! `manifest()` matches `std::any::type_name::<T>()` and the registry
 //! resolves the same `T` round-trip.
 
-use atomr_core::serialization::{
-    JsonSerializer, SerializationRegistry, Serializer, SerializerError,
-};
+use atomr_core::serialization::{JsonSerializer, SerializationRegistry, Serializer, SerializerError};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]

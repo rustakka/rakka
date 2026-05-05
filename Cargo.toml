@@ -12,6 +12,7 @@ members = [
     "crates/atomr-cluster-sharding",
     "crates/atomr-cluster-metrics",
     "crates/atomr-distributed-data",
+    "crates/atomr-distributed-data-lmdb",
     "crates/atomr-persistence",
     "crates/atomr-persistence-query",
     "crates/atomr-persistence-tck",

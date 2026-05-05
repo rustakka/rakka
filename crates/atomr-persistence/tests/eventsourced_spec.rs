@@ -6,9 +6,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use atomr_persistence::{
-    Eventsourced, EventsourcedError, InMemoryJournal, Journal, RecoveryPermitter,
-};
+use atomr_persistence::{Eventsourced, EventsourcedError, InMemoryJournal, Journal, RecoveryPermitter};
 
 #[derive(Debug, thiserror::Error, PartialEq)]
 enum LedgerErr {

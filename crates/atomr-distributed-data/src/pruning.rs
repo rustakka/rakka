@@ -49,9 +49,7 @@ impl PruningState {
     /// taking over. No-op if a marker for `removed_node` already
     /// exists in any phase.
     pub fn initialize(&mut self, removed_node: String, owner: String) {
-        self.markers
-            .entry(removed_node)
-            .or_insert(PruningPhase::Initialized { owner });
+        self.markers.entry(removed_node).or_insert(PruningPhase::Initialized { owner });
     }
 
     /// Mark that pruning of `removed_node` has been observed
@@ -62,8 +60,7 @@ impl PruningState {
         match self.markers.get_mut(removed_node) {
             Some(PruningPhase::Initialized { owner }) => {
                 let owner = std::mem::take(owner);
-                self.markers
-                    .insert(removed_node.to_string(), PruningPhase::Performed { owner, obsolete_at });
+                self.markers.insert(removed_node.to_string(), PruningPhase::Performed { owner, obsolete_at });
                 true
             }
             _ => false,

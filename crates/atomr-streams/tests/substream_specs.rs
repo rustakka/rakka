@@ -206,8 +206,7 @@ async fn recover_emits_fallback_element_and_terminates_on_first_error() {
 async fn recover_with_none_drops_the_error_and_terminates() {
     // `None` → swallow the error, terminate without emitting
     // anything more. akka.net: `FlowRecoverSpec` `None` shape.
-    let s: Source<Result<i32, &'static str>> =
-        Source::from_iter(vec![Ok(1), Ok(2), Err("e"), Ok(3)]);
+    let s: Source<Result<i32, &'static str>> = Source::from_iter(vec![Ok(1), Ok(2), Err("e"), Ok(3)]);
     let recovered = recover(s, |_e| None);
     let collected = Sink::collect(recovered).await;
     assert_eq!(collected, vec![1, 2]);
@@ -220,8 +219,7 @@ async fn recover_with_switches_stream_tail_on_error() {
     // First Err triggers replacement source; pre-error Oks flow
     // through. akka.net: `FlowRecoverWithSpec.A_RecoverWith_must
     // _recover_when_there_is_a_failure`.
-    let s: Source<Result<i32, &'static str>> =
-        Source::from_iter(vec![Ok(1), Ok(2), Err("e"), Ok(99)]);
+    let s: Source<Result<i32, &'static str>> = Source::from_iter(vec![Ok(1), Ok(2), Err("e"), Ok(99)]);
     let replacement: Source<i32> = Source::from_iter(vec![100, 200, 300]);
     let recovered = recover_with(s, replacement);
     let collected = Sink::collect(recovered).await;
@@ -245,13 +243,8 @@ async fn recover_with_retries_exhausts_attempts_then_stops() {
     // third error trips the stream. akka.net:
     // `FlowRecoverWithRetriesSpec.must_terminate_with_failure_after_max
     // _retries`.
-    let s: Source<Result<i32, &'static str>> = Source::from_iter(vec![
-        Ok(1),
-        Err("e1"),
-        Err("e2"),
-        Err("e3"),
-        Ok(999),
-    ]);
+    let s: Source<Result<i32, &'static str>> =
+        Source::from_iter(vec![Ok(1), Err("e1"), Err("e2"), Err("e3"), Ok(999)]);
     let mut counter = 0;
     let recovered = recover_with_retries(s, 2, move || {
         counter += 1;
@@ -267,8 +260,7 @@ async fn recover_with_retries_exhausts_attempts_then_stops() {
 async fn recover_with_retries_continues_while_attempts_remain() {
     // Fewer errors than attempts: every error replaces, the upstream
     // tail still flows.
-    let s: Source<Result<i32, &'static str>> =
-        Source::from_iter(vec![Ok(1), Err("e1"), Ok(2)]);
+    let s: Source<Result<i32, &'static str>> = Source::from_iter(vec![Ok(1), Err("e1"), Ok(2)]);
     let recovered = recover_with_retries(s, 5, || Source::from_iter(vec![100, 200]));
     let collected = Sink::collect(recovered).await;
     // 1 → e1 → replacement (100, 200) → upstream Ok(2) flows because
@@ -280,8 +272,7 @@ async fn recover_with_retries_continues_while_attempts_remain() {
 async fn recover_with_retries_zero_attempts_stops_on_first_error() {
     // max_attempts = 0: any error trips immediately, no replacement
     // is materialized.
-    let s: Source<Result<i32, &'static str>> =
-        Source::from_iter(vec![Ok(1), Err("e"), Ok(2)]);
+    let s: Source<Result<i32, &'static str>> = Source::from_iter(vec![Ok(1), Err("e"), Ok(2)]);
     let recovered = recover_with_retries(s, 0, || Source::from_iter(vec![777]));
     let collected = Sink::collect(recovered).await;
     assert_eq!(collected, vec![1]);

@@ -365,20 +365,10 @@ mod ewma_tests {
 
     #[test]
     fn cpu_selector_prefers_lower_load() {
-        let m = NodeMetrics {
-            address: "a".into(),
-            timestamp: 0,
-            cpu_load: 0.2,
-            memory_used: 0,
-            memory_max: 1,
-        };
-        let n = NodeMetrics {
-            address: "b".into(),
-            timestamp: 0,
-            cpu_load: 0.9,
-            memory_used: 0,
-            memory_max: 1,
-        };
+        let m =
+            NodeMetrics { address: "a".into(), timestamp: 0, cpu_load: 0.2, memory_used: 0, memory_max: 1 };
+        let n =
+            NodeMetrics { address: "b".into(), timestamp: 0, cpu_load: 0.9, memory_used: 0, memory_max: 1 };
         assert!(MetricsSelector::Cpu.weight(&m) > MetricsSelector::Cpu.weight(&n));
     }
 

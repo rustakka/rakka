@@ -11,8 +11,7 @@ use atomr_core::routing::{
 };
 
 fn refs<const N: usize>(prefix: &str) -> ([Inbox<u32>; N], Vec<ActorRef<u32>>) {
-    let inboxes: [Inbox<u32>; N] =
-        std::array::from_fn(|i| Inbox::new(&format!("{prefix}-{i}")));
+    let inboxes: [Inbox<u32>; N] = std::array::from_fn(|i| Inbox::new(&format!("{prefix}-{i}")));
     let refs: Vec<ActorRef<u32>> = inboxes.iter().map(|i| i.actor_ref().clone()).collect();
     (inboxes, refs)
 }
@@ -99,11 +98,8 @@ async fn tail_chopping_routee_count_matches_input() {
 
 #[tokio::test]
 async fn tail_chopping_empty_router_has_no_next_attempt() {
-    let r: TailChoppingRouter<u32> = TailChoppingRouter::new(
-        Vec::new(),
-        Duration::from_millis(10),
-        Duration::from_millis(50),
-    );
+    let r: TailChoppingRouter<u32> =
+        TailChoppingRouter::new(Vec::new(), Duration::from_millis(10), Duration::from_millis(50));
     assert!(r.next_attempt().is_none());
     assert_eq!(r.routee_count(), 0);
 }

@@ -71,8 +71,7 @@ async fn stress_concurrent_calls_eventually_open_when_failing() {
         let s = success.clone();
         handles.push(tokio::spawn(async move {
             for _ in 0..3 {
-                let r: Result<(), CircuitBreakerError<u32>> =
-                    cb.call(|| async { Err::<(), u32>(1) }).await;
+                let r: Result<(), CircuitBreakerError<u32>> = cb.call(|| async { Err::<(), u32>(1) }).await;
                 if matches!(r, Err(CircuitBreakerError::Inner(_))) {
                     s.fetch_add(1, Ordering::SeqCst);
                 }

@@ -13,11 +13,9 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
-use atomr_config::Config;
-use atomr_core::actor::{
-    Actor, ActorPath, ActorSystem, Context, DeadLetterObserver, Props,
-};
 use async_trait::async_trait;
+use atomr_config::Config;
+use atomr_core::actor::{Actor, ActorPath, ActorSystem, Context, DeadLetterObserver, Props};
 use parking_lot::Mutex;
 use tokio::sync::oneshot;
 
@@ -250,11 +248,7 @@ async fn sends_after_post_stop_route_to_dead_letters() {
     }
     settle().await;
 
-    assert_eq!(
-        counters.handled.load(Ordering::SeqCst),
-        pre_count,
-        "no further handle calls after post_stop"
-    );
+    assert_eq!(counters.handled.load(Ordering::SeqCst), pre_count, "no further handle calls after post_stop");
     assert!(
         dl.count_for(&path) >= 3,
         "dead-letter observer saw at least the 3 post-stop sends, got {}",

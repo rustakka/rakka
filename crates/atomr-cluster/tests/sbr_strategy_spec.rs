@@ -38,10 +38,7 @@ fn refs(ms: &[Member]) -> Vec<&Member> {
 fn keep_majority_larger_reachable_side_survives() {
     let r = [up("a", 1), up("b", 2), up("c", 3)];
     let u = [up("d", 4), up("e", 5)];
-    assert_eq!(
-        KeepMajorityStrategy.decide(&refs(&r), &refs(&u)),
-        DowningDecision::DownUnreachable
-    );
+    assert_eq!(KeepMajorityStrategy.decide(&refs(&r), &refs(&u)), DowningDecision::DownUnreachable);
 }
 
 #[test]
@@ -114,30 +111,21 @@ fn keep_oldest_side_with_lowest_up_number_survives() {
     // Oldest (up_number = 1) is in the reachable side.
     let r = [up("a", 1), up("b", 5)];
     let u = [up("c", 2), up("d", 3)];
-    assert_eq!(
-        KeepOldestStrategy::default().decide(&refs(&r), &refs(&u)),
-        DowningDecision::DownUnreachable
-    );
+    assert_eq!(KeepOldestStrategy::default().decide(&refs(&r), &refs(&u)), DowningDecision::DownUnreachable);
 }
 
 #[test]
 fn keep_oldest_other_side_holds_oldest_self_downs() {
     let r = [up("a", 9), up("b", 7)];
     let u = [up("c", 1), up("d", 8)];
-    assert_eq!(
-        KeepOldestStrategy::default().decide(&refs(&r), &refs(&u)),
-        DowningDecision::DownSelf
-    );
+    assert_eq!(KeepOldestStrategy::default().decide(&refs(&r), &refs(&u)), DowningDecision::DownSelf);
 }
 
 #[test]
 fn keep_oldest_only_unreachable_side_self_downs() {
     let r: [Member; 0] = [];
     let u = [up("c", 1)];
-    assert_eq!(
-        KeepOldestStrategy::default().decide(&refs(&r), &refs(&u)),
-        DowningDecision::DownSelf
-    );
+    assert_eq!(KeepOldestStrategy::default().decide(&refs(&r), &refs(&u)), DowningDecision::DownSelf);
 }
 
 #[test]
@@ -156,10 +144,7 @@ fn keep_oldest_alone_with_down_if_alone_downs_all() {
 fn keep_referee_present_side_survives() {
     let r = [up("ref", 1), up("b", 2)];
     let u = [up("c", 3)];
-    let strat = KeepReferee {
-        referee: Address::local("ref").to_string(),
-        down_all_if_less_than: 0,
-    };
+    let strat = KeepReferee { referee: Address::local("ref").to_string(), down_all_if_less_than: 0 };
     assert_eq!(strat.decide(&refs(&r), &refs(&u)), DowningDecision::DownUnreachable);
 }
 
@@ -167,10 +152,7 @@ fn keep_referee_present_side_survives() {
 fn keep_referee_absent_side_self_downs() {
     let r = [up("a", 1), up("b", 2)];
     let u = [up("ref", 3)];
-    let strat = KeepReferee {
-        referee: Address::local("ref").to_string(),
-        down_all_if_less_than: 0,
-    };
+    let strat = KeepReferee { referee: Address::local("ref").to_string(), down_all_if_less_than: 0 };
     assert_eq!(strat.decide(&refs(&r), &refs(&u)), DowningDecision::DownSelf);
 }
 
@@ -180,10 +162,7 @@ fn keep_referee_below_minimum_size_downs_all() {
     // size, so the strategy escalates to `DownAll`.
     let r = [up("ref", 1)];
     let u = [up("b", 2)];
-    let strat = KeepReferee {
-        referee: Address::local("ref").to_string(),
-        down_all_if_less_than: 3,
-    };
+    let strat = KeepReferee { referee: Address::local("ref").to_string(), down_all_if_less_than: 3 };
     assert_eq!(strat.decide(&refs(&r), &refs(&u)), DowningDecision::DownAll);
 }
 

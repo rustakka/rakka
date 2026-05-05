@@ -90,8 +90,7 @@ mod tests {
 
 // -- Closure-based declarative builder ------------------------------
 
-type StateHandler<S, D, M> =
-    Box<dyn FnMut(&S, &D, M) -> Option<FsmTransition<S, D>> + Send + 'static>;
+type StateHandler<S, D, M> = Box<dyn FnMut(&S, &D, M) -> Option<FsmTransition<S, D>> + Send + 'static>;
 
 type TransitionHook<S> = Box<dyn FnMut(&S, &S) + Send + 'static>;
 

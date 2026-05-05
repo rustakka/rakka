@@ -1,9 +1,7 @@
 //! Gossip + decision spec parity. akka.net: `GossipSpec`,
 //! `HeartbeatNodeRingSpec` (subset of decision logic).
 
-use atomr_cluster::{
-    gossip_decide, pick_gossip_target, Gossip, GossipDecision, Member, VectorClock,
-};
+use atomr_cluster::{gossip_decide, pick_gossip_target, Gossip, GossipDecision, Member, VectorClock};
 use atomr_core::actor::Address;
 
 fn vc(pairs: &[(&str, u64)]) -> VectorClock {
