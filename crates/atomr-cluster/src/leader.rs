@@ -150,3 +150,165 @@ mod tests {
         assert!(is_converged(&s));
     }
 }
+
+// -- Distributed leader-election handover ---------------------------
+
+/// Handover event emitted by a [`LeaderHandover`] watcher when the
+/// elected leader changes between snapshots. akka.net analog:
+/// `Cluster.LeaderChanged` event published on the cluster's domain
+/// event stream.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LeaderHandoverEvent {
+    pub from: Option<Address>,
+    pub to: Option<Address>,
+}
+
+/// Watcher that detects leader transitions across successive
+/// [`MembershipState`] snapshots. Stateful: holds the previous
+/// snapshot's leader and emits a [`LeaderHandoverEvent`] only on
+/// change.
+///
+/// Wire it up by calling [`LeaderHandover::observe`] every gossip
+/// tick — a `Some(event)` return value means a handover occurred and
+/// should be published. Across-process handover comes from the
+/// cluster daemon broadcasting these events on the
+/// [`crate::ClusterEventBus`] via remote.
+#[derive(Debug, Default, Clone)]
+pub struct LeaderHandover {
+    previous: Option<Address>,
+}
+
+impl LeaderHandover {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Observe a new membership snapshot. Returns `Some(event)` if
+    /// the leader changed since the last observation; `None` if it
+    /// did not.
+    pub fn observe(&mut self, state: &MembershipState) -> Option<LeaderHandoverEvent> {
+        let next = elect_leader(state);
+        if self.previous != next {
+            let event = LeaderHandoverEvent { from: self.previous.clone(), to: next.clone() };
+            self.previous = next;
+            return Some(event);
+        }
+        None
+    }
+
+    /// The leader observed at the last call to [`Self::observe`].
+    pub fn current(&self) -> Option<&Address> {
+        self.previous.as_ref()
+    }
+}
+
+#[cfg(test)]
+mod handover_tests {
+    use super::*;
+
+    fn member(addr: &str, status: MemberStatus) -> Member {
+        let mut m = Member::new(Address::local(addr), vec![]);
+        m.status = status;
+        m
+    }
+
+    #[test]
+    fn first_observation_emits_initial_election() {
+        let mut s = MembershipState::new();
+        s.add_or_update(member("a", MemberStatus::Up));
+        let mut h = LeaderHandover::new();
+        let ev = h.observe(&s).unwrap();
+        assert_eq!(ev.from, None);
+        assert_eq!(ev.to, Some(Address::local("a")));
+    }
+
+    #[test]
+    fn no_event_when_leader_unchanged() {
+        let mut s = MembershipState::new();
+        s.add_or_update(member("a", MemberStatus::Up));
+        let mut h = LeaderHandover::new();
+        h.observe(&s);
+        assert!(h.observe(&s).is_none());
+    }
+
+    #[test]
+    fn leader_leaving_triggers_handover_to_next_member() {
+        let mut s = MembershipState::new();
+        s.add_or_update(member("a", MemberStatus::Up));
+        s.add_or_update(member("b", MemberStatus::Up));
+        let mut h = LeaderHandover::new();
+        h.observe(&s);
+        assert_eq!(h.current(), Some(&Address::local("a")));
+
+        // 'a' transitions to Leaving — still eligible — leader unchanged.
+        let mut leaving = MembershipState::new();
+        leaving.add_or_update(member("a", MemberStatus::Leaving));
+        leaving.add_or_update(member("b", MemberStatus::Up));
+        assert!(h.observe(&leaving).is_none());
+
+        // 'a' transitions to Exiting (no longer eligible). Leader now b.
+        let mut exiting = MembershipState::new();
+        exiting.add_or_update(member("a", MemberStatus::Exiting));
+        exiting.add_or_update(member("b", MemberStatus::Up));
+        let ev = h.observe(&exiting).unwrap();
+        assert_eq!(ev.from, Some(Address::local("a")));
+        assert_eq!(ev.to, Some(Address::local("b")));
+    }
+
+    #[test]
+    fn leader_becoming_unreachable_triggers_handover() {
+        let mut s = MembershipState::new();
+        s.add_or_update(member("a", MemberStatus::Up));
+        s.add_or_update(member("b", MemberStatus::Up));
+        let mut h = LeaderHandover::new();
+        h.observe(&s);
+        // Mark 'a' unreachable from b. Leader becomes b.
+        s.reachability.unreachable(Address::local("b"), Address::local("a"));
+        let ev = h.observe(&s).unwrap();
+        assert_eq!(ev.from, Some(Address::local("a")));
+        assert_eq!(ev.to, Some(Address::local("b")));
+    }
+
+    #[test]
+    fn no_eligible_members_emits_to_none() {
+        let mut s = MembershipState::new();
+        s.add_or_update(member("a", MemberStatus::Up));
+        let mut h = LeaderHandover::new();
+        h.observe(&s);
+
+        // a is removed — no eligible leader remains.
+        let mut empty = MembershipState::new();
+        empty.add_or_update(member("a", MemberStatus::Removed));
+        let ev = h.observe(&empty).unwrap();
+        assert_eq!(ev.from, Some(Address::local("a")));
+        assert_eq!(ev.to, None);
+    }
+
+    #[test]
+    fn handover_through_full_cluster_lifecycle() {
+        let mut h = LeaderHandover::new();
+
+        // 3 members all Up: leader is a.
+        let mut s1 = MembershipState::new();
+        for n in ["a", "b", "c"] {
+            s1.add_or_update(member(n, MemberStatus::Up));
+        }
+        assert_eq!(h.observe(&s1).unwrap().to, Some(Address::local("a")));
+
+        // a leaves: leader becomes b.
+        let mut s2 = MembershipState::new();
+        s2.add_or_update(member("a", MemberStatus::Removed));
+        for n in ["b", "c"] {
+            s2.add_or_update(member(n, MemberStatus::Up));
+        }
+        assert_eq!(h.observe(&s2).unwrap().to, Some(Address::local("b")));
+
+        // b leaves too: leader becomes c.
+        let mut s3 = MembershipState::new();
+        for n in ["a", "b"] {
+            s3.add_or_update(member(n, MemberStatus::Removed));
+        }
+        s3.add_or_update(member("c", MemberStatus::Up));
+        assert_eq!(h.observe(&s3).unwrap().to, Some(Address::local("c")));
+    }
+}
