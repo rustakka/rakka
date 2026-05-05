@@ -218,6 +218,236 @@ mod tests {
     }
 }
 
+// -- EWMA smoothing --------------------------------------------------
+
+/// Exponentially-weighted moving average. akka.net:
+/// `Akka.Cluster.Metrics.EWMA`.
+///
+/// `alpha` is the smoothing factor in `(0.0, 1.0]`; larger `alpha`
+/// follows the new sample more aggressively.
+#[derive(Debug, Clone, Copy)]
+pub struct Ewma {
+    pub alpha: f64,
+    pub value: f64,
+}
+
+impl Ewma {
+    /// Construct with an initial value and smoothing factor.
+    /// Panics if `alpha` is outside `(0.0, 1.0]`.
+    pub fn new(initial: f64, alpha: f64) -> Self {
+        assert!(alpha > 0.0 && alpha <= 1.0, "alpha must be in (0.0, 1.0]");
+        Self { alpha, value: initial }
+    }
+
+    /// Pick `alpha` from a half-life. After `half_life` samples the
+    /// previous value contributes 50% of the EWMA. Useful when the
+    /// sample interval is fixed.
+    pub fn from_half_life(initial: f64, half_life_samples: f64) -> Self {
+        assert!(half_life_samples > 0.0);
+        // alpha = 1 - 2^(-1/half_life)
+        let alpha = 1.0 - (2.0_f64).powf(-1.0 / half_life_samples);
+        Self::new(initial, alpha)
+    }
+
+    /// Fold a new sample into the EWMA and return the new smoothed value.
+    pub fn update(&mut self, sample: f64) -> f64 {
+        self.value = self.alpha * sample + (1.0 - self.alpha) * self.value;
+        self.value
+    }
+}
+
+// -- Metrics selectors ------------------------------------------------
+
+/// What dimension drives `WeightedRoutees`. akka.net:
+/// `MetricsSelector` / `CpuMetricsSelector` / `HeapMetricsSelector` /
+/// `MixMetricsSelector`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum MetricsSelector {
+    /// Higher weight for lower CPU load. Returns `1 - cpu_load`.
+    Cpu,
+    /// Higher weight for lower memory usage. Returns `1 - memory_usage`.
+    Heap,
+    /// Average of CPU and Heap selectors.
+    Mix,
+}
+
+impl MetricsSelector {
+    /// Compute a weight in `[0.0, 1.0]` for `m`. Larger == more
+    /// preferable as a routing target.
+    pub fn weight(&self, m: &NodeMetrics) -> f64 {
+        let cpu = (1.0 - m.cpu_load).clamp(0.0, 1.0);
+        let heap = (1.0 - m.memory_usage()).clamp(0.0, 1.0);
+        match self {
+            Self::Cpu => cpu,
+            Self::Heap => heap,
+            Self::Mix => 0.5 * (cpu + heap),
+        }
+    }
+}
+
+// -- Weighted routees -------------------------------------------------
+
+/// Pick a routee with probability proportional to its
+/// [`MetricsSelector::weight`]. akka.net: `WeightedRoutees`.
+pub struct WeightedRoutees {
+    metrics: Arc<ClusterMetrics>,
+    selector: MetricsSelector,
+}
+
+impl WeightedRoutees {
+    pub fn new(metrics: Arc<ClusterMetrics>, selector: MetricsSelector) -> Self {
+        Self { metrics, selector }
+    }
+
+    /// Pick a routee using `seed` as the random draw in `[0.0, 1.0)`.
+    /// Splitting the RNG out of the call lets tests be deterministic.
+    /// The returned slice index corresponds to `candidates`.
+    pub fn pick<'a>(&self, candidates: &'a [&'a str], seed: f64) -> Option<&'a str> {
+        if candidates.is_empty() {
+            return None;
+        }
+        let snap = self.metrics.snapshot();
+        let by_addr: HashMap<&str, &NodeMetrics> = snap.iter().map(|m| (m.address.as_str(), m)).collect();
+        let weights: Vec<f64> = candidates
+            .iter()
+            .map(|c| by_addr.get(c).map(|m| self.selector.weight(m)).unwrap_or(0.5))
+            .collect();
+        let total: f64 = weights.iter().sum();
+        if total <= 0.0 {
+            return Some(candidates[0]);
+        }
+        let target = (seed.clamp(0.0, 1.0) * total).min(total);
+        let mut acc = 0.0;
+        for (i, w) in weights.iter().enumerate() {
+            acc += *w;
+            if target <= acc {
+                return Some(candidates[i]);
+            }
+        }
+        candidates.last().copied()
+    }
+}
+
+#[cfg(test)]
+mod ewma_tests {
+    use super::*;
+
+    #[test]
+    fn ewma_initial_value_unchanged_until_update() {
+        let e = Ewma::new(0.5, 0.3);
+        assert_eq!(e.value, 0.5);
+    }
+
+    #[test]
+    fn ewma_converges_to_steady_signal() {
+        let mut e = Ewma::new(0.0, 0.5);
+        for _ in 0..30 {
+            e.update(1.0);
+        }
+        assert!(e.value > 0.99, "expected ≈1.0, got {}", e.value);
+    }
+
+    #[test]
+    fn ewma_rejects_invalid_alpha() {
+        let r = std::panic::catch_unwind(|| Ewma::new(0.0, 0.0));
+        assert!(r.is_err());
+    }
+
+    #[test]
+    fn ewma_from_half_life_yields_50pct_weight_after_half_life() {
+        let mut e = Ewma::from_half_life(0.0, 4.0);
+        // after 4 samples of `1.0`, value ≥ 0.5
+        for _ in 0..4 {
+            e.update(1.0);
+        }
+        assert!(e.value >= 0.5);
+    }
+
+    #[test]
+    fn cpu_selector_prefers_lower_load() {
+        let m = NodeMetrics {
+            address: "a".into(),
+            timestamp: 0,
+            cpu_load: 0.2,
+            memory_used: 0,
+            memory_max: 1,
+        };
+        let n = NodeMetrics {
+            address: "b".into(),
+            timestamp: 0,
+            cpu_load: 0.9,
+            memory_used: 0,
+            memory_max: 1,
+        };
+        assert!(MetricsSelector::Cpu.weight(&m) > MetricsSelector::Cpu.weight(&n));
+    }
+
+    #[test]
+    fn mix_selector_averages_cpu_and_heap() {
+        let m = NodeMetrics {
+            address: "a".into(),
+            timestamp: 0,
+            cpu_load: 0.0,
+            memory_used: 100,
+            memory_max: 200,
+        };
+        let w = MetricsSelector::Mix.weight(&m);
+        // cpu weight 1.0, heap weight 0.5 -> mix 0.75
+        assert!((w - 0.75).abs() < 1e-6, "mix weight {w}");
+    }
+
+    #[test]
+    fn weighted_routees_picks_higher_weight_node_more_often() {
+        let m = Arc::new(ClusterMetrics::new());
+        m.publish(NodeMetrics {
+            address: "fast".into(),
+            timestamp: 0,
+            cpu_load: 0.1,
+            memory_used: 0,
+            memory_max: 1,
+        });
+        m.publish(NodeMetrics {
+            address: "slow".into(),
+            timestamp: 0,
+            cpu_load: 0.9,
+            memory_used: 0,
+            memory_max: 1,
+        });
+        let r = WeightedRoutees::new(m, MetricsSelector::Cpu);
+        let cands = ["fast", "slow"];
+        let mut fast = 0;
+        // 100 deterministic seeds across [0.0, 1.0)
+        for i in 0..100 {
+            let seed = i as f64 / 100.0;
+            if r.pick(&cands, seed) == Some("fast") {
+                fast += 1;
+            }
+        }
+        assert!(fast > 60, "expected >60 fast picks, got {fast}");
+    }
+
+    #[test]
+    fn weighted_routees_returns_first_when_all_zero() {
+        let m = Arc::new(ClusterMetrics::new());
+        m.publish(NodeMetrics {
+            address: "a".into(),
+            timestamp: 0,
+            cpu_load: 1.0,
+            memory_used: 1,
+            memory_max: 1,
+        });
+        m.publish(NodeMetrics {
+            address: "b".into(),
+            timestamp: 0,
+            cpu_load: 1.0,
+            memory_used: 1,
+            memory_max: 1,
+        });
+        let r = WeightedRoutees::new(m, MetricsSelector::Mix);
+        assert_eq!(r.pick(&["a", "b"], 0.5), Some("a"));
+    }
+}
+
 // -- Phase 10.B: optional sysinfo-backed probe -----------------------
 
 #[cfg(feature = "sysinfo-probe")]
