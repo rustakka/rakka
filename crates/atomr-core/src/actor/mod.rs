@@ -29,7 +29,7 @@ pub use actor_ref::{ActorRef, AskError, UntypedActorRef};
 pub use actor_system::{ActorSystem, ActorSystemError};
 pub use address::Address;
 pub use context::{Context, LifecyclePhase, PhaseMarker, Running, Starting, Stopping, TypedContext};
-pub use coordinated_shutdown::{CoordinatedShutdown, Phase};
+pub use coordinated_shutdown::{CoordinatedShutdown, Phase, PhaseConfig};
 pub use deploy::{Deploy, Scope};
 pub use extensions::{Extension, ExtensionId};
 pub use fsm::{FiniteStateMachine, Fsm, FsmBuilder, FsmStopReason, FsmTransition};
