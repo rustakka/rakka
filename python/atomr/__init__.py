@@ -22,15 +22,19 @@ from .compat import declare_compat, compat_flags, compat_list
 
 from . import testkit
 from . import cluster
+from . import cluster_metrics
 from . import cluster_tools
 from . import cluster_sharding
+from . import core
 from . import ddata
+from . import ddata_lmdb
 from . import persistence
 from . import streams
 from . import coordination
 from . import discovery
 from . import di
 from . import hosting
+from . import telemetry
 
 __version__ = _native.__version__
 
@@ -56,13 +60,17 @@ __all__ = [
     "InterpreterCompatError",
     "testkit",
     "cluster",
+    "cluster_metrics",
     "cluster_tools",
     "cluster_sharding",
+    "core",
     "ddata",
+    "ddata_lmdb",
     "persistence",
     "streams",
     "coordination",
     "discovery",
     "di",
     "hosting",
+    "telemetry",
 ]

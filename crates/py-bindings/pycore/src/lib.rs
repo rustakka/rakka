@@ -31,16 +31,20 @@ mod py_actor;
 mod runtime;
 
 mod ext_cluster;
+mod ext_cluster_metrics;
 mod ext_cluster_sharding;
 mod ext_cluster_tools;
 mod ext_coordination;
+mod ext_core_extras;
 mod ext_dashboard;
 mod ext_ddata;
+mod ext_ddata_lmdb;
 mod ext_di;
 mod ext_discovery;
 mod ext_hosting;
 mod ext_persistence;
 mod ext_streams;
+mod ext_telemetry;
 mod ext_testkit;
 
 /// Entry point registered with `#[pymodule]` — exposes `atomr._native`.
@@ -61,9 +65,12 @@ fn _native(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     ext_testkit::register(py, m)?;
     ext_cluster::register(py, m)?;
+    ext_cluster_metrics::register(py, m)?;
     ext_cluster_tools::register(py, m)?;
     ext_cluster_sharding::register(py, m)?;
+    ext_core_extras::register(py, m)?;
     ext_ddata::register(py, m)?;
+    ext_ddata_lmdb::register(py, m)?;
     ext_persistence::register(py, m)?;
     ext_streams::register(py, m)?;
     ext_coordination::register(py, m)?;
@@ -71,6 +78,7 @@ fn _native(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     ext_di::register(py, m)?;
     ext_hosting::register(py, m)?;
     ext_dashboard::register(py, m)?;
+    ext_telemetry::register(py, m)?;
 
     Ok(())
 }
