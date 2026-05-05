@@ -6,6 +6,107 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-05-05
+
+### Repositioned
+- atomr is now framed as a standalone Rust + Python actor runtime.
+  Migration / port framing has been removed from the codebase. The
+  `migrating-from-akka-net.md` doc has been deleted, `PORTING.md` is
+  now `docs/alignment-ledger.md`, and `PORTING_TODO.md` is now
+  `docs/depth-roadmap.md`. Source-code attribution comments
+  referring to specific `Akka.X.Y` types have been stripped from
+  every `.rs` file (245 files swept). Wire-format identifiers
+  (`AkkaPdu`, `AkkaProtocolTransport`, `akka.tcp://` URLs) are
+  retained — those are protocol strings, not attributions.
+- `xtask sync-upstream`, `scripts/sync-upstream.py`, and the
+  `upstream-diff` CI job have been removed.
+
+### Added — depth wave (phases A → FFF)
+- **atomr-core.** `FsmBuilder` closure-DSL; `DispatcherConfig` with
+  `throughput` / `throughput-deadline-time` knobs;
+  `SingleThreadDispatcher`; bounded mailbox overflow strategies
+  (`DropHead` / `DropTail` / `DropNew` / `Fail`); `ControlAwareQueue`;
+  `ListenerRouter`; `ResizerConfig`; `DeadLetterReason` +
+  `DeadLetterFilter`; coordinated-shutdown phase config + idempotent
+  `run_from`; `TcpManager::Connect` outbound IO command.
+- **atomr-testkit.** `expect_msg_eq`, `expect_msg_all_of_in_order`,
+  `within(timeout, fn)` matchers; out-of-process
+  `MultiNodeOopController` / `MultiNodeOopNode` TCP-rendezvous
+  harness; `TestScheduler::cancel` returns false on re-cancel.
+- **atomr-config.** HOCON `+=` array append; `Config::extract<T>` /
+  `extract_root<T>` typed deserialize bridge.
+- **atomr-cluster.** `LeaderHandover` watcher emitting
+  `LeaderHandoverEvent`; `MemberWeaklyUp` event +
+  `ClusterEvent::from_status_transition`; `Member::age_ordering`;
+  monotonic `Reachability::Terminated`.
+- **atomr-cluster-tools.** Distributed pubsub + cluster-singleton +
+  cluster-client spec sweeps.
+- **atomr-cluster-sharding.** Allocation + handoff spec sweep.
+- **atomr-cluster-metrics.** `Ewma` (with `from_half_life`),
+  `MetricsSelector` (Cpu / Heap / Mix), `WeightedRoutees`,
+  `MetricsPdu` gossip transport, optional `sysinfo-probe` feature.
+- **atomr-distributed-data.** `PruningState`, `WriteAggregator` /
+  `ReadAggregator`, `OrSet::iter`, three-node convergence /
+  CRDT-laws / map-CRDT / replicator-subscribe specs.
+- **atomr-distributed-data-lmdb (NEW crate).** `RedbDurableStore`
+  — a redb-backed `DurableStore` with single-writer / multi-reader
+  / mmap semantics, durable across reopen.
+- **atomr-persistence.** `Journal::events_by_tag` and
+  `all_persistence_ids` defaults; in-memory backend overrides;
+  Eventsourced integration / ALOD / PersistentFSM specs.
+- **atomr-persistence-tck.** `journal_replay_edge_cases`,
+  `snapshot_extended_suite`. Every storage backend now invokes the
+  full TCK in CI.
+- **atomr-persistence-query.** Backend-indexed `events_by_tag` with
+  per-pid scan fallback; `all_persistence_ids` round-trip.
+- **atomr-streams.** `split_after`, `prefix_and_tail`, `keep_alive`,
+  `initial_delay`, `recover_with_retries`, `select_error`,
+  `conflate`, `expand`, `merge_sorted`, `merge_prioritized`. Spec
+  sweeps for flow / graph / hub / queue+restart / substream / rate.
+- **atomr-remote.** `LruCache::peek` / `iter`; Reassembler stale-
+  partial GC; endpoint-state + failure-detector specs.
+- **atomr-discovery.** `AggregateDiscovery` provider chain.
+- **atomr-coordination / atomr-di / atomr-hosting.** Full lease /
+  service-container / builder-API spec coverage.
+- **atomr-telemetry.** `TelemetryBus::subscribe_topic`,
+  `TelemetryEvent::ALL_TOPICS`, full probe spec.
+- **CI.** New real-service Postgres + MySQL jobs in the persistence
+  integration matrix; new redb durable-store job.
+
+### Added — Python coverage parity
+Every Rust public surface added in the depth wave is now reachable
+from Python via `atomr._native` extensions and `python/atomr/*.py`
+modules. New Python modules:
+- `atomr.core` — `DispatcherConfig`, `OverflowStrategy`,
+  `BoundedStash`, `ControlAwareQueue`, `ResizerConfig`,
+  `DeadLetterFilter`, Python-driven `FsmBuilder` / `Fsm`.
+- `atomr.cluster_metrics` — `NodeMetrics`, `ClusterMetrics`, `Ewma`,
+  `MetricsSelector`, `WeightedRoutees`, `AdaptiveLoadBalancer`.
+- `atomr.ddata_lmdb` — `RedbDurableStore`.
+- `atomr.telemetry` — `TelemetryBus`, `TopicSubscriber`, `all_topics`.
+
+Existing modules also gained: cluster `LeaderHandover` /
+`LeaderHandoverEvent` / `Member.age_ordering`; cluster-tools
+`ClusterSingletonManager` / `ClusterReceptionist` /
+`ClusterClientSettings`; ddata `PruningState` / `WriteAggregator` /
+`ReadAggregator`; streams `keep_alive` / `initial_delay` /
+`conflate` / `expand` / `merge_sorted` / `merge_prioritized` /
+`split_after` / `prefix_and_tail` / `recover_with_retries` /
+`select_error`; discovery `AggregateDiscovery`; testkit
+`MultiNodeOopController` / `MultiNodeOopNode` /
+`expect_msg_eq` / `expect_msg_all_of_in_order` / `within`;
+persistence `events_by_tag` / `all_persistence_ids`; config
+`Config.extract` / `extract_root`.
+
+`Extensions` (TypeId-keyed) and `ListenerRouter` (typed-Rust
+generic) are intentionally Rust-only — Python cannot satisfy the
+required type-identity / generic constraints.
+
+### Test totals
+- 546 workspace lib tests.
+- 200+ integration / spec tests across 30+ spec files.
+- 76 Python tests (45 new + 31 pre-existing).
+
 ### Fixed
 - `pyproject.toml`: explicitly include `LICENSE` in the maturin sdist so
   PyPI's strict `License-File` metadata check passes. The `0.1.0` PyPI
