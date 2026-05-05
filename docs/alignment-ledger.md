@@ -1,22 +1,20 @@
-# Alignment with prior-art actor runtimes
+# Alignment ledger
 
-atomr stands on its own as a native Rust actor runtime. It also draws
-on the design vocabulary of decades of mature actor runtimes — the
-module boundaries, the supervision idioms, the persistence and
-clustering primitives, the testkit shape. Keeping our crate boundaries
-recognizable to people coming from those runtimes makes the transition
-cheap and gives us a benchmark for *what coverage looks like* in a
-mature platform.
+atomr is a native Rust actor runtime with first-class Python
+bindings. It draws on the design vocabulary that decades of actor
+runtimes have converged on — the module boundaries, the supervision
+idioms, the persistence and clustering primitives, the testkit shape.
+Keeping our crate boundaries recognizable across that vocabulary gives
+us a benchmark for *what coverage looks like* in a mature platform.
 
 This document is the alignment ledger. It is not a percent-complete
-tracker. It is a map of which crate corresponds to which prior-art
-module, so that contributors and reviewers can sanity-check that we
-haven't drifted off the well-trodden trail of features that
-production users expect.
+tracker. It is a map of which crate owns which subsystem, so that
+contributors and reviewers can sanity-check that we haven't drifted
+off the well-trodden trail of features that production users expect.
 
 ## Crate alignment
 
-| atomr crate | Prior-art module shape |
+| atomr crate | Subsystem |
 |---|---|
 | `atomr-core` | actor system, supervision, dispatch, mailbox, FSM, event stream, coordinated shutdown, IO managers (TCP/UDP) |
 | `atomr-config` | layered configuration (HOCON-style) |
@@ -27,7 +25,7 @@ production users expect.
 | `atomr-cluster-sharding` | shard regions, allocation, rebalance, remember-entities |
 | `atomr-cluster-metrics` | adaptive load balancing |
 | `atomr-distributed-data` | CRDT replicator (`OrMap`, `LWWMap`, `PNCounterMap`, `ORMultiMap`, subscribe) |
-| `atomr-distributed-data-lmdb` | redb-backed `DurableStore` (Akka.NET analog: `Akka.DistributedData.LightningDB`) |
+| `atomr-distributed-data-lmdb` | redb-backed `DurableStore` — single-writer / multi-reader / mmap, full DurableStore spec coverage |
 | `atomr-persistence` | event sourcing, journals, snapshots, recovery permitter, persistent FSM, at-least-once delivery |
 | `atomr-persistence-query` | tagged event streams over journals |
 | `atomr-persistence-query-inmemory` | in-memory query journal |
@@ -44,10 +42,10 @@ production users expect.
 
 The Python facade exposes the Rust crates above through PyO3 plus a
 GIL-isolation layer (`InterpreterInstance`, `InterpreterQuota`,
-`InterpreterMetrics`) that is atomr-native — it has no direct prior-
-art equivalent. See [`docs/python.md`](docs/python.md).
+`InterpreterMetrics`) that is atomr-native. See
+[`docs/python.md`](docs/python.md).
 
-| Python surface | Aligned with |
+| Python surface | Subsystem |
 |---|---|
 | `atomr._native.ActorSystem` | actor system |
 | `atomr._native.Props` | actor configuration / construction |
@@ -63,18 +61,14 @@ art equivalent. See [`docs/python.md`](docs/python.md).
 | `atomr._native.di.ServiceContainer` | DI container |
 | `atomr._native.hosting.ActorSystemBuilder` | hosting builder |
 
-## Deliberate divergences
-
-These are places where atomr does *not* line up with prior art, on
-purpose:
+## Deliberate design choices
 
 - **Wire format.** atomr uses Tokio + a serde / bincode framed PDU
-  codec. There is no wire compatibility with JVM or CLR actor
-  runtimes. The remote story is a clean native transport — see
+  codec. The remote story is a clean native transport — see
   [`docs/remoting.md`](docs/remoting.md).
 - **Typed refs.** `ActorRef<M>` is parameterized by message type and
-  checked at compile time. There is no untyped `IActorRef` analogue
-  that you can pass around without the type info.
+  checked at compile time. There is no untyped reference you can pass
+  around without the type info.
 - **No reflection.** `Box<dyn Any>` is forbidden in public APIs.
   Serialization happens through typed codec registries, not
   reflective payload introspection.
@@ -85,7 +79,7 @@ purpose:
   similar markers are sealed so that downstream crates extend by
   composition, not by re-implementing the contract.
 
-## Why this matters even when atomr grows past prior art
+## Why this matters as atomr grows
 
 The alignment ledger is a discipline, not a ceiling. As atomr grows —
 GPU dispatchers, agent-graph integrations, native streaming codecs —
@@ -96,9 +90,8 @@ abstractions clean even when we're inventing.
 
 ## See also
 
-- [`PORTING_TODO.md`](PORTING_TODO.md) — depth roadmap for each
+- [`depth-roadmap.md`](depth-roadmap.md) — depth roadmap for each
   subsystem.
-- [`docs/parity.md`](docs/parity.md) — current presence + depth
-  grades.
-- [`docs/idiomatic-rust.md`](docs/idiomatic-rust.md) — invariants that
-  keep us honest as we extend.
+- [`parity.md`](parity.md) — current presence + depth grades.
+- [`idiomatic-rust.md`](idiomatic-rust.md) — invariants that keep us
+  honest as we extend.

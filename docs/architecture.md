@@ -77,8 +77,7 @@ contract.
 ### Network IO
 
 - `TcpManager` / `UdpManager` are channel-driven actor-style wrappers
-  over tokio sockets, mirroring akka.net's `IO.Tcp` / `IO.Udp`
-  managers. `TcpCommand::Bind` accepts inbound connections;
+  over tokio sockets. `TcpCommand::Bind` accepts inbound connections;
   `TcpCommand::Connect` dials an outbound peer; both surface a unified
   `IoEvent::Connected { id, peer }` event stream so callers can wire
   the connection into the actor surface.
@@ -136,9 +135,8 @@ contract.
 - Delta-CRDT propagation and durable storage available; consistency
   levels are first-class on read and write.
 - `atomr-distributed-data-lmdb` is a redb-backed `DurableStore`
-  implementation (akka.net analog: `Akka.DistributedData.LightningDB`).
-  Verified by a dedicated `ddata-lmdb` job in the persistence-
-  integration workflow.
+  implementation. Verified by a dedicated `ddata-lmdb` job in the
+  persistence-integration workflow.
 
 ### Streams
 

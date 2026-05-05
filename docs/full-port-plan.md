@@ -2,12 +2,12 @@
 
 The long-form roadmap from today's
 [depth grades](parity.md) toward a runtime that's fully fleshed out
-across every aligned subsystem and ready to extend past prior art into
-the unified-compute story
+across every subsystem and ready to extend into the unified-compute
+story
 ([`actors-and-agentic-computing.md`](actors-and-agentic-computing.md)).
 
-This is an alignment-and-depth document, not a percent-complete tracker.
-A subsystem is "done" when it's production-functional with conformance
+This is a depth document, not a percent-complete tracker. A
+subsystem is "done" when it's production-functional with conformance
 test coverage, not when a checkbox is ticked.
 
 ## How depth gets measured
@@ -65,9 +65,10 @@ single-thread via `DispatcherConfig`) plus bounded-overflow /
 control-aware mailbox queues round out the `b` surface.
 
 `b` to `a` is the harder pieces: full coordinated-shutdown phase
-graph under upstream parity, reflection-style extension lookup that
-stays typed, FSM declarative macro coverage of the upstream feature
-surface, and the future GPU dispatcher (see "Forward-looking" below).
+graph at parity with the wider actor-runtime feature surface,
+reflection-style extension lookup that stays typed, FSM declarative
+macro coverage of the same feature surface, and the future GPU
+dispatcher (see "Forward-looking" below).
 
 ### Configuration (`atomr-config`)
 
@@ -142,8 +143,8 @@ store conformance, and consistency-level tests at multi-node scale.
 ### Core (`atomr-persistence`)
 
 `b`. Path to `a` is recovery-permitter pressure tests, async
-snapshotter retention semantics, persistent FSM coverage of the
-upstream feature surface.
+snapshotter retention semantics, persistent FSM coverage of the full
+feature surface.
 
 ### Storage adapters
 
@@ -216,10 +217,10 @@ lands.
 about new sentinels, `parity` auto-generating depth grades from the
 audit baseline + LOC ratios.
 
-## Forward-looking (beyond alignment)
+## Forward-looking
 
 These aren't catch-up items. They are net-new directions that atomr
-takes past prior art.
+takes beyond the typical actor-runtime surface.
 
 ### GPU dispatcher
 
@@ -267,6 +268,7 @@ the right direction, it isn't done.
 - [`idiomatic-rust.md`](idiomatic-rust.md) — twelve invariants.
 - [`actors-and-agentic-computing.md`](actors-and-agentic-computing.md)
   — the unified-compute thesis.
-- [`PORTING.md`](https://github.com/rustakka/atomr/blob/main/PORTING.md) — alignment ledger.
-- [`PORTING_TODO.md`](https://github.com/rustakka/atomr/blob/main/PORTING_TODO.md) — depth roadmap by
+- [`alignment-ledger.md`](alignment-ledger.md) — crate-by-crate
+  alignment of the runtime surface.
+- [`depth-roadmap.md`](depth-roadmap.md) — depth roadmap by
   subsystem.

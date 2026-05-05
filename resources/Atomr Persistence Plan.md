@@ -1,59 +1,64 @@
 # **Atomr Persistence Providers Plan**
 
-## **1\. Analysis of Akka.NET Persistence Repositories**
+## **1\. Backend coverage**
 
-The akkadotnet organization has historically maintained separate plugins for different databases, but recently moved toward a unified SQL approach. The key persistence backend repositories to port are:
+atomr targets the storage backends production deployments most often
+need. The covered backends fall into two groups:
 
-### **SQL Repositories**
+### **SQL**
 
-* **Akka.Persistence.Sql** (The modern, unified SQL plugin using Linq2Db)  
-* *Legacy distinct plugins:* Akka.Persistence.SqlServer, Akka.Persistence.PostgreSql, Akka.Persistence.MySql, Akka.Persistence.Sqlite.
+* A unified SQL provider built on `sqlx`, covering Postgres, MySQL,
+  SQLite, and MSSQL behind one crate (`atomr-persistence-sql`).
 
-### **NoSQL & Cloud Repositories**
+### **NoSQL & Cloud**
 
-* **Akka.Persistence.Redis**  
-* **Akka.Persistence.MongoDB**  
-* **Akka.Persistence.Cassandra**  
-* **Akka.Persistence.Azure** (Table Storage / CosmosDB)  
-* **Akka.Persistence.AWS** (DynamoDB)
+* Redis (sorted-set journals + hash snapshots)
+* MongoDB (indexed collections, BSON payloads)
+* Cassandra / ScyllaDB (partitioned journal tables)
+* Azure Table Storage (SharedKeyLite REST client)
+* AWS DynamoDB (single-table design)
 
 ## **2\. Implementation Plan for atomr**
 
-To implement these in Rust efficiently, we should skip the legacy distinct SQL plugins and aim straight for a unified SQL provider, leveraging Rust's powerful sqlx crate, alongside separate crates for NoSQL databases.
+To implement these in Rust efficiently, atomr ships a single unified
+SQL provider on top of `sqlx`, plus dedicated crates for each NoSQL
+backend.
 
 ### **A. Crate Structure (Cargo Workspace)**
 
-Set up a Cargo workspace within the atomr repository (or a dedicated atomr-persistence repo) to manage the providers:
+The Cargo workspace inside the atomr repository hosts the providers:
 
-* atomr-persistence (Core traits: AsyncWriteJournal, SnapshotStore, ReadJournal)  
-* atomr-persistence-sql (Unified SQL provider for Postgres, MySQL, SQLite, MSSQL)  
-* atomr-persistence-redis  
-* atomr-persistence-mongodb  
+* atomr-persistence (Core traits: AsyncWriteJournal, SnapshotStore, ReadJournal)
+* atomr-persistence-sql (Unified SQL provider for Postgres, MySQL, SQLite, MSSQL)
+* atomr-persistence-redis
+* atomr-persistence-mongodb
 * atomr-persistence-cassandra
 
 ### **B. Rust Ecosystem Mapping**
 
-Instead of C\# libraries, we will map Akka.NET's dependencies to Rust's native asynchronous ecosystem:
+The providers map onto Rust's native asynchronous ecosystem:
 
-* **Async Runtime:** tokio (assuming atomr uses it).  
-* **SQL:** sqlx (allows raw async queries with connection pooling for Postgres, MySQL, SQLite, and MSSQL).  
-* **Redis:** redis (or fred for an advanced async Redis client).  
-* **MongoDB:** mongodb (official async MongoDB Rust driver).  
-* **Cassandra:** scylla (highly performant Rust driver by ScyllaDB, fully compatible with Cassandra).
+* **Async Runtime:** tokio (the runtime atomr uses).
+* **SQL:** sqlx (raw async queries with connection pooling for
+  Postgres, MySQL, SQLite, and MSSQL).
+* **Redis:** redis (or fred for an advanced async Redis client).
+* **MongoDB:** mongodb (official async MongoDB Rust driver).
+* **Cassandra:** scylla (highly performant Rust driver by ScyllaDB,
+  fully compatible with Cassandra).
 
 ### **C. Phased Rollout**
 
-1. **Phase 1: Core Definitions & In-Memory**  
-   * Define the core Journal and SnapshotStore Rust traits using async\_trait (or native async traits if using Rust 1.75+).  
-   * Implement atomr-persistence-memory for testing.  
-2. **Phase 2: Unified SQL Provider (atomr-persistence-sql)**  
-   * Implement the journal and snapshot store using sqlx.  
-   * Start with SQLite (easiest for local CI testing).  
-   * Extend schema generation and tests to Postgres and MySQL.  
-3. **Phase 3: High-Performance NoSQL (redis & mongodb)**  
-   * Implement atomr-persistence-redis (prioritize due to high throughput use cases).  
-   * Implement atomr-persistence-mongodb (JSON/BSON document storage mapping).  
-4. **Phase 4: Distributed / Cloud Plugins**  
+1. **Phase 1: Core Definitions & In-Memory**
+   * Define the core Journal and SnapshotStore Rust traits using async\_trait (or native async traits if using Rust 1.75+).
+   * Implement atomr-persistence-memory for testing.
+2. **Phase 2: Unified SQL Provider (atomr-persistence-sql)**
+   * Implement the journal and snapshot store using sqlx.
+   * Start with SQLite (easiest for local CI testing).
+   * Extend schema generation and tests to Postgres and MySQL.
+3. **Phase 3: High-Performance NoSQL (redis & mongodb)**
+   * Implement atomr-persistence-redis (prioritize due to high throughput use cases).
+   * Implement atomr-persistence-mongodb (JSON/BSON document storage mapping).
+4. **Phase 4: Distributed / Cloud Plugins**
    * Implement Cassandra, AWS DynamoDB, and Azure.
 
 ## **3\. GitHub Release Strategy**
@@ -66,45 +71,45 @@ Use a tool like [cargo-release](https://github.com/crate-ci/cargo-release) to ma
 
 ### **Step 2: GitHub Actions CI/CD Pipeline**
 
-Create a file at .github/workflows/release.yml in your repository. This action will trigger automatically whenever you publish a GitHub Release.  
+Create a file at .github/workflows/release.yml in your repository. This action will trigger automatically whenever you publish a GitHub Release.
 `name: Publish Crates`
 
-`on:`  
-  `release:`  
+`on:`
+  `release:`
     `types: [published]`
 
-`jobs:`  
-  `publish:`  
-    `runs-on: ubuntu-latest`  
-    `steps:`  
-      `- name: Checkout code`  
+`jobs:`
+  `publish:`
+    `runs-on: ubuntu-latest`
+    `steps:`
+      `- name: Checkout code`
         `uses: actions/checkout@v4`
 
-      `- name: Install Rust toolchain`  
+      `- name: Install Rust toolchain`
         `uses: dtolnay/rust-toolchain@stable`
 
-      `- name: Verify Builds and Tests`  
+      `- name: Verify Builds and Tests`
         `run: cargo test --workspace --all-features`
 
-      `- name: Cargo Publish Core`  
-        `env:`  
-          `CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}`  
+      `- name: Cargo Publish Core`
+        `env:`
+          `CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}`
         `run: cargo publish -p atomr-persistence`
 
-      `- name: Cargo Publish SQL`  
-        `env:`  
-          `CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}`  
+      `- name: Cargo Publish SQL`
+        `env:`
+          `CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}`
         `run: cargo publish -p atomr-persistence-sql`
 
       `# Add additional publish steps for redis, mongodb, etc.`
 
 ### **Step 3: Steps to Execute a Release**
 
-1. **Update Changelog:** Update the CHANGELOG.md detailing new persistence providers or fixes.  
-2. **Bump Versions:** Run cargo release version minor (or major/patch) locally to bump versions across the workspace, commit, and push.  
-3. **Draft a Release on GitHub:**  
-   * Go to your atomr GitHub repo \-\> **Releases** \-\> **Draft a new release**.  
-   * Create a new tag (e.g., v0.2.0).  
-   * Title the release and paste the changelog notes.  
-4. **Publish:** Click **Publish release**.  
+1. **Update Changelog:** Update the CHANGELOG.md detailing new persistence providers or fixes.
+2. **Bump Versions:** Run cargo release version minor (or major/patch) locally to bump versions across the workspace, commit, and push.
+3. **Draft a Release on GitHub:**
+   * Go to your atomr GitHub repo \-\> **Releases** \-\> **Draft a new release**.
+   * Create a new tag (e.g., v0.2.0).
+   * Title the release and paste the changelog notes.
+4. **Publish:** Click **Publish release**.
 5. **Automation Takes Over:** The GitHub Action will detect the published event, run your test suite against the DBs, and automatically authenticate and publish the new provider crates to crates.io.

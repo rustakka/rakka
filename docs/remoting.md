@@ -3,9 +3,9 @@
 `atomr-remote` lets two `ActorSystem`s on different processes (or
 machines) exchange messages. It covers:
 
-- length-prefixed binary framing (`AkkaPdu`)
-- handshake / heartbeat / ack / disassociate PDUs
-  (`AkkaProtocolTransport`)
+- length-prefixed binary framing (the framed-PDU codec)
+- handshake / heartbeat / ack / disassociate PDUs (the protocol
+  transport)
 - Tokio TCP transport, in-memory `TestTransport`, throttle &
   failure-injector adapters
 - per-association `Endpoint` reader/writer with sliding-window ack'd
@@ -63,7 +63,7 @@ let remote_b = RemoteSystem::start(
 remote_b.register_bincode::<Greeting>();
 
 let greeter_remote: ActorRef<Greeting> = remote_b
-    .actor_selection::<Greeting>("akka.tcp://A@127.0.0.1:7000/user/greeter")
+    .actor_selection::<Greeting>("atomr.tcp://A@127.0.0.1:7000/user/greeter")
     .expect("remote selection");
 greeter_remote.tell(Greeting::Hello("world".into()));
 # Ok(()) }
@@ -79,7 +79,7 @@ greeter_remote.tell(Greeting::Hello("world".into()));
 3. **`expose_actor`** any local actor that should be addressable from
    peers. The actor's path becomes its remote address: an actor
    registered as `actor_of(props, "echo")` is reachable at
-   `akka.tcp://Sys@host:port/user/echo`.
+   `atomr.tcp://Sys@host:port/user/echo`.
 4. **`actor_selection::<M>(path)`** to obtain a typed `ActorRef<M>` on
    the calling side. The returned ref has all the regular
    `tell`/`ask_with` ergonomics; messages are serialized and shipped via
@@ -115,7 +115,7 @@ greeter_remote.tell(Greeting::Hello("world".into()));
                          +-----------+-----------+
                                      |
                          +-----------v-----------+
-                         |  AkkaProtocolTransport|
+                         |  ProtocolTransport    |
                          |  - Associate handshake|
                          |  - Heartbeat / Ack    |
                          |  - Disassociate       |
@@ -169,9 +169,9 @@ messages to remote shard owners via `RemoteSystem::actor_selection`.
 
 ## Caveats / non-goals
 
-- **Wire compatibility with JVM/CLR Akka is not a goal.** The PDU
-  encoding is bincode, not Akka's protobuf. JVM and CLR clusters cannot
-  join a `atomr` cluster.
+- **Wire compatibility with other actor runtimes is not a goal.**
+  The PDU encoding is bincode-framed; clusters from other runtimes
+  cannot join an `atomr` cluster.
 - **Remote `Props` deployment** ships a `(manifest, bytes)` create
   request rather than a fully-typed `Props`. The remote daemon must have
   a route registered for that manifest.

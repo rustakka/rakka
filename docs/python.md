@@ -195,8 +195,8 @@ atomr.hosting.Builder / ActorSystemBuilder
 
 - Process-local only today. `pyremote` + pluggable Python codecs
   (msgpack / pickle / JSON) are tracked under Phase P3 in
-  `PORTING_TODO.md` and are deferred until native remote has crossed a
-  process boundary.
+  [`depth-roadmap.md`](depth-roadmap.md) and are deferred until
+  native remote has crossed a process boundary.
 - `Context.spawn_child` / `watch` / `set_receive_timeout` are not yet
   exposed to Python; use the Rust API or ask me to prioritize them.
 - Subinterpreters on CPython 3.12 still share many CPython singletons;

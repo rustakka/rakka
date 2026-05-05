@@ -117,9 +117,8 @@ under tunable consistency (`Local`, `Majority`, `All`).
 
 For replicas that must survive a node restart, use
 `atomr-distributed-data-lmdb::RedbDurableStore` — a redb-backed
-implementation of `DurableStore` (the analog of Akka.NET's
-`Akka.DistributedData.LightningDB.LmdbDurableStore`). Wire it into the
-`Replicator` config when you mark a key as `durable`.
+implementation of `DurableStore`. Wire it into the `Replicator`
+config when you mark a key as `durable`.
 
 ## Leader handover
 
@@ -154,13 +153,13 @@ both in any non-trivial cluster deployment.
 - `docs/remoting.md` — transport + delivery semantics
 - `docs/architecture.md` — cluster internals
 
-Spec parity test files cover the cluster surface in depth — when in
-doubt about expected semantics, search for them by name: `VectorClock`,
-`MemberOrdering`, `Reachability`, `ClusterEvent`, `GossipSpec`,
-`SbrStrategy`, `Heartbeat`, `MembershipState`, `Singleton`,
-`ClusterClient`, `PubSub`, sharding `allocation`/`handoff`,
-`FailureDetector`, `Endpoint state`, CRDT laws, `OrMap`, `LWWMap`,
-`PNCounterMap`, `ORMultiMap`, `Replicator` subscribe.
+Tests cover the cluster surface in depth — when in doubt about
+expected semantics, search for them by name: vector clock, member
+ordering, reachability, cluster events, gossip, SBR strategy,
+heartbeat, membership state, singleton, cluster client, pub/sub,
+sharding allocation/handoff, failure detector, endpoint state, CRDT
+laws, `OrMap`, `LWWMap`, `PNCounterMap`, `ORMultiMap`, replicator
+subscribe.
 
 ## Common mistakes
 
