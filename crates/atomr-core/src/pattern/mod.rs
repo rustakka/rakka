@@ -9,6 +9,6 @@ mod retry;
 
 pub use ask::ask;
 pub use backoff::{BackoffOptions, BackoffSupervisor};
-pub use circuit_breaker::{CircuitBreaker, CircuitBreakerState};
+pub use circuit_breaker::{CircuitBreaker, CircuitBreakerError, CircuitBreakerState};
 pub use pipe_to::pipe_to;
 pub use retry::{retry, RetrySchedule};
