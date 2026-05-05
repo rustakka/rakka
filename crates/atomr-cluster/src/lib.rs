@@ -28,7 +28,7 @@ pub use gossip::{Gossip, GossipOverview};
 pub use gossip_pdu::{decide as gossip_decide, pick_gossip_target, GossipDecision, GossipPdu};
 pub use heartbeat::HeartbeatState;
 pub use heartbeat_sender::{HeartbeatSender, PeerHeartbeat};
-pub use leader::{elect_leader, is_converged, next_status};
+pub use leader::{elect_leader, is_converged, next_status, LeaderHandover, LeaderHandoverEvent};
 pub use member::{Member, MemberStatus};
 pub use membership::MembershipState;
 pub use multi_dc::{
