@@ -27,14 +27,24 @@ impl Reachability {
     }
 
     pub fn unreachable(&mut self, observer: Address, subject: Address) {
-        self.records.insert((observer, subject), ReachabilityStatus::Unreachable);
+        let key = (observer, subject);
+        // Terminated is monotonic — never downgrade.
+        if matches!(self.records.get(&key), Some(ReachabilityStatus::Terminated)) {
+            return;
+        }
+        self.records.insert(key, ReachabilityStatus::Unreachable);
     }
 
     pub fn reachable(&mut self, observer: Address, subject: Address) {
-        self.records.insert((observer, subject), ReachabilityStatus::Reachable);
+        let key = (observer, subject);
+        if matches!(self.records.get(&key), Some(ReachabilityStatus::Terminated)) {
+            return;
+        }
+        self.records.insert(key, ReachabilityStatus::Reachable);
     }
 
     pub fn terminated(&mut self, observer: Address, subject: Address) {
+        // Terminated is final and overrides any prior status.
         self.records.insert((observer, subject), ReachabilityStatus::Terminated);
     }
 
