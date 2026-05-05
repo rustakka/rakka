@@ -64,6 +64,12 @@ pub trait Journal: Send + Sync + 'static {
     ) -> Result<Vec<PersistentRepr>, JournalError> {
         Ok(Vec::new())
     }
+
+    /// Distinct persistence ids known to the backend. Default impl
+    /// returns empty so backends without an id index opt in.
+    async fn all_persistence_ids(&self) -> Result<Vec<String>, JournalError> {
+        Ok(Vec::new())
+    }
 }
 
 #[derive(Default)]
@@ -130,6 +136,37 @@ impl Journal for InMemoryJournal {
 
     async fn highest_sequence_nr(&self, pid: &str, _from: u64) -> Result<u64, JournalError> {
         Ok(self.streams.read().get(pid).and_then(|v| v.last()).map(|r| r.sequence_nr).unwrap_or(0))
+    }
+
+    async fn all_persistence_ids(&self) -> Result<Vec<String>, JournalError> {
+        Ok(self.streams.read().keys().cloned().collect())
+    }
+
+    async fn events_by_tag(
+        &self,
+        tag: &str,
+        from_offset: u64,
+        max: u64,
+    ) -> Result<Vec<PersistentRepr>, JournalError> {
+        let map = self.streams.read();
+        let mut out = Vec::new();
+        for (_pid, stream) in map.iter() {
+            for r in stream {
+                if r.deleted {
+                    continue;
+                }
+                if r.sequence_nr < from_offset {
+                    continue;
+                }
+                if r.tags.iter().any(|t| t == tag) {
+                    out.push(r.clone());
+                    if out.len() as u64 >= max {
+                        return Ok(out);
+                    }
+                }
+            }
+        }
+        Ok(out)
     }
 }
 
