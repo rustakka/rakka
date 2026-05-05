@@ -31,7 +31,7 @@ pub use address::Address;
 pub use context::{Context, LifecyclePhase, PhaseMarker, Running, Starting, Stopping, TypedContext};
 pub use coordinated_shutdown::{CoordinatedShutdown, Phase, PhaseConfig};
 pub use deploy::{Deploy, Scope};
-pub use extensions::{Extension, ExtensionId};
+pub use extensions::{Extension, ExtensionId, Extensions};
 pub use fsm::{FiniteStateMachine, Fsm, FsmBuilder, FsmStopReason, FsmTransition};
 pub use inbox::Inbox;
 pub use observer::{DeadLetterObserver, SpawnObserver};
