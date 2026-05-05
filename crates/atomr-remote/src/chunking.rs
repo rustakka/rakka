@@ -107,6 +107,7 @@ struct Pending {
     total: u32,
     chunks: Vec<Option<Vec<u8>>>,
     received: u32,
+    started_at: std::time::Instant,
 }
 
 impl Reassembler {
@@ -124,6 +125,7 @@ impl Reassembler {
             total: chunk.total_chunks,
             chunks: (0..chunk.total_chunks).map(|_| None).collect(),
             received: 0,
+            started_at: std::time::Instant::now(),
         });
         if entry.total != chunk.total_chunks {
             return Err(ChunkError::SizeMismatch {
@@ -152,6 +154,17 @@ impl Reassembler {
 
     pub fn pending_message_count(&self) -> usize {
         self.pending.len()
+    }
+
+    /// Discard partial reassemblies older than `older_than`. Returns
+    /// the count of entries swept. Call on a low-frequency tick to
+    /// keep the reassembler bounded against peers that fall silent
+    /// mid-message.
+    pub fn gc_expired(&mut self, older_than: std::time::Duration) -> usize {
+        let now = std::time::Instant::now();
+        let before = self.pending.len();
+        self.pending.retain(|_, p| now.duration_since(p.started_at) < older_than);
+        before - self.pending.len()
     }
 }
 
@@ -251,5 +264,27 @@ mod tests {
         let bytes = c.to_wire();
         let parsed = Chunk::from_wire(&bytes).unwrap();
         assert_eq!(parsed, c);
+    }
+
+    #[test]
+    fn gc_expired_evicts_old_partials() {
+        let mut r = Reassembler::new();
+        // Insert a partial that will be aged out.
+        let _ = r.push(Chunk { message_id: 99, chunk_idx: 0, total_chunks: 2, payload: vec![1] });
+        assert_eq!(r.pending_message_count(), 1);
+        // Sweep with a zero-age threshold: evicts immediately.
+        std::thread::sleep(std::time::Duration::from_millis(2));
+        let swept = r.gc_expired(std::time::Duration::from_millis(1));
+        assert_eq!(swept, 1);
+        assert_eq!(r.pending_message_count(), 0);
+    }
+
+    #[test]
+    fn gc_expired_keeps_fresh_partials() {
+        let mut r = Reassembler::new();
+        let _ = r.push(Chunk { message_id: 1, chunk_idx: 0, total_chunks: 2, payload: vec![1] });
+        let swept = r.gc_expired(std::time::Duration::from_secs(60));
+        assert_eq!(swept, 0);
+        assert_eq!(r.pending_message_count(), 1);
     }
 }

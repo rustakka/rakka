@@ -85,6 +85,18 @@ impl<K: Eq + Hash + Clone, V: Clone> LruCache<K, V> {
         self.map.clear();
         self.tick = 0;
     }
+
+    /// Look up `key` without bumping its recency. Useful for diagnostic
+    /// dumps where the cache state should not be perturbed.
+    pub fn peek(&self, key: &K) -> Option<V> {
+        self.map.get(key).map(|(v, _)| v.clone())
+    }
+
+    /// Iterate over `(key, value)` pairs in arbitrary order. Provided
+    /// for telemetry / dashboard inspection of cache contents.
+    pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
+        self.map.iter().map(|(k, (v, _))| (k, v))
+    }
 }
 
 #[cfg(test)]
@@ -148,5 +160,28 @@ mod tests {
     #[should_panic]
     fn zero_capacity_panics() {
         let _: LruCache<&'static str, i32> = LruCache::new(0);
+    }
+
+    #[test]
+    fn peek_does_not_change_recency() {
+        let mut c = LruCache::<&'static str, i32>::new(2);
+        c.put("a", 1);
+        c.put("b", 2);
+        assert_eq!(c.peek(&"a"), Some(1));
+        // peek did not touch tick → next put evicts "a" because we
+        // haven't bumped it.
+        let evicted = c.put("c", 3);
+        assert_eq!(evicted, Some(1));
+    }
+
+    #[test]
+    fn iter_visits_all_entries() {
+        let mut c = LruCache::<&'static str, i32>::new(3);
+        c.put("a", 1);
+        c.put("b", 2);
+        c.put("c", 3);
+        let mut keys: Vec<&&str> = c.iter().map(|(k, _)| k).collect();
+        keys.sort();
+        assert_eq!(keys, vec![&"a", &"b", &"c"]);
     }
 }
