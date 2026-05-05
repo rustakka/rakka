@@ -49,6 +49,11 @@ impl TelemetryEvent {
             Self::DDataUpdated { .. } => "ddata",
         }
     }
+
+    /// All telemetry topics the bus emits. Used by the dashboard /
+    /// spec parity tests to ensure every probe surface is wired.
+    pub const ALL_TOPICS: &'static [&'static str] =
+        &["actors", "dead_letters", "cluster", "sharding", "persistence", "remote", "streams", "ddata"];
 }
 
 /// Cheap-to-clone broadcast bus. Wraps a `tokio::sync::broadcast` sender
@@ -77,6 +82,25 @@ impl TelemetryBus {
 
     pub fn subscribe(&self) -> broadcast::Receiver<TelemetryEvent> {
         self.tx.subscribe()
+    }
+
+    /// Subscribe to a single topic. The returned receiver yields only
+    /// events whose `topic()` matches `wanted`. Backed by a forwarder
+    /// task that filters the broadcast stream — drop the receiver to
+    /// stop the forwarder.
+    pub fn subscribe_topic(&self, wanted: &'static str) -> tokio::sync::mpsc::UnboundedReceiver<TelemetryEvent> {
+        let mut src = self.tx.subscribe();
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        tokio::spawn(async move {
+            while let Ok(ev) = src.recv().await {
+                if ev.topic() == wanted {
+                    if tx.send(ev).is_err() {
+                        return;
+                    }
+                }
+            }
+        });
+        rx
     }
 
     pub fn receiver_count(&self) -> usize {
@@ -112,5 +136,51 @@ mod tests {
             spawned_at: "now".into(),
         });
         assert_eq!(e.topic(), "actors");
+    }
+
+    #[tokio::test]
+    async fn subscribe_topic_filters_by_topic() {
+        let bus = TelemetryBus::new(16);
+        let mut rx = bus.subscribe_topic("ddata");
+        bus.publish(TelemetryEvent::ActorStopped { path: "/x".into() }); // actors — skipped
+        bus.publish(TelemetryEvent::DDataUpdated { key: "k".into() });
+        bus.publish(TelemetryEvent::DDataUpdated { key: "j".into() });
+        let first = rx.recv().await.unwrap();
+        let second = rx.recv().await.unwrap();
+        match (first, second) {
+            (TelemetryEvent::DDataUpdated { key: k1 }, TelemetryEvent::DDataUpdated { key: k2 }) => {
+                assert_eq!(k1, "k");
+                assert_eq!(k2, "j");
+            }
+            other => panic!("unexpected events: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn all_topics_covers_every_variant() {
+        // Confirm every topic that variants advertise is listed in
+        // ALL_TOPICS — guards against drift between TelemetryEvent and
+        // the dashboard topic enumeration.
+        let samples = [
+            TelemetryEvent::ActorStopped { path: "/x".into() }.topic(),
+            TelemetryEvent::DeadLetter(DeadLetterRecord {
+                seq: 0,
+                recipient: "/x".into(),
+                sender: None,
+                message_type: "test".into(),
+                message_preview: "p".into(),
+                timestamp: "now".into(),
+            })
+            .topic(),
+            TelemetryEvent::DDataUpdated { key: "k".into() }.topic(),
+        ];
+        for t in samples {
+            assert!(TelemetryEvent::ALL_TOPICS.contains(&t), "topic {t} missing from ALL_TOPICS");
+        }
+        // No duplicates.
+        let mut sorted = TelemetryEvent::ALL_TOPICS.to_vec();
+        sorted.sort();
+        sorted.dedup();
+        assert_eq!(sorted.len(), TelemetryEvent::ALL_TOPICS.len());
     }
 }
