@@ -33,7 +33,13 @@ pub enum IoEvent {
 /// Commands sent into the [`TcpManager`].
 #[derive(Debug)]
 pub enum TcpCommand {
+    /// Listen on `addr`. The kernel-assigned port flows back as
+    /// `IoEvent::Bound { addr }`.
     Bind { addr: SocketAddr },
+    /// Initiate an outbound connection. On success a
+    /// `IoEvent::Connected { id, peer }` is published; subsequent
+    /// reads / writes use the same `ConnId` API as inbound.
+    Connect { addr: SocketAddr },
     Send { id: ConnId, bytes: Vec<u8> },
     Close { id: ConnId },
     Shutdown,
@@ -60,6 +66,14 @@ impl TcpManager {
     pub fn bind(&self, addr: SocketAddr) -> io::Result<()> {
         self.cmd
             .send(TcpCommand::Bind { addr })
+            .map_err(|_| io::Error::new(io::ErrorKind::BrokenPipe, "manager stopped"))
+    }
+    /// Initiate an outbound connection. On success the manager
+    /// publishes `IoEvent::Connected { id, peer }`; on failure it
+    /// publishes `IoEvent::Error { reason }`.
+    pub fn connect(&self, addr: SocketAddr) -> io::Result<()> {
+        self.cmd
+            .send(TcpCommand::Connect { addr })
             .map_err(|_| io::Error::new(io::ErrorKind::BrokenPipe, "manager stopped"))
     }
     pub fn send_bytes(&self, id: ConnId, bytes: Vec<u8>) -> io::Result<()> {
@@ -112,6 +126,23 @@ async fn run_tcp(
                         let _ = evt_tx.send(IoEvent::Connected { id, peer });
                         spawn_conn(id, stream, evt_tx.clone(), conns.clone()).await;
                     }
+                });
+            }
+            TcpCommand::Connect { addr } => {
+                let evt_tx = evt.clone();
+                let conns = conns.clone();
+                tokio::spawn(async move {
+                    let stream = match TcpStream::connect(addr).await {
+                        Ok(s) => s,
+                        Err(e) => {
+                            let _ = evt_tx.send(IoEvent::Error { reason: e.to_string() });
+                            return;
+                        }
+                    };
+                    let peer = stream.peer_addr().unwrap_or(addr);
+                    let id = ConnId(SEQ.fetch_add(1, Ordering::Relaxed));
+                    let _ = evt_tx.send(IoEvent::Connected { id, peer });
+                    spawn_conn(id, stream, evt_tx, conns).await;
                 });
             }
             TcpCommand::Send { id, bytes } => {
