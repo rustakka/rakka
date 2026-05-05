@@ -32,7 +32,7 @@ pub use context::{Context, LifecyclePhase, PhaseMarker, Running, Starting, Stopp
 pub use coordinated_shutdown::{CoordinatedShutdown, Phase};
 pub use deploy::{Deploy, Scope};
 pub use extensions::{Extension, ExtensionId};
-pub use fsm::{FiniteStateMachine, FsmTransition};
+pub use fsm::{FiniteStateMachine, Fsm, FsmBuilder, FsmStopReason, FsmTransition};
 pub use inbox::Inbox;
 pub use observer::{DeadLetterObserver, SpawnObserver};
 pub use path::{ActorPath, PathElement};
