@@ -28,30 +28,31 @@ which subsystems extend further than the inherited shape.
 | `atomr` | b | umbrella facade — re-exports only |
 | `atomr-config` | b | TOML + HOCON-subset (`include`, `${path}`, `${?ENV}`, dotted keys, nested objects, arrays, triple-quoted strings) |
 | `atomr-macros` | b | `#[derive(Actor)]`, `#[actor_msg]`, `props!`, `#[derive(Receive)]` (unit variants); tuple-variant `Receive` and `#[derive(Eventsourced)]` pending |
-| `atomr-core` | c | typed `Sender`, `SupervisorOf<C>`, `LifecyclePhase`, ThreadPool/CallingThread/pinned dispatchers, FSM, stash, watch / death-watch, ask / pipe-to, scheduler, event stream, coordinated shutdown, extensions, 7 routers; dispatcher trait designed to admit accelerator backends |
-| `atomr-testkit` | c | `TestKit`, `TestProbe` (`expect_msg_class`, `receive_n`, `receive_while`, `fish_for_message`, `expect_all_of`), virtual-time `TestScheduler`, `MultiNodeSpec`, `EventFilter` |
-| `atomr-remote` | b | TCP transport, framed PDU codec, ack'd delivery, endpoint state machine, watcher, system daemon, transport adapters (throttle / failure-injector / test), phi-accrual failure detector, address-uid extension, `LruCache`, `TlsConfig` (PEM helpers), `Chunker`/`Reassembler`, two-process integration tests |
-| `atomr-cluster` | b | membership state, reachability, vector clock, 5 SBR strategies (`KeepMajority`, `StaticQuorum`, `KeepOldest`, `KeepReferee`, `LeaseMajority`), event bus, leader election, convergence, gossip PDU + transport trait, heartbeat sender, SBR runtime, multi-DC tagging |
-| `atomr-cluster-tools` | b | distributed pub/sub mediator (typed publish, topics + groups), cluster singleton (handover + buffered proxy), cluster client (contact-point discovery, retry, backoff) |
-| `atomr-cluster-sharding` | b | allocation strategies, `PassivationTracker`, persistent (event-sourced) coordinator, distributed-data-backed coordinator, rebalance runner, remember-entities, three-phase handoff |
-| `atomr-cluster-metrics` | d | `MetricsProbe` trait, `StaticProbe`, `AdaptiveLoadBalancer`; built-in sysinfo probe + metrics gossip pending |
-| `atomr-distributed-data` | b | 10 CRDTs (`GCounter`, `PNCounter`, `GSet`, `OrSet`, `LwwRegister`, `Flag`, `ORMap`, `LWWMap`, `PNCounterMap`, `ORMultiMap`); replicator with subscribe + RAII token; delta-CRDT propagation; durable store; consistency-level reads/writes |
-| `atomr-persistence` | b | `Eventsourced` + typed errors, `RecoveryPermitter`, `ReceivePersistent`, `PersistentFSM`, async snapshotter + retention policy, at-least-once delivery |
-| `atomr-persistence-query` | c | typed `Offset`, `events_by_tag`, `current_*`, `all_persistence_ids` |
-| `atomr-persistence-query-inmemory` | c | minimal in-memory read journal |
-| `atomr-persistence-tck` | b | journal + extended journal + concurrent + tag + snapshot suites |
+| `atomr-core` | b | typed `Sender`, `SupervisorOf<C>`, `LifecyclePhase`, dispatchers (ThreadPool / CallingThread / Pinned / SingleThread + `DispatcherConfig` knobs), FSM (trait + `FsmBuilder` closure-DSL), bounded mailbox overflow strategies, control-aware queue, stash with overflow, watch / death-watch, ask / pipe-to, scheduler, event stream, coordinated shutdown (idempotent + per-phase config), extensions registry, 8 routers (RoundRobin / Random / SmallestMailbox / Broadcast / ScatterGather / TailChopping / ConsistentHash / Listener) + `ResizerConfig`, dead-letter suppression filter, IO managers (Tcp Bind / Connect / Send / Close, Udp), pattern (CircuitBreaker, BackoffSupervisor, Retry); spec coverage for lifecycle, routing, stash, extensions, IO, scheduler, path/address, serialization, circuit-breaker stress |
+| `atomr-testkit` | b | `TestKit`, full `TestProbe` matcher set (`expect_msg_class`, `expect_msg_eq`, `expect_msg_all_of_in_order`, `receive_n`, `receive_while`, `fish_for_message`, `expect_all_of`, `within`), virtual-time `TestScheduler` with monotonic-cancel semantics, in-process `MultiNodeSpec`, **out-of-process `MultiNodeOopController`/`MultiNodeOopNode`** TCP-rendezvous harness, `EventFilter` |
+| `atomr-remote` | b | TCP transport, framed PDU codec, ack'd delivery, endpoint state machine (Idle → Pending → Connected → Quarantined → Tombstoned with purge), watcher, system daemon, transport adapters (throttle / failure-injector / test), phi-accrual failure detector + spec, address-uid extension, `LruCache` (peek/iter), `TlsConfig` (PEM helpers), `Chunker`/`Reassembler` with stale-partial GC, two-process integration tests, endpoint-state spec |
+| `atomr-cluster` | b | membership state + spec, reachability (monotonic Terminated) + spec, vector clock + spec, member age ordering + spec, 5 SBR strategies (`KeepMajority`, `StaticQuorum`, `KeepOldest`, `KeepReferee`, `LeaseMajority`) + spec sweep, cluster event bus + spec, leader election + convergence + `LeaderHandover` watcher emitting `LeaderHandoverEvent`, gossip PDU + decide spec, heartbeat sender + state spec, SBR runtime, multi-DC tagging |
+| `atomr-cluster-tools` | b | distributed pub/sub mediator (typed publish, topics + groups) + spec, cluster singleton (handover + buffered proxy) + spec sweep, cluster client + receptionist (contact-point discovery, retry, backoff) + spec |
+| `atomr-cluster-sharding` | b | allocation strategies + spec, `PassivationTracker`, persistent (event-sourced) coordinator, distributed-data-backed coordinator, rebalance runner, remember-entities, three-phase handoff + spec |
+| `atomr-cluster-metrics` | b | `MetricsProbe` trait, `StaticProbe`, optional `SysinfoProbe` (feature `sysinfo-probe`), `AdaptiveLoadBalancer`, **`Ewma`** with `from_half_life`, **`MetricsSelector`** (Cpu / Heap / Mix), **`WeightedRoutees`** picker, metrics gossip PDU |
+| `atomr-distributed-data` | b | 10 CRDTs (`GCounter`, `PNCounter`, `GSet`, `OrSet`, `LwwRegister`, `Flag`, `ORMap`, `LWWMap`, `PNCounterMap`, `ORMultiMap`); replicator with subscribe + RAII token; delta-CRDT propagation; durable store; consistency-level reads/writes; **`PruningState`** + **`WriteAggregator`/`ReadAggregator`**; CRDT laws spec; map-CRDT spec; replicator subscribe + 3-node convergence specs |
+| `atomr-distributed-data-lmdb` | b | redb-backed `RedbDurableStore` (akka.net analog `LmdbDurableStore`) — single-writer / multi-reader / mmap; full DurableStore spec coverage |
+| `atomr-persistence` | b | `Eventsourced` + typed errors + integration spec, `RecoveryPermitter`, `ReceivePersistent`, `PersistentFSM` + spec, async snapshotter + retention policy, at-least-once delivery + spec; `Journal::events_by_tag` and `all_persistence_ids` |
+| `atomr-persistence-query` | b | typed `Offset` + envelope spec, `events_by_tag`, `current_*`, `all_persistence_ids` driven by backend's indexed query when available, fallback per-pid scan otherwise |
+| `atomr-persistence-query-inmemory` | b | minimal in-memory read journal |
+| `atomr-persistence-tck` | a | journal + extended journal + concurrent + tag + **`journal_replay_edge_cases`** + snapshot + **`snapshot_extended_suite`** suites; every storage adapter invokes the full TCK |
 | `atomr-persistence-sql` | b | sqlx-based; SQLite default; Postgres / MySQL / MSSQL features; journal + snapshot + read-journal w/ tag queries |
 | `atomr-persistence-redis` | b | sorted-set journal, hash snapshot store, transactional batches |
 | `atomr-persistence-mongodb` | b | indexed collections, atomic multi-document inserts, BSON payloads |
 | `atomr-persistence-cassandra` | b | partitioned journal tables, prepared-statement replay |
 | `atomr-persistence-aws` | b | DynamoDB single-table design, conditional writes |
 | `atomr-persistence-azure` | b | Azure Table Storage with SharedKeyLite client |
-| `atomr-streams` | b | linear DSL, 7 junctions, framing, IO, kill switch, source queue, recovery, time-windowed, routing, substreams, hubs, async-boundary, supervision deciders, lifecycle, stream refs |
-| `atomr-coordination` | b | lease trait + in-memory lease |
-| `atomr-discovery` | b | service-discovery trait + static discovery |
+| `atomr-streams` | b | linear DSL (incl. `intersperse`, `keep_alive`, `initial_delay`, `recover_with_retries`, `select_error`, `conflate`, `expand`), 9 junctions (now incl. `merge_sorted`, `merge_prioritized`), framing, IO, kill switch, source queue, recovery, time-windowed, routing, substreams (`group_by`, `split_when`, `split_after`, `prefix_and_tail`), hubs (BroadcastHub / MergeHub), async-boundary, supervision deciders, lifecycle, stream refs; spec sweep across flow / graph / hub / queue+restart / substream / rate |
+| `atomr-coordination` | b | lease trait + in-memory lease + spec sweep |
+| `atomr-discovery` | b | service-discovery trait + static discovery + `AggregateDiscovery` provider chain |
 | `atomr-di` | b | TypeId-keyed service container |
 | `atomr-hosting` | b | builder API + DI / config wiring |
-| `atomr-telemetry` | b | probes for actors / dead-letters / cluster / sharding / persistence / remote / streams / ddata |
+| `atomr-telemetry` | b | probes for actors / dead-letters / cluster / sharding / persistence / remote / streams / ddata; topic-filtered subscribe (`subscribe_topic`) + `ALL_TOPICS` catalog + probe spec |
 | `atomr-dashboard` | b | axum REST + WebSocket + embedded React UI + Prometheus + OTLP exporters |
 | `atomr-profiler` | b | 4 scenarios (`tell` / `ask` / `fanout` / `cpu`); JSON schema shared with Python |
 
@@ -79,3 +80,61 @@ which subsystems extend further than the inherited shape.
 today's grades toward all-`a`/`b`. `cargo xtask parity` will surface
 the grades automatically once Phase 0 of that plan lands; until then,
 this table is the source of truth.
+
+## Shipped post-2026-04
+
+The 2026-05 spec-parity wave (Phases A → FFF) moved every previously-
+graded `c` and `d` crate to `b` and bumped `atomr-persistence-tck` to
+`a`. Highlights by crate:
+
+- `atomr-core` (`c → b`) — `FsmBuilder` closure-DSL, `DispatcherConfig`
+  with throughput/throughput-deadline knobs, `SingleThreadDispatcher`,
+  bounded mailbox overflow strategies (`DropHead`/`DropTail`/`DropNew`/
+  `Fail`), `ControlAwareQueue`, `ListenerRouter`, `ResizerConfig`,
+  dead-letter `DeadLetterReason` + filter, coordinated-shutdown phase
+  config + idempotent `run_from`, `TcpManager::Connect` outbound
+  command, spec coverage for lifecycle, routing, stash, extensions,
+  IO managers, scheduler, path/address, serialization, circuit-breaker
+  stress.
+- `atomr-testkit` (`c → b`) — `expect_msg_eq`, `expect_msg_all_of_in_order`,
+  `within(timeout, fn)` matchers; `MultiNodeOopController` /
+  `MultiNodeOopNode` TCP-rendezvous out-of-process harness; cancel-
+  monotonicity fix on `TestScheduler`.
+- `atomr-cluster-metrics` (`d → b`) — `Ewma::from_half_life`,
+  `MetricsSelector::{Cpu,Heap,Mix}`, `WeightedRoutees` deterministic
+  picker, `MetricsPdu` gossip transport, `apply_metrics_pdu`, and
+  the optional `sysinfo-probe` feature.
+- `atomr-cluster` (`b`, deepened) — `LeaderHandover` watcher,
+  `MemberWeaklyUp` event, `ClusterEvent::from_status_transition`
+  translator, `Member::age_ordering`, monotonic
+  `Reachability::Terminated`.
+- `atomr-distributed-data` (`b`, deepened) — `PruningState`,
+  `WriteAggregator` / `ReadAggregator`, `OrSet::iter`, three-node
+  convergence + CRDT laws + map-CRDT + replicator subscribe specs.
+- **New crate** `atomr-distributed-data-lmdb` — `RedbDurableStore`,
+  the akka.net `LmdbDurableStore` analog, durable across reopen.
+- `atomr-persistence` (`b`, deepened) — `Journal::events_by_tag` +
+  `all_persistence_ids` defaults; in-memory backend overrides;
+  Eventsourced integration, ALOD, PersistentFSM specs.
+- `atomr-persistence-tck` (`b → a`) — `journal_replay_edge_cases`,
+  `snapshot_extended_suite`. Every storage backend (sql / redis /
+  mongodb / cassandra / aws / azure) now invokes the full TCK; CI
+  matrix gains real-service Postgres + MySQL + redb jobs.
+- `atomr-persistence-query` (`c → b`) — backend-indexed `events_by_tag`
+  with per-pid scan fallback; `all_persistence_ids` round-trip; envelope
+  + offset spec.
+- `atomr-streams` (`b`, deepened) — `split_after`, `prefix_and_tail`,
+  `keep_alive`, `initial_delay`, `recover_with_retries`, `select_error`,
+  `conflate`, `expand`, `merge_sorted`, `merge_prioritized`; spec
+  sweeps for flow / graph / hub / queue+restart / substream / rate.
+- `atomr-config` (`b`, deepened) — HOCON `+=` array append, typed
+  `Config::extract<T>` deserialize bridge.
+- `atomr-discovery` (`b`, deepened) — `AggregateDiscovery` provider
+  chain.
+- `atomr-coordination` / `atomr-di` / `atomr-hosting` — full spec
+  coverage of lease + service-container + builder API.
+- `atomr-telemetry` (`b`, deepened) — `TelemetryBus::subscribe_topic`,
+  `TelemetryEvent::ALL_TOPICS`, full probe spec.
+
+The detailed phase-by-phase ledger is in
+[`PORTING_TODO.md`](../PORTING_TODO.md).
