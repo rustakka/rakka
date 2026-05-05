@@ -29,7 +29,7 @@ use parking_lot::Mutex;
 use thiserror::Error;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{oneshot, Notify};
+use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
 
 #[derive(Debug, Error)]
@@ -50,7 +50,6 @@ pub enum MultiNodeOopError {
 /// Per-label rendezvous state on the controller.
 struct LabelState {
     expected: usize,
-    notify: Arc<Notify>,
     /// Senders waiting to be notified; we send a single byte ('O' or
     /// 'T') so the child handler can emit the appropriate response.
     waiters: Vec<oneshot::Sender<bool>>,
@@ -111,7 +110,6 @@ impl MultiNodeOopController {
         let mut g = self.inner.labels.lock();
         let state = g.entry(label.to_string()).or_insert_with(|| LabelState {
             expected: self.inner.expected,
-            notify: Arc::new(Notify::new()),
             waiters: Vec::new(),
             arrived: 0,
             completed: false,
@@ -168,7 +166,6 @@ fn enroll(inner: &Arc<ControllerInner>, label: &str) -> oneshot::Receiver<bool> 
     let mut g = inner.labels.lock();
     let state = g.entry(label.to_string()).or_insert_with(|| LabelState {
         expected: inner.expected,
-        notify: Arc::new(Notify::new()),
         waiters: Vec::new(),
         arrived: 0,
         completed: false,

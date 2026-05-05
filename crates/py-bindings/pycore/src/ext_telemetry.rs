@@ -76,16 +76,17 @@ impl PyTopicSubscriber {
         let rx = self.rx.clone();
         let rt = runtime();
         let ev = py.allow_threads(|| {
-            rt.block_on(async move {
-                let mut g = rx.lock();
-                let Some(rx_inner) = g.as_mut() else {
-                    return None;
-                };
+            // Temporarily take the receiver out of the mutex so we
+            // never hold the parking_lot guard across an await point.
+            let mut rx_inner = rx.lock().take()?;
+            let result = rt.block_on(async {
                 tokio::time::timeout(std::time::Duration::from_secs_f64(timeout_secs), rx_inner.recv())
                     .await
                     .ok()
                     .flatten()
-            })
+            });
+            *rx.lock() = Some(rx_inner);
+            result
         });
         match ev {
             None => Ok(None),

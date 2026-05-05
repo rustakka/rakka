@@ -39,7 +39,7 @@ pub enum RedbError {
 
 impl From<RedbError> for io::Error {
     fn from(e: RedbError) -> Self {
-        io::Error::new(io::ErrorKind::Other, e.to_string())
+        io::Error::other(e.to_string())
     }
 }
 

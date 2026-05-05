@@ -96,10 +96,8 @@ impl TelemetryBus {
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
         tokio::spawn(async move {
             while let Ok(ev) = src.recv().await {
-                if ev.topic() == wanted {
-                    if tx.send(ev).is_err() {
-                        return;
-                    }
+                if ev.topic() == wanted && tx.send(ev).is_err() {
+                    return;
                 }
             }
         });

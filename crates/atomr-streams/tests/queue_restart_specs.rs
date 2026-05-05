@@ -1,8 +1,8 @@
 //! `Source.Queue`, `Sink.Queue`, and `RestartSource` spec parity.
 //!
 //! Notes on adaptation:
-//! * `SourceQueue::new()` returns an unbounded `(SourceQueue, Source)` pair.
-//! bounded `Source.Queue(size, OverflowStrategy)` is realised
+//! * `SourceQueue::new()` returns an unbounded `(SourceQueue, Source)` pair;
+//!   bounded `Source.Queue(size, OverflowStrategy)` is realised
 //!   here by piping the source through `Source::buffer(size, strategy)`,
 //!   which is the canonical bounded-buffer policy in this port.
 //! * `QueueOfferResult` variants are `Enqueued` / `Dropped` / `Failure` /

@@ -179,8 +179,8 @@ mod tests {
         let out = Sink::collect(keep_alive(s, Duration::from_millis(15), || 99)).await;
         // Expect: 1 → at least one 99 → 2 (with possibly more 99s).
         assert_eq!(out[0], 1);
-        assert!(out.iter().any(|x| *x == 99));
-        assert!(out.iter().any(|x| *x == 2));
+        assert!(out.contains(&99));
+        assert!(out.contains(&2));
     }
 
     #[tokio::test]

@@ -2,7 +2,6 @@
 //! `ClusterClientSettingsSpec`, `ClusterClientSpec`, and the
 //! receptionist registration assertions inside both.
 
-use std::sync::Arc;
 use std::time::Duration;
 
 use atomr_cluster_tools::{ClusterClient, ClusterClientSettings, ClusterReceptionist};

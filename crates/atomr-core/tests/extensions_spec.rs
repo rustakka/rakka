@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use atomr_core::actor::{ExtensionId, Extensions};
 
+#[allow(dead_code)]
 struct CallCounter(Arc<AtomicU32>);
 
 struct CallCounterId(Arc<AtomicU32>);
