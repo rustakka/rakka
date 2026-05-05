@@ -82,11 +82,14 @@ impl TestScheduler {
         token
     }
 
-    /// Cancel a scheduled callback if it hasn't fired yet.
+    /// Cancel a scheduled callback if it hasn't fired or been
+    /// cancelled yet. Returns `true` iff this call performed the
+    /// cancellation; subsequent cancels of the same token are no-ops
+    /// returning `false` (akka.net `Cancel` parity).
     pub fn cancel(&self, token: ScheduledToken) -> bool {
         let mut g = self.inner.lock().unwrap();
         for (tok, entry) in g.entries.iter_mut() {
-            if *tok == token && !entry.fired {
+            if *tok == token && !entry.fired && !entry.cancelled {
                 entry.cancelled = true;
                 return true;
             }
