@@ -55,24 +55,19 @@ apply to every PR. The most load-bearing ones for the depth program:
 
 ### Actor surface (`atomr-core`)
 
-The path from depth `c` to `b` is operator coverage on the rough
-edges of the surface that experienced users reach for:
+`c` → `b` (**shipped**). The post-2026-04 spec sweep covers stash
+(bounded with overflow strategy), extensions, scheduler, lifecycle,
+IO (`TcpManager` / `UdpManager` `Bind` + `Connect`), routing
+(round-robin, random, consistent-hash, scatter-gather, tail-chopping,
+broadcast, listener), serialization registry, and `ActorPath` +
+`Address`. Dispatcher kinds (work-stealing, calling-thread, pinned,
+single-thread via `DispatcherConfig`) plus bounded-overflow /
+control-aware mailbox queues round out the `b` surface.
 
-- More dispatcher kinds (work-stealing, calling-thread, pinned, plus
-  a future GPU dispatcher; see "Forward-looking" below).
-- Mailbox kinds (bounded blocking, bounded drop-{head,tail,new},
-  priority, stable-priority).
-- Routing (round-robin, broadcast, balancing, scatter-gather,
-  consistent-hash, smallest-mailbox, tail-chopping).
-- Pattern utilities (backoff supervisor, circuit breaker, retry,
-  pipe-to). These exist; depth means matching expected knobs and
-  failure semantics.
-- Stash (bounded; capacity overflow strategy).
-- Event stream (filtered subscription, predicate API).
-
-`b` to `a` adds the harder pieces: full coordinated-shutdown phase
-graph, reflection-style extension lookup that stays typed, FSM
-declarative macro coverage of the upstream feature surface.
+`b` to `a` is the harder pieces: full coordinated-shutdown phase
+graph under upstream parity, reflection-style extension lookup that
+stays typed, FSM declarative macro coverage of the upstream feature
+surface, and the future GPU dispatcher (see "Forward-looking" below).
 
 ### Configuration (`atomr-config`)
 
@@ -130,8 +125,12 @@ distributed pub/sub across a multi-DC cluster.
 
 ### Cluster-metrics (`atomr-cluster-metrics`)
 
-`d` → `b`: built-in `sysinfo`-backed probe, metrics gossip,
-adaptive load-balancer benchmarks.
+`d` → `b` (**shipped**): built-in `sysinfo`-backed probe (behind the
+`sysinfo-probe` feature), `EWMA` smoothing, `MetricsSelector`
+(`Cpu` / `Heap` / `Mix`), `WeightedRoutees`, and the existing
+`AdaptiveLoadBalancer` together cover the `b` surface. Path to `a`:
+metrics-gossip wiring at cluster scale and adaptive load-balancer
+benchmarks.
 
 ### Distributed data (`atomr-distributed-data`)
 
@@ -148,21 +147,24 @@ upstream feature surface.
 
 ### Storage adapters
 
-All adapters at `b`. Path to `a`:
+All adapters at `b`. The full TCK (including the replay edge-case
+and extended snapshot suites) now runs per-backend in
+`persistence-integration.yml`, with real-service jobs for Postgres,
+MySQL, Redis, MongoDB, Cassandra, DynamoDB Local, Azurite, and the
+redb-backed `atomr-distributed-data-lmdb` durable store. Path to `a`:
 
-- Every adapter passes the full TCK in CI, including the concurrent
-  and tag suites.
-- Integration job runs against real services (Postgres, MySQL,
-  Redis, Mongo, Cassandra, DynamoDB Local, Azurite) in containers
-  on every PR.
 - Stress tests for ordering under failure (sequence skip on retry,
   recovery from torn writes, replay performance at scale).
+- MSSQL real-service job (currently compile-checked only).
 
 ### Query
 
-`c` → `b`: tagged event streams with backend-side index hints,
-`current_*` variants returning bounded streams, ordering guarantees
-documented per backend.
+`c` → `b` (**shipped**): `events_by_tag`, `current_events_by_tag`,
+`all_persistence_ids`, and `current_persistence_ids` are wired
+through the journal trait, backed by the in-memory backend, and
+covered by the persistence-query envelope spec. Path to `a`:
+backend-side index hints, bounded streaming variants, and per-
+backend ordering guarantees documented in the TCK.
 
 ## Reactive streams
 

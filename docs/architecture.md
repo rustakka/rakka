@@ -74,6 +74,15 @@ contract.
   dispatcher can carry its own queue type when host-side queueing is
   the wrong shape.
 
+### Network IO
+
+- `TcpManager` / `UdpManager` are channel-driven actor-style wrappers
+  over tokio sockets, mirroring akka.net's `IO.Tcp` / `IO.Udp`
+  managers. `TcpCommand::Bind` accepts inbound connections;
+  `TcpCommand::Connect` dials an outbound peer; both surface a unified
+  `IoEvent::Connected { id, peer }` event stream so callers can wire
+  the connection into the actor surface.
+
 ### Persistence
 
 - `Eventsourced` trait owns the (Command → Events → State) shape.
@@ -81,7 +90,8 @@ contract.
   so a fleet-wide restart doesn't melt the journal.
 - `ReceivePersistent` is the closure-style ergonomic helper.
 - `PersistenceQuery` exposes typed `Offset`, `events_by_tag`,
-  `current_*` variants.
+  `current_*` variants, and `all_persistence_ids` /
+  `current_persistence_ids`.
 - Storage adapters (`-sql`, `-redis`, `-mongodb`, `-cassandra`,
   `-aws`, `-azure`) implement the journal + snapshot traits. The TCK
   in `atomr-persistence-tck` is the conformance contract — every
