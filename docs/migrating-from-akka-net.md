@@ -48,7 +48,7 @@ to features prior art does not have (e.g. accelerator dispatchers; see
 | `RestartSource` | `streams::RestartSource` + `RestartSettings` |
 | HOCON configuration | `Config::from_hocon_str` / `from_hocon_file` |
 | TestKit / TestProbe | `atomr_testkit::TestProbe` |
-| Multi-node spec | `atomr_testkit::MultiNodeSpec` (in-process N-node) |
+| Multi-node spec | `atomr_testkit::MultiNodeSpec` (in-process N-node) or `atomr_testkit::multinode_oop` (out-of-process controller + line protocol) |
 
 ## Idioms that look different
 
@@ -147,7 +147,10 @@ let _handle = bus.subscribe(|ev| match ev {
   or register a typed codec when you need a specific shape.
 - **Process-only test harnesses** that need separate JVM/CLR
   processes per node. `MultiNodeSpec` runs in-process with shared
-  barriers; an out-of-process variant is on the roadmap.
+  barriers; the out-of-process variant (`atomr_testkit::
+  multinode_oop`) is now shipped — a TCP-loopback rendezvous
+  controller plus a language-agnostic line protocol so child nodes
+  in any language can join a barrier-synchronized run.
 - **Reactive HTTP integrations** that ship with the upstream actor
   runtime. atomr keeps HTTP out of the core; reach for an HTTP crate
   from the wider ecosystem.
