@@ -102,6 +102,25 @@ exposes barriers and event filters. See the integration tests in
 `crates/atomr-cluster/tests/` and `crates/atomr-persistence-tck/` for
 working examples.
 
+When you need each node in its own OS process (to exercise real
+serialization, transport, or signal handling), use
+`MultiNodeOopController` plus `MultiNodeOopNode`. The controller spawns
+node binaries and brokers a TCP-based barrier rendezvous; each node
+calls `MultiNodeOopNode::enter_barrier(name)` to synchronize. This is
+the same shape as `MultiNodeSpec` but across processes rather than
+within one tokio runtime.
+
+## Spec parity test files
+
+Many cross-runtime spec tests now live alongside their owning crates —
+mirror their style when you add coverage for a new corner. Notable
+ones: routing (`RoutingSpec`), streams (`FlowOperatorSpec`, `HubSpec`,
+`SubStreamSpec`, rate operators `conflate`/`expand`,
+`merge_sorted`/`merge_prioritized`, `Queue`, `Restart`), supervision
+(`Lifecycle`, `Stash`, `Recovery`), runtime infrastructure
+(`Scheduler`, `Extensions`, `IO managers`, `ActorPath`/`Address`,
+`ServiceContainer`, `Hosting`, `Lease`).
+
 ## Conformance suites
 
 If you implement a `Journal` or `SnapshotStore`, run it through

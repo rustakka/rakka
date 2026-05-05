@@ -147,6 +147,15 @@ and `crates/atomr-persistence/src/persistent_fsm.rs` for the pattern.
 | Reactive pipelines | `atomr-streams` |
 | Deterministic tests | `atomr-testkit` — see `atomr-testing` skill |
 
+## IO managers
+
+For TCP/UDP work, use the IO manager actors rather than touching
+sockets directly. `TcpManager` accepts a `Bind { addr }` command for
+listeners and a `Connect { addr }` command for outbound connections;
+`TcpManager::connect(addr)` is a convenience helper that wraps the
+latter. Both return an `ActorRef` for the connection actor that owns
+the socket and forwards `Received` / `Closed` messages.
+
 ## Canonical references
 
 - `crates/atomr-core/src/actor/traits.rs` — `Actor` trait definition

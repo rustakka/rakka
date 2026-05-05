@@ -94,6 +94,9 @@ contract.
   `LeaseMajority`).
 - `ClusterEventBus`, `elect_leader`, `is_converged` are the pure
   helpers behind the daemon.
+- `LeaderHandover` watcher folds over membership snapshots and emits
+  a `LeaderHandoverEvent` only on actual leader changes — the seam
+  cluster-tools singletons hook for handover.
 - The cluster daemon owns gossip, leader actions, and SBR ticks; it
   emits PDUs through a pluggable `GossipTransport`.
 
@@ -116,11 +119,16 @@ contract.
 ### Distributed data
 
 - CRDTs: `GCounter`, `PNCounter`, `GSet`, `OrSet`, `LwwRegister`,
-  `Flag`, `ORMap<K, V>`, `LWWMap<K, V>`, `PNCounterMap<K>`.
+  `Flag`, `ORMap<K, V>`, `LWWMap<K, V>`, `PNCounterMap<K>`,
+  `ORMultiMap`.
 - `Replicator` ships them with a `subscribe(key, fn)` notification API
   (`SubscriptionToken` is RAII).
 - Delta-CRDT propagation and durable storage available; consistency
   levels are first-class on read and write.
+- `atomr-distributed-data-lmdb` is a redb-backed `DurableStore`
+  implementation (akka.net analog: `Akka.DistributedData.LightningDB`).
+  Verified by a dedicated `ddata-lmdb` job in the persistence-
+  integration workflow.
 
 ### Streams
 
@@ -156,7 +164,10 @@ contract.
   `fish_for_message`).
 - `TestScheduler` for virtual-time tests.
 - `MultiNodeSpec` for in-process N-node harnesses with shared
-  `tokio::sync::Barrier`.
+  `tokio::sync::Barrier`, plus an out-of-process variant
+  (`multinode_oop`) — a TCP-loopback rendezvous controller and
+  language-agnostic line protocol so child nodes in any language can
+  join a barrier-synchronized run.
 - `EventFilter` for system event-stream assertions.
 
 ### Telemetry and dashboard

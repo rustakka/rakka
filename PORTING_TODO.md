@@ -11,6 +11,67 @@ For measured depth metrics (LOC ratios, anti-pattern counts) see
 grades see [`docs/parity.md`](docs/parity.md). For the longer
 architectural plan see [`docs/full-port-plan.md`](docs/full-port-plan.md).
 
+## Recent spec-parity wave (Phases A → FFF)
+
+The roadmap below captures the long-form goals. Many of the items
+listed under "Depth in progress" / "Path to a" have shipped between
+2026-04 and 2026-05 in the form of:
+
+- **atomr-core**: bounded-mailbox overflow strategies, control-aware
+  queue, Listener router, ResizerConfig, dead-letter suppression
+  filter, FsmBuilder closure-DSL, DispatcherConfig with throughput
+  knobs, SingleThreadDispatcher, coordinated-shutdown phase config
+  with idempotent run, BoundedStash spec coverage, Extensions registry
+  spec coverage, TestScheduler cancel-monotonicity fix,
+  TcpManager outbound `Connect` + IO spec coverage, ActorPath/Address
+  spec coverage, routing/serialization/path/lifecycle spec coverage.
+- **atomr-testkit**: matchers (`expect_msg_eq`, `within`, ordered
+  `all_of`), out-of-process `MultiNodeOopController`/`MultiNodeOopNode`
+  TCP-rendezvous harness.
+- **atomr-config**: HOCON `+=` array append, typed `extract<T>` /
+  `extract_root<T>` deserialize bridge.
+- **atomr-cluster**: age ordering, monotonic Reachability,
+  MemberWeaklyUp event + status-transition translator, gossip decide
+  spec, SBR strategy spec sweep, MembershipState spec, heartbeat spec,
+  `LeaderHandover` watcher.
+- **atomr-cluster-tools**: singleton spec sweep, distributed-pubsub
+  spec, cluster-client + receptionist spec.
+- **atomr-cluster-sharding**: allocation + handoff spec.
+- **atomr-cluster-metrics**: EWMA, MetricsSelector, WeightedRoutees;
+  sysinfo-probe feature.
+- **atomr-distributed-data**: PruningState, Write/ReadAggregator,
+  three-node convergence spec, OrSet::iter, replicator subscribe
+  spec, CRDT laws spec, map-CRDT spec.
+- **atomr-distributed-data-lmdb** (new crate): redb-backed
+  `RedbDurableStore` (akka.net analog `LmdbDurableStore`).
+- **atomr-persistence**: events_by_tag + all_persistence_ids on
+  `Journal`, ALOD spec, eventsourced integration spec, persistent-FSM
+  spec.
+- **atomr-persistence-tck**: replay edge-case suite,
+  `snapshot_extended_suite`. Every storage backend (sql / redis /
+  mongodb / cassandra / aws / azure) now invokes the full TCK.
+- **atomr-persistence-query**: events_by_tag + all_persistence_ids
+  envelope spec.
+- **atomr-streams**: split_after, prefix_and_tail, keep_alive,
+  initial_delay, recover_with_retries, conflate, expand,
+  merge_sorted, merge_prioritized, plus graph / hub / queue+restart /
+  flow-operator / substream / rate spec sweep.
+- **atomr-remote**: LRU `peek`/`iter`, Reassembler stale-partial GC,
+  endpoint state spec, failure-detector spec.
+- **atomr-discovery**: `AggregateDiscovery` provider chain.
+- **atomr-coordination**: lease spec sweep.
+- **atomr-di / atomr-hosting**: service-container + builder spec.
+- **atomr-telemetry**: topic-filtered subscribe + `ALL_TOPICS`
+  catalog + probe spec.
+- **CI**: persistence integration matrix gains real-service Postgres
+  and MySQL jobs plus a ddata-lmdb job.
+
+Workspace currently runs **546 lib tests** plus ~200+ integration /
+spec tests across 30+ spec files, all green. The `atomr` ↔ akka.net
+spec-class mapping in
+[`/home/mattbragaw/.claude/plans/review-the-specification-tests-giggly-pearl.md`](../../../.claude/plans/review-the-specification-tests-giggly-pearl.md)
+captures the catalog of asserted invariants.
+
 ## Foundations
 
 ### `atomr-core`
