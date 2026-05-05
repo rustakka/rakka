@@ -87,6 +87,77 @@ where
     Source::from_receiver(outer_rx)
 }
 
+/// `split_after(pred)` — like `split_when`, except the splitting
+/// element stays with the **previous** substream and the next element
+/// starts a new one.
+///
+/// Akka.NET: `Source.SplitAfter(pred)`.
+pub fn split_after<T, F>(src: Source<T>, mut pred: F) -> Source<Source<T>>
+where
+    T: Send + 'static,
+    F: FnMut(&T) -> bool + Send + 'static,
+{
+    let (outer_tx, outer_rx) = mpsc::unbounded_channel::<Source<T>>();
+    let mut inner = src.into_boxed();
+    tokio::spawn(async move {
+        let mut current_tx: Option<mpsc::UnboundedSender<T>> = None;
+        while let Some(item) = inner.next().await {
+            // Open a new substream lazily on the first element or
+            // immediately after a previous split-end.
+            if current_tx.is_none() {
+                let (sub_tx, sub_rx) = mpsc::unbounded_channel::<T>();
+                if outer_tx.send(Source::from_receiver(sub_rx)).is_err() {
+                    return;
+                }
+                current_tx = Some(sub_tx);
+            }
+            let split = pred(&item);
+            if let Some(tx) = &current_tx {
+                let _ = tx.send(item);
+            }
+            if split {
+                // End the current substream; the next element starts
+                // a fresh one.
+                current_tx = None;
+            }
+        }
+    });
+    Source::from_receiver(outer_rx)
+}
+
+/// `prefix_and_tail(n)` — return the first `n` elements as a `Vec`
+/// alongside a `Source<T>` carrying the rest.
+///
+/// Akka.NET: `Source.PrefixAndTail(n)`. The single-shot result is
+/// delivered as the only element of the returned source so it composes
+/// uniformly with downstream operators.
+pub fn prefix_and_tail<T>(src: Source<T>, n: usize) -> Source<(Vec<T>, Source<T>)>
+where
+    T: Send + 'static,
+{
+    let (outer_tx, outer_rx) = mpsc::unbounded_channel::<(Vec<T>, Source<T>)>();
+    let mut inner = src.into_boxed();
+    tokio::spawn(async move {
+        let mut prefix = Vec::with_capacity(n);
+        for _ in 0..n {
+            match inner.next().await {
+                Some(it) => prefix.push(it),
+                None => break,
+            }
+        }
+        let (tail_tx, tail_rx) = mpsc::unbounded_channel::<T>();
+        if outer_tx.send((prefix, Source::from_receiver(tail_rx))).is_err() {
+            return;
+        }
+        while let Some(it) = inner.next().await {
+            if tail_tx.send(it).is_err() {
+                break;
+            }
+        }
+    });
+    Source::from_receiver(outer_rx)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -130,5 +201,40 @@ mod tests {
             chunks.push(Sink::collect(sub).await);
         }
         assert_eq!(chunks, vec![vec![1, 2], vec![10, 3, 4], vec![20, 5]]);
+    }
+
+    #[tokio::test]
+    async fn split_after_keeps_pivot_in_previous_chunk() {
+        let s = Source::from_iter(vec![1, 2, 10, 3, 4, 20, 5]);
+        let outer = split_after(s, |x: &i32| *x >= 10);
+        let subs = Sink::collect(outer).await;
+        let mut chunks = Vec::new();
+        for sub in subs {
+            chunks.push(Sink::collect(sub).await);
+        }
+        assert_eq!(chunks, vec![vec![1, 2, 10], vec![3, 4, 20], vec![5]]);
+    }
+
+    #[tokio::test]
+    async fn prefix_and_tail_returns_first_n_then_rest() {
+        let s = Source::from_iter(vec![1, 2, 3, 4, 5]);
+        let outer = prefix_and_tail(s, 2);
+        let mut pairs = Sink::collect(outer).await;
+        assert_eq!(pairs.len(), 1);
+        let (prefix, tail) = pairs.pop().unwrap();
+        assert_eq!(prefix, vec![1, 2]);
+        let rest = Sink::collect(tail).await;
+        assert_eq!(rest, vec![3, 4, 5]);
+    }
+
+    #[tokio::test]
+    async fn prefix_and_tail_yields_short_prefix_when_source_exhausts() {
+        let s = Source::from_iter(vec![1, 2]);
+        let outer = prefix_and_tail(s, 5);
+        let mut pairs = Sink::collect(outer).await;
+        let (prefix, tail) = pairs.pop().unwrap();
+        assert_eq!(prefix, vec![1, 2]);
+        let rest = Sink::collect(tail).await;
+        assert!(rest.is_empty());
     }
 }

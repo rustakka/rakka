@@ -86,6 +86,44 @@ enum DeadlineOrItem<T> {
     Item(Option<T>),
 }
 
+/// `keep_alive(idle, gen)` — inject a synthetic element whenever the
+/// upstream is silent for longer than `idle`. The synthetic element is
+/// produced by `gen()` (typically a heartbeat). Akka.NET:
+/// `Source.KeepAlive(idle, () => element)`.
+pub fn keep_alive<T, F>(src: Source<T>, idle: Duration, mut gen: F) -> Source<T>
+where
+    T: Send + 'static,
+    F: FnMut() -> T + Send + 'static,
+{
+    let inner = src.into_boxed();
+    let stream = stream::unfold(inner, move |mut inner| {
+        let kick = gen();
+        async move {
+            match tokio::time::timeout(idle, inner.next()).await {
+                Ok(Some(item)) => Some((item, inner)),
+                Ok(None) => None,
+                Err(_) => Some((kick, inner)),
+            }
+        }
+    });
+    Source { inner: stream.boxed() }
+}
+
+/// `initial_delay(d)` — sleep `d` before forwarding the first element.
+/// Once the first element has been emitted, downstream sees the source
+/// as a normal pass-through. Akka.NET: `Source.InitialDelay(d)`.
+pub fn initial_delay<T: Send + 'static>(src: Source<T>, delay: Duration) -> Source<T> {
+    let inner = src.into_boxed();
+    let stream = stream::unfold((inner, Some(delay)), |(mut inner, pending_delay)| async move {
+        if let Some(d) = pending_delay {
+            tokio::time::sleep(d).await;
+        }
+        let next = inner.next().await?;
+        Some((next, (inner, None)))
+    });
+    Source { inner: stream.boxed() }
+}
+
 /// `idle_timeout(d)` — complete the stream early if no element
 /// arrives for `d`. Akka.NET's variant raises a typed exception; we
 /// surface "completed early" so a downstream `recover_with` /
@@ -128,6 +166,32 @@ mod tests {
         assert_eq!(out[0], vec![1]);
         // Final chunk includes 2.
         assert!(out.iter().any(|c| c.contains(&2)));
+    }
+
+    #[tokio::test]
+    async fn keep_alive_injects_when_idle() {
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<i32>();
+        tokio::spawn(async move {
+            tx.send(1).unwrap();
+            tokio::time::sleep(Duration::from_millis(40)).await;
+            tx.send(2).unwrap();
+            // close
+        });
+        let s = Source::from_receiver(rx);
+        let out = Sink::collect(keep_alive(s, Duration::from_millis(15), || 99)).await;
+        // Expect: 1 → at least one 99 → 2 (with possibly more 99s).
+        assert_eq!(out[0], 1);
+        assert!(out.iter().any(|x| *x == 99));
+        assert!(out.iter().any(|x| *x == 2));
+    }
+
+    #[tokio::test]
+    async fn initial_delay_blocks_first_element() {
+        let s = Source::from_iter(vec![1, 2, 3]);
+        let start = std::time::Instant::now();
+        let out = Sink::collect(initial_delay(s, Duration::from_millis(40))).await;
+        assert!(start.elapsed() >= Duration::from_millis(35), "initial_delay did not delay");
+        assert_eq!(out, vec![1, 2, 3]);
     }
 
     #[tokio::test]
