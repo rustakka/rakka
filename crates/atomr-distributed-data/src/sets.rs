@@ -97,6 +97,31 @@ impl<T: Eq + Hash + Clone> OrSet<T> {
             _ => false,
         }
     }
+
+    /// Iterate over the elements currently present in the set —
+    /// elements with at least one add-tag that has not been
+    /// observed-removed.
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
+        self.adds.iter().filter_map(|(k, add_tags)| {
+            let kept = match self.removes.get(k) {
+                Some(rem_tags) => add_tags.difference(rem_tags).next().is_some(),
+                None => !add_tags.is_empty(),
+            };
+            if kept {
+                Some(k)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn len(&self) -> usize {
+        self.iter().count()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.iter().next().is_none()
+    }
 }
 
 impl<T: Eq + Hash + Clone> CrdtMerge for OrSet<T> {
