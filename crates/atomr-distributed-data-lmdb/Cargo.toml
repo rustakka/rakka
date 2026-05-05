@@ -7,7 +7,7 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 authors.workspace = true
-description = "redb-backed DurableStore for atomr distributed-data. akka.net analog: Akka.DistributedData.LightningDB."
+description = "redb-backed DurableStore for atomr distributed-data."
 
 [dependencies]
 atomr-distributed-data = { path = "../atomr-distributed-data", version = "0.1.0" }

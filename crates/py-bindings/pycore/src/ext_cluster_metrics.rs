@@ -1,4 +1,4 @@
-//! Cluster-metrics submodule. akka.net: `Akka.Cluster.Metrics`.
+//! Cluster-metrics submodule..
 //!
 //! Exposes the EWMA smoother, the metrics-selector enum used to weight
 //! routees, the `WeightedRoutees` picker, the metrics PDU and the
@@ -91,8 +91,8 @@ impl PyClusterMetrics {
     }
 }
 
-/// Exponentially-weighted moving average. akka.net:
-/// `Akka.Cluster.Metrics.EWMA`.
+/// Exponentially-weighted moving average. 
+/// ``.
 #[pyclass(name = "Ewma", module = "atomr._native.cluster_metrics")]
 pub struct PyEwma {
     inner: Mutex<Ewma>,
@@ -169,7 +169,7 @@ impl PyMetricsSelector {
 }
 
 /// Pick a routee with probability proportional to its
-/// [`MetricsSelector::weight`]. akka.net: `WeightedRoutees`.
+/// [`MetricsSelector::weight`]..
 #[pyclass(name = "WeightedRoutees", module = "atomr._native.cluster_metrics")]
 pub struct PyWeightedRoutees {
     inner: WeightedRoutees,
@@ -190,7 +190,6 @@ impl PyWeightedRoutees {
 }
 
 /// Adaptive load balancer that picks the lowest-CPU candidate.
-/// akka.net: `Akka.Cluster.Metrics.AdaptiveLoadBalancingRoutingLogic`.
 #[pyclass(name = "AdaptiveLoadBalancer", module = "atomr._native.cluster_metrics")]
 pub struct PyAdaptiveLoadBalancer {
     inner: AdaptiveLoadBalancer,

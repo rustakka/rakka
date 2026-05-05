@@ -40,8 +40,8 @@ impl PyStaticDiscovery {
 }
 
 /// Chain-of-responsibility discovery — walks providers in order and
-/// returns the first non-empty resolution. akka.net:
-/// `Akka.Discovery.Aggregate.AggregateServiceDiscovery`.
+/// returns the first non-empty resolution. 
+/// ``.
 #[pyclass(name = "AggregateDiscovery", module = "atomr._native.discovery")]
 pub struct PyAggregateDiscovery {
     inner: Arc<AggregateDiscovery>,

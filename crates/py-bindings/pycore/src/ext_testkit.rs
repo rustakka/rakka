@@ -71,7 +71,7 @@ impl PyTestProbe {
     }
 
     /// Wait for one message and assert it equals `expected` using
-    /// Python's `==`. akka.net analog: `ExpectMsg(T expected)` /
+    /// Python's `==`. /
     /// `expect_msg_eq`. `timeout` is in seconds.
     #[pyo3(signature = (expected, timeout=1.0))]
     fn expect_msg_eq<'py>(
@@ -99,7 +99,7 @@ impl PyTestProbe {
     }
 
     /// Wait for `len(expected)` messages and assert they appear in the
-    /// exact order of `expected`. akka.net analog:
+    /// exact order of `expected`. 
     /// `ExpectMsgAllOf` (sequential semantics).
     #[pyo3(signature = (expected, timeout=1.0))]
     fn expect_msg_all_of_in_order<'py>(
@@ -169,7 +169,7 @@ async fn pop_or_wait(
     }
 }
 
-/// Run an async callable with a deadline. akka.net analog:
+/// Run an async callable with a deadline. 
 /// `Within(timeout, action)`. The callable is invoked with the timeout
 /// in seconds so it can pass that to nested `expect_*` calls.
 #[pyfunction]
@@ -190,8 +190,8 @@ fn within<'py>(py: Python<'py>, timeout: f64, body: Py<PyAny>) -> PyResult<Bound
     })
 }
 
-/// Out-of-process barrier controller. akka.net analog:
-/// `Akka.Remote.TestKit.MultiNodeSpec` controller side.
+/// Out-of-process barrier controller. 
+/// `` controller side.
 #[pyclass(name = "MultiNodeOopController", module = "atomr._native.testkit")]
 pub struct PyMultiNodeOopController {
     inner: Mutex<Option<MultiNodeOopController>>,
@@ -245,8 +245,8 @@ impl PyMultiNodeOopController {
     }
 }
 
-/// Out-of-process barrier child node. akka.net analog:
-/// `Akka.Remote.TestKit.MultiNodeSpec` node side.
+/// Out-of-process barrier child node. 
+/// `` node side.
 #[pyclass(name = "MultiNodeOopNode", module = "atomr._native.testkit")]
 pub struct PyMultiNodeOopNode {
     inner: Arc<MultiNodeOopNode>,
