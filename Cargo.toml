@@ -153,6 +153,7 @@ atomr-cluster-tools = { path = "crates/atomr-cluster-tools", version = "0.1.0" }
 atomr-cluster-sharding = { path = "crates/atomr-cluster-sharding", version = "0.1.0" }
 atomr-cluster-metrics = { path = "crates/atomr-cluster-metrics", version = "0.1.0" }
 atomr-distributed-data = { path = "crates/atomr-distributed-data", version = "0.1.0" }
+atomr-distributed-data-lmdb = { path = "crates/atomr-distributed-data-lmdb", version = "0.1.0" }
 atomr-persistence = { path = "crates/atomr-persistence", version = "0.1.0" }
 atomr-persistence-query = { path = "crates/atomr-persistence-query", version = "0.1.0" }
 atomr-persistence-query-inmemory = { path = "crates/atomr-persistence-query-inmemory", version = "0.1.0" }

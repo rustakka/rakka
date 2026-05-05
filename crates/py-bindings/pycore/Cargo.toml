@@ -23,7 +23,9 @@ atomr-remote = { workspace = true }
 atomr-cluster = { workspace = true }
 atomr-cluster-tools = { workspace = true }
 atomr-cluster-sharding = { workspace = true }
+atomr-cluster-metrics = { workspace = true }
 atomr-distributed-data = { workspace = true }
+atomr-distributed-data-lmdb = { workspace = true }
 atomr-persistence = { workspace = true }
 atomr-streams = { workspace = true }
 atomr-coordination = { workspace = true }
