@@ -153,6 +153,51 @@ impl<M: Send + 'static> TestProbe<M> {
         }
         Ok(())
     }
+
+    /// Wait for a message and assert it equals `expected`. Akka.NET:
+    /// `ExpectMsg<T>(T expected)`.
+    pub async fn expect_msg_eq(&mut self, timeout: Duration, expected: M) -> Result<M, TestProbeError>
+    where
+        M: PartialEq + std::fmt::Debug,
+    {
+        let m = self.expect_msg(timeout).await?;
+        if m == expected {
+            Ok(m)
+        } else {
+            Err(TestProbeError::Unexpected)
+        }
+    }
+
+    /// Receive `n` messages, asserting they appear in the exact order
+    /// of `expected`. Akka.NET: `ExpectMsgAllOf` with sequential
+    /// matching semantics.
+    pub async fn expect_msg_all_of_in_order(
+        &mut self,
+        timeout: Duration,
+        expected: Vec<M>,
+    ) -> Result<(), TestProbeError>
+    where
+        M: PartialEq + std::fmt::Debug,
+    {
+        let received = self.receive_n(expected.len(), timeout).await?;
+        if received == expected { Ok(()) } else { Err(TestProbeError::Unexpected) }
+    }
+}
+
+/// Run `body` with the given budget, returning [`TestProbeError::Timeout`]
+/// if it does not finish in time. Akka.NET: `Within(TimeSpan, Action)`.
+///
+/// `body` receives the original `Duration` so it can pass it down to
+/// `expect_msg`-style helpers and have them inherit the deadline.
+pub async fn within<F, Fut, T>(timeout: Duration, body: F) -> Result<T, TestProbeError>
+where
+    F: FnOnce(Duration) -> Fut,
+    Fut: std::future::Future<Output = Result<T, TestProbeError>>,
+{
+    match tokio::time::timeout(timeout, body(timeout)).await {
+        Ok(r) => r,
+        Err(_) => Err(TestProbeError::Timeout),
+    }
 }
 
 #[cfg(test)]
@@ -218,6 +263,52 @@ mod tests {
             p.actor_ref().tell(i);
         }
         p.expect_all_of(Duration::from_millis(100), vec![1, 2, 3]).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn expect_msg_eq_succeeds_on_match() {
+        let mut p = TestProbe::<u32>::new("eq");
+        p.actor_ref().tell(42);
+        assert_eq!(p.expect_msg_eq(Duration::from_millis(100), 42).await.unwrap(), 42);
+    }
+
+    #[tokio::test]
+    async fn expect_msg_eq_fails_on_mismatch() {
+        let mut p = TestProbe::<u32>::new("eq2");
+        p.actor_ref().tell(42);
+        let r = p.expect_msg_eq(Duration::from_millis(100), 7).await;
+        assert!(matches!(r, Err(TestProbeError::Unexpected)));
+    }
+
+    #[tokio::test]
+    async fn expect_msg_all_of_in_order_matches_sequence() {
+        let mut p = TestProbe::<u32>::new("seq");
+        for i in [1u32, 2, 3] {
+            p.actor_ref().tell(i);
+        }
+        p.expect_msg_all_of_in_order(Duration::from_millis(100), vec![1, 2, 3]).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn within_returns_inner_result() {
+        let r = within(Duration::from_millis(100), |budget| async move {
+            let mut p = TestProbe::<u32>::new("w");
+            p.actor_ref().tell(11);
+            p.expect_msg(budget).await
+        })
+        .await
+        .unwrap();
+        assert_eq!(r, 11);
+    }
+
+    #[tokio::test]
+    async fn within_times_out_when_inner_blocks() {
+        let r: Result<u32, _> = within(Duration::from_millis(10), |budget| async move {
+            let mut p = TestProbe::<u32>::new("wt");
+            p.expect_msg(budget).await
+        })
+        .await;
+        assert!(matches!(r, Err(TestProbeError::Timeout)));
     }
 
     #[tokio::test]
