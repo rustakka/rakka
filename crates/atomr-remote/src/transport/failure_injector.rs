@@ -1,5 +1,4 @@
 //! Failure-injecting transport adapter.
-//! akka.net: `Remote/Transport/FailureInjectorTransportAdapter.cs`.
 //!
 //! Useful in tests for verifying timeout / retry / quarantine paths.
 

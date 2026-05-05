@@ -1,4 +1,4 @@
-//! A typed handle to an entity inside a shard region. akka.net: `EntityRef<T>`.
+//! A typed handle to an entity inside a shard region.
 
 use std::marker::PhantomData;
 use std::sync::Arc;

@@ -1,4 +1,4 @@
-//! Circuit breaker stress + state-transition spec parity. akka.net:
+//! Circuit breaker stress + state-transition spec parity.
 //! `CircuitBreakerSpec`, `CircuitBreakerStressSpec`.
 
 use std::sync::atomic::{AtomicU32, Ordering};

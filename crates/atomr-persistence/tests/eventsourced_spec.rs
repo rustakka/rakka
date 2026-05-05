@@ -1,4 +1,4 @@
-//! Eventsourced integration spec parity. akka.net:
+//! Eventsourced integration spec parity.
 //! `PersistentActorSpec`, `PersistentActorJournalProtocolSpec`,
 //! `OptimizedRecoverySpec`, `ManyRecoveriesSpec`. Drives the trait
 //! through scenarios the inline tests don't already cover.

@@ -1,4 +1,4 @@
-//! `RemoteActorRefImpl`. akka.net: `Remote/RemoteActorRef.cs`.
+//! `RemoteActorRefImpl`.
 //!
 //! Concrete implementation of `atomr_core::actor::RemoteRef` that
 //! serializes outbound messages via the [`SerializerRegistry`] and ships

@@ -1,4 +1,4 @@
-//! Core utilities. akka.net: `src/core/Akka/Util`.
+//! Core utilities.
 //!
 //! Small, focused helpers — BoundedQueue, monotonic clock, TypeId registry —
 //! used throughout the actor subsystem.

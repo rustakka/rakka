@@ -1,4 +1,4 @@
-//! atomr-hosting. akka.net: `Akka.Hosting`.
+//! atomr-hosting.
 //!
 //! Builder for wiring together `ActorSystem`, config, and DI container.
 

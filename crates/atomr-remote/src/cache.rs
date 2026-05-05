@@ -1,6 +1,5 @@
 //! Bounded LRU caches used by the remoting hot paths.
 //!
-//! Phase 5.H of `docs/full-port-plan.md`. Akka.NET parity:
 //! `RemoteActorRefProvider` keeps an LRU of `ActorPath ↔ RemoteRef`
 //! and `SerializerRegistry` keeps an LRU of serializer-id ↔
 //! manifest. Both speed up repeat lookups on the inbound dispatcher.

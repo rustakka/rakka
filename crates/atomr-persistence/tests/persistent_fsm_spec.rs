@@ -1,4 +1,4 @@
-//! `PersistentFSM` spec parity. akka.net: `PersistentFSMSpec`.
+//! `PersistentFSM` spec parity.
 //!
 //! Asserts the public-API invariants of [`atomr_persistence::PersistentFSM`]:
 //!

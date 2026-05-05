@@ -1,4 +1,4 @@
-//! Grow-only counter and positive/negative counter. akka.net: `GCounter`, `PNCounter`.
+//! Grow-only counter and positive/negative counter.
 
 use std::collections::HashMap;
 

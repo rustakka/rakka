@@ -1,11 +1,8 @@
 //! Substream operators on `Source<T>`.
 //!
-//! Phase 12.1 of `docs/full-port-plan.md`. Akka.NET / Akka Streams
-//! parity: `GroupBy`, `SplitWhen`, `SplitAfter`. We ship the
-//! pragmatic shape: each operator returns a stream of
-//! `(key, Source<T>)` (for `group_by`) or `Source<T>` (for split
-//! variants), buffered through tokio mpsc channels rather than the
-//! materializer-coordinated SubFlow algebra of the JVM port.
+//! Operators: `GroupBy`, `SplitWhen`, `SplitAfter`. Each operator returns a
+//! stream of `(key, Source<T>)` (for `group_by`) or `Source<T>` (for split
+//! variants), buffered through tokio mpsc channels.
 
 use std::collections::HashMap;
 use std::hash::Hash;
@@ -20,7 +17,6 @@ use crate::source::Source;
 /// pair on the returned outer source. Once `max_substreams` keys
 /// are open, additional keys' elements are dropped.
 ///
-/// Akka.NET: `Source.GroupBy(maxSubstreams, key)`.
 pub fn group_by<T, K, F>(src: Source<T>, max_substreams: usize, mut key_fn: F) -> Source<(K, Source<T>)>
 where
     T: Send + 'static,
@@ -60,7 +56,6 @@ where
 /// substreams; a new substream begins when `pred(item)` returns true,
 /// with the splitting element going to the **new** substream.
 ///
-/// Akka.NET: `Source.SplitWhen(pred)`.
 pub fn split_when<T, F>(src: Source<T>, mut pred: F) -> Source<Source<T>>
 where
     T: Send + 'static,
@@ -91,7 +86,6 @@ where
 /// element stays with the **previous** substream and the next element
 /// starts a new one.
 ///
-/// Akka.NET: `Source.SplitAfter(pred)`.
 pub fn split_after<T, F>(src: Source<T>, mut pred: F) -> Source<Source<T>>
 where
     T: Send + 'static,
@@ -128,7 +122,7 @@ where
 /// `prefix_and_tail(n)` — return the first `n` elements as a `Vec`
 /// alongside a `Source<T>` carrying the rest.
 ///
-/// Akka.NET: `Source.PrefixAndTail(n)`. The single-shot result is
+/// The single-shot result is
 /// delivered as the only element of the returned source so it composes
 /// uniformly with downstream operators.
 pub fn prefix_and_tail<T>(src: Source<T>, n: usize) -> Source<(Vec<T>, Source<T>)>

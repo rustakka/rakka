@@ -1,4 +1,4 @@
-//! atomr-streams. akka.net: `src/core/Akka.Streams`.
+//! atomr-streams.
 //!
 //! Source/Flow/Sink DSL built on top of `futures::Stream`. The surface
 //! covers the linear operator set and the most common graph-DSL
@@ -16,7 +16,7 @@
 //!
 //! The port delegates pipeline execution to `futures_util::StreamExt`; each
 //! combinator builds a boxed stream closure that mirrors the corresponding
-//! Akka.Streams operator.
+//! Operator.
 
 mod bidi;
 mod file_io;

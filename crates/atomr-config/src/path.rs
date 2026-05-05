@@ -1,5 +1,4 @@
 //! Dotted config path (`akka.actor.default-dispatcher.throughput`).
-//! akka.net: `Configuration/HoconPath.cs`.
 
 use std::fmt;
 

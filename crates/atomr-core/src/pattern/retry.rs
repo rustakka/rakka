@@ -1,10 +1,6 @@
 //! `retry` — wrap an async fallible operation in a bounded retry loop
 //! with optional fixed or exponential backoff.
 //!
-//! Phase 3.4 of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Pattern.Retry` (with the same semantics as the JVM
-//! `Patterns.retry`).
-//!
 //! ```ignore
 //! use std::time::Duration;
 //! use atomr_core::pattern::{retry, RetrySchedule};

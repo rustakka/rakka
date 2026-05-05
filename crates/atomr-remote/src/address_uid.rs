@@ -1,4 +1,4 @@
-//! `AddressUidExtension`. akka.net: `Remote/AddressUidExtension.cs`.
+//! `AddressUidExtension`.
 //!
 //! Each `ActorSystem` incarnation gets a fresh UID at startup. The UID
 //! travels in every association handshake; if we see the same `Address`

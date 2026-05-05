@@ -1,4 +1,4 @@
-//! Broadcast router. akka.net: `Routing/BroadcastPool.cs`.
+//! Broadcast router.
 
 use crate::actor::ActorRef;
 

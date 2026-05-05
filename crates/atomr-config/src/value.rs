@@ -1,5 +1,4 @@
 //! `Config` and `ConfigValue` — the HOCON-equivalent value tree.
-//! akka.net: `Configuration/Config.cs` + `ConfigValue`.
 
 use std::collections::BTreeMap;
 use std::time::Duration;
@@ -58,7 +57,7 @@ impl Config {
         Self::default()
     }
 
-    /// Load the atomr reference configuration (akka.net `reference.conf` equivalent).
+    /// Load the atomr reference configuration.
     pub fn reference() -> Self {
         Self::from_toml_str(reference_config()).expect("built-in reference.conf.toml is valid")
     }
@@ -72,7 +71,7 @@ impl Config {
         Ok(Self { root: table.into_iter().map(|(k, v)| (k, ConfigValue::from_toml(v))).collect() })
     }
 
-    /// Parse a HOCON document (Akka.NET / Pekko `reference.conf`
+    /// Parse a HOCON document (Pekko `reference.conf`
     /// syntax). See [`crate::hocon`] for the supported subset.
     pub fn from_hocon_str(s: &str) -> Result<Self, ConfigError> {
         let v = crate::hocon::parse(s, std::path::Path::new("."))?;
@@ -155,7 +154,7 @@ impl Config {
 
     /// Deserialize a sub-tree at `path` into a strongly-typed value `T`.
     /// Bridge through `serde_json::Value` so any `serde::Deserialize`
-    /// type composes. Akka.NET-equivalent of typed `Config.As<T>()`
+    /// type composes. -equivalent of typed `Config.As<T>()`
     /// extension.
     ///
     /// Returns [`ConfigError::NotFound`] if `path` is absent.

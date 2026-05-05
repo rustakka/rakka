@@ -1,6 +1,5 @@
 //! redb-backed [`DurableStore`] for atomr distributed-data.
 //!
-//! akka.net analog: `Akka.DistributedData.LightningDB.LmdbDurableStore`.
 //! atomr substitutes `redb` (a pure-Rust embedded KV store with the
 //! same single-writer / multi-reader / mmap semantics as LMDB) so the
 //! crate builds without a system C dependency.

@@ -1,4 +1,4 @@
-//! Message queue implementations. akka.net: `Dispatch/MessageQueues`.
+//! Message queue implementations.
 //!
 //! These are in-memory data structures used by the mailbox. They are
 //! `!Send` outside their owning `ActorCell` — all external sending goes
@@ -15,7 +15,7 @@ pub trait Prioritized {
     fn priority(&self) -> i32;
 }
 
-/// Unbounded FIFO queue (akka.net: `UnboundedMessageQueue`).
+/// Unbounded FIFO queue.
 #[derive(Debug, Default)]
 pub struct UnboundedQueue<T> {
     inner: VecDeque<T>,
@@ -54,7 +54,7 @@ pub enum PushOutcome<T> {
     Rejected(T),
 }
 
-/// Bounded FIFO queue (akka.net: `BoundedMessageQueue`).
+/// Bounded FIFO queue.
 #[derive(Debug)]
 pub struct BoundedMsgQueue<T> {
     inner: BoundedQueue<T>,
@@ -126,7 +126,7 @@ impl<T> BoundedMsgQueue<T> {
 }
 
 /// Control-aware queue. Control messages are drained before user
-/// messages regardless of insertion order. akka.net:
+/// messages regardless of insertion order.
 /// `UnboundedControlAwareMessageQueue`. Use the typed wrapper
 /// [`ControlAware::Control`] / [`ControlAware::User`] to tag a message.
 #[derive(Debug)]
@@ -167,7 +167,6 @@ impl<T> ControlAwareQueue<T> {
 }
 
 /// Deque-like queue permitting front insertion (for stash/unstash).
-/// akka.net: `UnboundedDequeMessageQueue`.
 #[derive(Debug)]
 pub struct DequeQueue<T> {
     inner: VecDeque<T>,
@@ -197,7 +196,7 @@ impl<T> DequeQueue<T> {
     }
 }
 
-/// Priority queue. akka.net: `UnboundedPriorityMessageQueue`.
+/// Priority queue.
 ///
 /// `T` must implement [`Prioritized`].
 pub struct PriorityQueue<T: Prioritized> {
@@ -254,7 +253,6 @@ impl<T: Prioritized> Ord for PriItem<T> {
 }
 
 /// Stable priority queue (FIFO among equal priorities).
-/// akka.net: `UnboundedStablePriorityMessageQueue`.
 pub struct StablePriorityQueue<T: Prioritized> {
     heap: BinaryHeap<StableItem<T>>,
     seq: u64,

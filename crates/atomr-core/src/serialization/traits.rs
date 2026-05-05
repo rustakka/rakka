@@ -1,4 +1,4 @@
-//! Serializer traits. akka.net: `Serialization/Serializer.cs`.
+//! Serializer traits.
 
 use thiserror::Error;
 

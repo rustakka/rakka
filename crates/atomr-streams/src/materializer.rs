@@ -1,4 +1,4 @@
-//! ActorMaterializer — runs graphs on a Tokio runtime. akka.net: `ActorMaterializer.cs`.
+//! ActorMaterializer — runs graphs on a Tokio runtime.
 
 use std::future::Future;
 

@@ -1,5 +1,4 @@
 //! Dispatchers schedule actor cells onto a runtime.
-//! akka.net: `Dispatch/Dispatcher.cs`, `PinnedDispatcher.cs`.
 
 use std::future::Future;
 use std::sync::Arc;
@@ -8,15 +7,14 @@ use std::time::Duration;
 use tokio::runtime::{Handle, Runtime};
 use tokio::task::JoinHandle;
 
-/// Configuration knobs for any [`Dispatcher`]. akka.net:
+/// Configuration knobs for any [`Dispatcher`].
 /// `Dispatchers.cs` / `Dispatcher.cs` config keys.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DispatcherConfig {
     /// Maximum messages an actor cell may process before yielding.
-    /// akka.net: `throughput`.
     pub throughput: u32,
     /// Time budget per scheduling slice; if exceeded the cell yields
-    /// even if it has not hit `throughput`. akka.net:
+    /// even if it has not hit `throughput`.
     /// `throughput-deadline-time`. `None` disables the deadline.
     pub throughput_deadline: Option<Duration>,
 }
@@ -31,12 +29,11 @@ impl Default for DispatcherConfig {
 pub trait Dispatcher: Send + Sync {
     fn spawn_task(&self, task: futures_util::future::BoxFuture<'static, ()>) -> DispatcherHandle;
 
-    /// akka.net: `Throughput`.
     fn throughput(&self) -> u32 {
         10
     }
 
-    /// akka.net: `ThroughputDeadlineTime`. `None` is unbounded.
+    /// `None` is unbounded.
     fn throughput_deadline(&self) -> Option<Duration> {
         None
     }
@@ -89,7 +86,6 @@ impl Dispatcher for DefaultDispatcher {
 }
 
 /// Dedicated single-thread runtime for actors that require strict affinity.
-/// akka.net: `PinnedDispatcher`.
 pub struct PinnedDispatcher {
     rt: Arc<Runtime>,
 }
@@ -117,7 +113,6 @@ where
 }
 
 /// Multi-thread dedicated runtime sized by `worker_threads`.
-/// akka.net: `ThreadPoolDispatcher`.
 pub struct ThreadPoolDispatcher {
     rt: Arc<Runtime>,
     throughput: u32,
@@ -144,7 +139,7 @@ impl Dispatcher for ThreadPoolDispatcher {
 
 /// Dispatcher that runs the task immediately on the calling thread by
 /// using `tokio::task::spawn_blocking` to drive the future to completion
-/// inline. akka.net: `CallingThreadDispatcher`. Mostly useful in tests.
+/// inline. Mostly useful in tests.
 pub struct CallingThreadDispatcher;
 
 impl Dispatcher for CallingThreadDispatcher {
@@ -159,7 +154,7 @@ impl Dispatcher for CallingThreadDispatcher {
 /// Single-thread dedicated runtime, similar to [`PinnedDispatcher`] but
 /// expressing the semantic role of "one shared single-threaded runtime
 /// for a group of actors that must not run concurrently with each
-/// other". akka.net: `SingleThreadDispatcher`. The pin variant gives
+/// other". The pin variant gives
 /// each actor its own runtime; this variant shares one across actors.
 pub struct SingleThreadDispatcher {
     rt: Arc<Runtime>,

@@ -1,4 +1,4 @@
-//! `EndpointManager`. akka.net: `Remote/EndpointManager.cs`.
+//! `EndpointManager`.
 //!
 //! Owns the per-peer association state machine, dispatches inbound
 //! `ProtocolEvent`s to the right [`EndpointHandle`], and re-establishes
@@ -25,7 +25,7 @@ use crate::transport::{Transport, TransportError};
 
 /// Per-peer association state.
 ///
-/// State transitions follow akka.net's `EndpointManager`:
+/// State transitions follow:
 /// `Idle → Pending → Connected → (Quarantined → Tombstoned)`.
 /// `Quarantined` is time-bounded by [`RemoteSettings::
 /// quarantine_duration`]; `Tombstoned` is permanent until

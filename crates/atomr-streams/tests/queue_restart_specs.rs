@@ -1,9 +1,8 @@
 //! `Source.Queue`, `Sink.Queue`, and `RestartSource` spec parity.
-//! akka.net: `QueueSourceSpec`, `QueueSinkSpec`, `RestartSourceSpec`.
 //!
 //! Notes on adaptation:
 //! * `SourceQueue::new()` returns an unbounded `(SourceQueue, Source)` pair.
-//!   akka.net's bounded `Source.Queue(size, OverflowStrategy)` is realised
+//! bounded `Source.Queue(size, OverflowStrategy)` is realised
 //!   here by piping the source through `Source::buffer(size, strategy)`,
 //!   which is the canonical bounded-buffer policy in this port.
 //! * `QueueOfferResult` variants are `Enqueued` / `Dropped` / `Failure` /
@@ -59,7 +58,7 @@ async fn source_queue_complete_terminates_downstream() {
 
 // -- SourceQueue + OverflowStrategy via Source::buffer ------------------------
 //
-// akka.net: `Source.Queue(size, OverflowStrategy)` — here we compose
+// Here we compose
 // `SourceQueue::new()` with `Source::buffer(size, strategy)`.
 
 #[tokio::test]
@@ -185,7 +184,7 @@ async fn restart_source_zero_max_yields_empty_stream() {
 
 #[tokio::test]
 async fn restart_source_default_settings_has_finite_cap() {
-    // akka.net `RestartSettings` defaults to a finite restart cap; assert
+    // defaults to a finite restart cap; assert
     // the default is `Some(_)` so streams cannot loop forever by accident.
     let s = RestartSettings::default();
     assert!(s.max_restarts.is_some());

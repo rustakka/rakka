@@ -1,4 +1,4 @@
-//! `IMessageExtractor` equivalent from akka.net.
+//! `IMessageExtractor` equivalent from.
 
 pub trait MessageExtractor: Send + Sync + 'static {
     type Message: Send + 'static;

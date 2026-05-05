@@ -1,5 +1,4 @@
 //! `PipeTo` — send the eventual output of a future to an actor.
-//! akka.net: `Actor/PipeToSupport.cs`.
 
 use std::future::Future;
 

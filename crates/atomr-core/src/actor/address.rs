@@ -1,5 +1,4 @@
 //! An `Address` locates an actor system on the network.
-//! akka.net: `Actor/Address.cs`.
 
 use std::fmt;
 

@@ -1,5 +1,5 @@
-//! Rate-mediation operators on `Source<T>`. Akka.NET / Akka Streams
-//! parity: `Conflate`, `ConflateWithSeed`, `Expand`, `Extrapolate`.
+//! Rate-mediation operators on `Source<T>`: `Conflate`,
+//! `ConflateWithSeed`, `Expand`, `Extrapolate`.
 //!
 //! These operators decouple producer / consumer rates without buffering
 //! every element: when downstream is slow, `conflate` collapses
@@ -15,8 +15,6 @@ use crate::source::Source;
 /// `conflate(seed, fold)` — when downstream is slower than upstream,
 /// merge consecutive upstream elements into a running aggregate via
 /// `fold`. The aggregate is emitted whenever downstream pulls.
-///
-/// Akka.NET: `Source.ConflateWithSeed(seed, fold)`.
 ///
 /// In our buffered-channel model "merge until pulled" is approximated
 /// by folding contiguous bursts inside the upstream task and emitting
@@ -67,7 +65,7 @@ where
 /// returned by `extrapolate(last)` continues to be drained until it
 /// itself is exhausted.
 ///
-/// Akka.NET: `Source.Expand(seed)` / `Source.Extrapolate`.
+/// / `Source.Extrapolate`.
 ///
 /// The closure receives the most recent upstream element by reference
 /// and returns an `Iterator<Item = T>` describing the synthetic

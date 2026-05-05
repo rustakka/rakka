@@ -1,8 +1,6 @@
 //! `Eventsourced` — the modern command/event/state trait.
 //!
-//! Phase 11 of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Akka.Persistence.Eventsourced`. Improves on the legacy
-//! [`crate::PersistentActor`] in three ways:
+//! Improves on the legacy [`crate::PersistentActor`] in three ways:
 //!
 //! 1. **Typed errors via `thiserror`** — handlers return
 //!    `Result<Vec<Event>, Self::Error>` so domain rejections

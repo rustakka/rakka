@@ -1,4 +1,4 @@
-//! Service-container spec parity. akka.net: `Akka.DI.Core`,
+//! Service-container spec parity.,
 //! `DependencyResolverSpec`. Asserts the registry's resolution
 //! semantics under common usage patterns.
 

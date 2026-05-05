@@ -1,4 +1,4 @@
-//! atomr-persistence-azure. akka.net: `Akka.Persistence.Azure`.
+//! atomr-persistence-azure.
 //!
 //! Default backend is Azure Table Storage (feature `tables`), implemented
 //! with a thin REST client so the crate stays compatible with both real

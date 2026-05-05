@@ -1,6 +1,6 @@
-//! Split-brain resolvers. akka.net: `Cluster/SBR/`.
+//! Split-brain resolvers.
 //!
-//! Five strategies are implemented matching akka.net:
+//! Five strategies are implemented matching :
 //! * KeepMajority
 //! * StaticQuorum
 //! * KeepOldest

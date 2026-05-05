@@ -1,4 +1,4 @@
-//! Circuit breaker. akka.net: `Pattern/CircuitBreaker.cs`.
+//! Circuit breaker.
 
 use std::future::Future;
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};

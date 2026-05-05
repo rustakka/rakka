@@ -1,12 +1,10 @@
 //! `SourceRef[T]` / `SinkRef[T]` — handles to streams that can cross
 //! process boundaries.
 //!
-//! Phase 12.9 of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Akka.Streams.StreamRefs.{SourceRef, SinkRef}`. The wire-level
-//! transport (sequence numbers, demand windows, retransmission) is
-//! a follow-on; this module ships the in-process scaffolding that
-//! lets a `Source<T>` be advertised over an mpsc channel and pulled
-//! by a remote attacher.
+//! The wire-level transport (sequence numbers, demand windows,
+//! retransmission) is a follow-on; this module ships the in-process
+//! scaffolding that lets a `Source<T>` be advertised over an mpsc channel
+//! and pulled by a remote attacher.
 //!
 //! For Phase 5.D / Phase 6.D's wire integration, the channel handles
 //! get serialized as `RemoteEnvelope`s; both ends use the same

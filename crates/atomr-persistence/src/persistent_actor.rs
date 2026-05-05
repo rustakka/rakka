@@ -1,4 +1,4 @@
-//! Persistent actor trait. akka.net: `UntypedPersistentActor`, `ReceivePersistentActor`.
+//! Persistent actor trait.
 
 use std::sync::Arc;
 

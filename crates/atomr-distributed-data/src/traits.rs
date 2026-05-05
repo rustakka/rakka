@@ -1,6 +1,7 @@
 /// Convergent replicated data type merge semantics.
 ///
-/// Mirrors Akka.DistributedData's `IReplicatedData.Merge`.
+/// Implementations form a join-semilattice: `merge` must be commutative,
+/// associative, and idempotent.
 ///
 /// **Sealed** as part of Phase 13 (idiomatic-rust sweep): only the
 /// CRDTs in this crate may implement `CrdtMerge` directly. Downstream

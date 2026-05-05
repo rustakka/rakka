@@ -1,7 +1,5 @@
 //! Subscribe-surface + delta-CRDT propagation spec for the Replicator.
-//! akka.net: `Akka.DistributedData.Tests.ReplicatorSpec` (subset of
-//! invariants that exercise `Subscribe` / `Unsubscribe` and delta
-//! merging on a single node).
+//! Exercises `Subscribe` / `Unsubscribe` and delta merging on a single node.
 //!
 //! Each test runs in well under 2s on the in-process `Replicator`; no
 //! actor system or remoting is required.
@@ -12,8 +10,7 @@ use std::sync::{Arc, Mutex};
 use atomr_distributed_data::{GCounter, Replicator};
 
 /// `subscribe(key, callback)` invokes the callback when the key is
-/// updated. Mirrors akka.net `Subscribe(key, subscriber)` →
-/// `Changed(key)` delivery.
+/// updated, delivering `Changed(key)`.
 #[test]
 fn subscribe_callback_fires_on_update() {
     let r = Replicator::new();
@@ -33,8 +30,8 @@ fn subscribe_callback_fires_on_update() {
 }
 
 /// The returned `SubscriptionToken` is RAII — dropping it removes the
-/// subscription so subsequent updates are silent. Mirrors akka.net's
-/// `Unsubscribe` semantics, but driven by Rust's ownership model.
+/// subscription so subsequent updates are silent. `Unsubscribe`
+/// semantics, driven by Rust's ownership model.
 #[test]
 fn drop_token_silences_subsequent_updates() {
     let r = Replicator::new();
@@ -56,7 +53,7 @@ fn drop_token_silences_subsequent_updates() {
     assert_eq!(hits.load(Ordering::SeqCst), 1, "callback must not fire after token drop");
 }
 
-/// Multiple subscribers on the same key all see every update — akka.net
+/// Multiple subscribers on the same key all see every update —
 /// fans out `Changed` to every registered subscriber.
 #[test]
 fn multiple_subscribers_all_see_update() {
@@ -88,7 +85,7 @@ fn multiple_subscribers_all_see_update() {
 }
 
 /// Subscribers for one key never see updates for a different key.
-/// akka.net registers subscriptions per-key; cross-key delivery would
+/// registers subscriptions per-key; cross-key delivery would
 /// be a leak.
 #[test]
 fn subscribers_are_scoped_to_their_key() {
@@ -117,7 +114,7 @@ fn subscribers_are_scoped_to_their_key() {
 }
 
 /// `delete(key)` notifies subscribers and the post-delete `get` returns
-/// `None`. akka.net's replicator emits `Deleted` to subscribers; we
+/// `None`. replicator emits `Deleted` to subscribers; we
 /// model both: the callback is invoked, and the entry is gone.
 #[test]
 fn delete_notifies_subscribers_and_clears_value() {
@@ -146,7 +143,7 @@ fn delete_notifies_subscribers_and_clears_value() {
 
 /// Delta-CRDT propagation: two `GCounter`s with disjoint per-node
 /// deltas merge into the replicator and `get` returns the merged sum.
-/// Matches akka.net's invariant that delta-propagated GCounters
+/// Matches invariant that delta-propagated GCounters
 /// converge to the join of their per-node states.
 #[test]
 fn delta_crdt_disjoint_increments_merge_to_sum() {

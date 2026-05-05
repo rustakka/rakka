@@ -1,10 +1,9 @@
 //! Multi-data-center awareness.
 //!
-//! Phase 6.G of `docs/full-port-plan.md`. Akka.NET parity:
-//! `dc-default` / `dc-name` cluster roles. A node belongs to exactly
-//! one data-center (or `default`); cross-DC heartbeats use a slow
-//! path (longer interval, larger phi-accrual threshold) so transient
-//! WAN latency doesn't trigger spurious downing.
+//! Nodes carry `dc-default` / `dc-<name>` cluster roles. A node belongs to
+//! exactly one data-center (or `default`); cross-DC heartbeats use a slow
+//! path (longer interval, larger phi-accrual threshold) so transient WAN
+//! latency doesn't trigger spurious downing.
 //!
 //! This module ships the pure helpers — DC extraction from
 //! `Member.roles`, peer classification, and slow-path interval
@@ -16,7 +15,7 @@ use std::time::Duration;
 use crate::member::Member;
 
 /// Convention: a member's data-center is encoded as a role of the
-/// form `"dc-<name>"`. Akka.NET uses the same prefix.
+/// form `"dc-<name>"`. uses the same prefix.
 pub const DC_ROLE_PREFIX: &str = "dc-";
 
 /// Default DC name used when no `dc-*` role is present.
@@ -48,7 +47,7 @@ pub struct CrossDcSettings {
     /// in-DC default to absorb WAN jitter).
     pub acceptable_pause: Duration,
     /// Threshold to keep at most `n` cross-DC peers actively
-    /// monitored (akka.net: `cross-data-center-connections`).
+    /// monitored.
     pub max_monitored_peers: usize,
 }
 

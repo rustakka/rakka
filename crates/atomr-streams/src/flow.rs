@@ -1,4 +1,4 @@
-//! Flow — a linear transformation from `In` to `Out`. akka.net: `Dsl/Flow.cs`.
+//! Flow — a linear transformation from `In` to `Out`.
 //!
 //! A `Flow<A, B>` is a boxed closure that turns a `Stream<A>` into a
 //! `Stream<B>`. Composition is by function chaining, which mirrors the
@@ -21,7 +21,7 @@ impl<T: Send + 'static> Flow<T, T> {
 }
 
 impl<In: Send + 'static, Out: Send + 'static> Flow<In, Out> {
-    /// Pure synchronous mapping. akka.net: `Flow.FromFunction` / `Select`.
+    /// Pure synchronous mapping./ `Select`.
     pub fn from_fn<F>(f: F) -> Self
     where
         F: FnMut(In) -> Out + Send + 'static,
@@ -30,7 +30,6 @@ impl<In: Send + 'static, Out: Send + 'static> Flow<In, Out> {
     }
 
     /// Asynchronous mapping with ordered bounded parallelism.
-    /// akka.net: `SelectAsync(parallelism, mapper)`.
     pub fn map_async<F, Fut>(parallelism: usize, f: F) -> Self
     where
         F: FnMut(In) -> Fut + Send + 'static,
@@ -40,7 +39,7 @@ impl<In: Send + 'static, Out: Send + 'static> Flow<In, Out> {
         Flow { transform: Box::new(move |s: BoxStream<'static, In>| s.map(f).buffered(p).boxed()) }
     }
 
-    /// Chain another flow after this one. akka.net: `Flow.Via`.
+    /// Chain another flow after this one.
     pub fn via<Out2: Send + 'static>(self, next: Flow<Out, Out2>) -> Flow<In, Out2> {
         Flow {
             transform: Box::new(move |s: BoxStream<'static, In>| {
@@ -50,7 +49,7 @@ impl<In: Send + 'static, Out: Send + 'static> Flow<In, Out> {
         }
     }
 
-    /// Compose with a post-processing closure. akka.net: `Then` / `Select`.
+    /// Compose with a post-processing closure./ `Select`.
     pub fn then<Out2, F>(self, g: F) -> Flow<In, Out2>
     where
         Out2: Send + 'static,
@@ -85,7 +84,6 @@ impl<In: Send + 'static> Flow<In, In> {
         Flow { transform: Box::new(move |s: BoxStream<'static, In>| s.skip(n).boxed()) }
     }
 
-    /// akka.net: `Throttle`.
     pub fn throttle(interval: Duration) -> Self {
         Flow {
             transform: Box::new(move |s: BoxStream<'static, In>| {
@@ -100,7 +98,7 @@ impl<In: Send + 'static> Flow<In, In> {
 }
 
 impl<In: Send + 'static, Out: Send + 'static> Flow<In, Out> {
-    /// akka.net: `SelectMany` / `flatMapConcat`.
+    /// / `flatMapConcat`.
     pub fn flat_map_concat<F, S, U>(mut f: F) -> Flow<In, U>
     where
         F: FnMut(In) -> S + Send + 'static,

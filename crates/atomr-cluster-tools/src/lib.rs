@@ -1,5 +1,5 @@
-//! atomr-cluster-tools. akka.net:
-//! `src/contrib/cluster/Akka.Cluster.Tools`.
+//! atomr-cluster-tools.
+//! `src/contrib/cluster/`.
 
 mod cluster_client;
 mod cluster_singleton;

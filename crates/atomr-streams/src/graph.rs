@@ -1,4 +1,4 @@
-//! GraphDsl — minimal builder mirroring `Akka.Streams.Dsl.GraphDsl`.
+//! GraphDsl — minimal builder for fan-in / fan-out stream graphs.
 //!
 //! Linear composition lives on `Source::via`; this module collects the
 //! fan-in / fan-out junctions so callers can assemble a linear-plus-junction

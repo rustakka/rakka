@@ -1,7 +1,6 @@
 //! `PersistentFSM` — event-sourced state machine on top of [`Eventsourced`].
 //!
-//! Phase 11.E of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Akka.Persistence.Fsm.PersistentFSM`. Two-shape model:
+//! Two-shape model:
 //!
 //! * `S` — finite state (typically an enum: `Idle`, `Active`, …).
 //! * `D` — state-data carried alongside `S`.

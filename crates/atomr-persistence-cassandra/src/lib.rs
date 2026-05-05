@@ -1,4 +1,4 @@
-//! atomr-persistence-cassandra. akka.net: `Akka.Persistence.Cassandra`.
+//! atomr-persistence-cassandra.
 //!
 //! Events are stored in a wide-row table partitioned by
 //! `(persistence_id, partition_nr)` so large persistence ids stay within

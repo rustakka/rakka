@@ -1,4 +1,4 @@
-//! Owns the shard→region allocation table. akka.net: `PersistentShardCoordinator`.
+//! Owns the shard→region allocation table.
 //!
 //! Phase 9 of `docs/full-port-plan.md`. The `allocate_with_strategy`
 //! and `rebalance_with_strategy` methods plug a
@@ -24,7 +24,7 @@ impl ShardCoordinator {
     }
 
     /// Returns the region hosting `shard_id`, allocating it to `default_region`
-    /// on first mention. Mirrors the "least-shards" allocation of akka.net
+    /// on first mention. Mirrors the "least-shards" allocation of
     /// where the caller supplies candidate regions.
     pub fn allocate(&self, shard_id: &str, default_region: &str) -> String {
         let mut map = self.allocation.write();

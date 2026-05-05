@@ -1,4 +1,4 @@
-//! atomr-discovery. akka.net: `Akka.Discovery`.
+//! atomr-discovery.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -49,8 +49,7 @@ impl ServiceDiscovery for StaticDiscovery {
 }
 
 /// Chain of discovery backends. `lookup` walks providers in order and
-/// returns the first non-empty resolution. akka.net:
-/// `Akka.Discovery.Aggregate.AggregateServiceDiscovery`.
+/// returns the first non-empty resolution.
 pub struct AggregateDiscovery {
     providers: Vec<Arc<dyn ServiceDiscovery>>,
 }

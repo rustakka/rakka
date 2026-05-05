@@ -1,10 +1,8 @@
 //! Reader/writer task split helpers.
 //!
-//! Phase 5.D of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Akka.Remote.Endpoint{Reader, Writer}.cs` — splitting the
-//! per-peer endpoint into two cooperating Tokio tasks lets inbound
-//! decoding and outbound serialization overlap, removing the head-
-//! of-line blocking that the unified-loop design has under load.
+//! Splitting the per-peer endpoint into two cooperating Tokio tasks lets
+//! inbound decoding and outbound serialization overlap, removing the
+//! head-of-line blocking that the unified-loop design has under load.
 //!
 //! This module ships the orchestrator that the `EndpointManager`
 //! plugs into. It does not own a transport — instead it accepts a

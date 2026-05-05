@@ -1,4 +1,4 @@
-//! Supervision. akka.net: `Actor/SupervisorStrategy.cs`.
+//! Supervision.
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -15,8 +15,9 @@ pub enum Directive {
 
 pub type Decider = Arc<dyn Fn(&str) -> Directive + Send + Sync>;
 
-/// Strategy applied to children of a supervising actor. Mirrors
-/// akka.net's `OneForOneStrategy`/`AllForOneStrategy` split.
+/// Strategy applied to children of a supervising actor. Splits into
+/// `OneForOne` (each child handled independently) and `AllForOne`
+/// (one child's failure restarts all siblings).
 #[derive(Clone)]
 pub struct SupervisorStrategy {
     pub kind: StrategyKind,
@@ -54,7 +55,7 @@ impl SupervisorStrategy {
     }
 }
 
-/// Builder for `OneForOne` — the akka.net default.
+/// Builder for `OneForOne` — the default.
 pub struct OneForOneStrategy {
     pub max_retries: Option<u32>,
     pub within: Option<Duration>,
@@ -169,9 +170,8 @@ pub trait SupervisorOf<C: Actor> {
     /// type.
     type ChildError: std::error::Error + Send + 'static;
 
-    /// Decide what to do when the child fails with `err`. Defaults
-    /// to `Restart`, mirroring akka.net's `OneForOneStrategy`
-    /// default.
+    /// Decide what to do when the child fails with `err`. Defaults to
+    /// `Restart`.
     fn decide(&self, _err: &Self::ChildError) -> Directive {
         Directive::Restart
     }

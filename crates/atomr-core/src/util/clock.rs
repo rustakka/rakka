@@ -1,4 +1,4 @@
-//! Monotonic / system clock abstractions. akka.net: `Util/MonotonicClock.cs`.
+//! Monotonic / system clock abstractions.
 
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 

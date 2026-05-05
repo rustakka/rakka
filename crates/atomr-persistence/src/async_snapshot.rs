@@ -1,9 +1,7 @@
 //! Async snapshot helpers — fire-and-await snapshot saves with a
 //! configurable retention policy.
 //!
-//! Phase 11.F of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Eventsourced.SaveSnapshot` + `SnapshotSelectionCriteria`. The
-//! snapshot store's `save` method is already async, but actor authors
+//! The snapshot store's `save` method is already async, but actor authors
 //! need higher-level helpers:
 //!
 //! * [`SnapshotPolicy::Periodic { every }`] — emit a snapshot every

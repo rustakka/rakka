@@ -1,5 +1,4 @@
-//! Split-brain resolver strategy parity. akka.net:
-//! `Akka.Cluster.Tests/SplitBrainStrategySpec`.
+//! Split-brain resolver strategy parity.
 //!
 //! Each scenario constructs deterministic `Member` slices for the
 //! reachable / unreachable sides of a hypothetical partition and
@@ -51,7 +50,7 @@ fn keep_majority_smaller_reachable_side_self_downs() {
 #[test]
 fn keep_majority_equal_sides_down_all_as_tiebreak() {
     // atomr's deterministic tie-break: when both sides have equal `Up`
-    // count we cannot pick a side, so `DownAll`. akka.net ships an
+    // count we cannot pick a side, so `DownAll`. ships an
     // optional role-based tiebreak; atomr's stable rule is `DownAll`.
     let r = [up("a", 1), up("b", 2)];
     let u = [up("c", 3), up("d", 4)];

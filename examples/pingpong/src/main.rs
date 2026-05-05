@@ -1,4 +1,4 @@
-//! PingPong example. akka.net: `src/examples/PingPong`.
+//! PingPong example.
 
 use async_trait::async_trait;
 use atomr::prelude::*;

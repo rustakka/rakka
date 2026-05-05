@@ -1,4 +1,4 @@
-//! Cluster event spec parity. akka.net:
+//! Cluster event spec parity.
 //! `ClusterDomainEventSpec`, `ClusterDomainEventPublisherSpec`.
 //!
 //! Walks a member through Joining → WeaklyUp → Up → Leaving → Exited

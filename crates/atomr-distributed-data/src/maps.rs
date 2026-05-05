@@ -1,4 +1,4 @@
-//! Map-shaped CRDTs. akka.net: `ORMap`, `LWWMap`, `PNCounterMap`.
+//! Map-shaped CRDTs.
 //!
 //! Phase 8 of `docs/full-port-plan.md`. Three flavours of CRDT map:
 //!
@@ -211,8 +211,7 @@ impl<K: Eq + Hash + Clone> CrdtMerge for PNCounterMap<K> {
 
 // -- ORMultiMap --------------------------------------------------
 
-/// Map of K → set-of-V, where the set is itself an `OrSet<V>`.
-/// Akka.DistributedData's `ORMultiMap`. Phase 8.B.
+/// Map of K → set-of-V, where the set is itself an `OrSet<V>`. Phase 8.B.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ORMultiMap<K, V>
 where

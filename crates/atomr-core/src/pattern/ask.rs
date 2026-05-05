@@ -1,4 +1,4 @@
-//! Re-export of the `ask` pattern. Mirrors akka.net `AskSupport.cs`.
+//! Re-export of the `ask` pattern.
 //!
 //! The primary API lives on [`crate::actor::ActorRef::ask_with`]; this free
 //! function is a convenience wrapper so users can write

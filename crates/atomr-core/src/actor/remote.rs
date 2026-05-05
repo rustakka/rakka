@@ -5,9 +5,7 @@
 //! `atomr-remote` plugs into so that `atomr-core` does not need a build
 //! dependency on remoting.
 //!
-//! akka.net: `Akka.Remote/RemoteActorRef.cs`,
-//! `Akka.Remote/RemoteActorRefProvider.cs`,
-//! `Akka.Remote/MessageSerializer.cs` collectively.
+//! Collectively.
 
 use std::sync::Arc;
 
@@ -31,7 +29,7 @@ pub struct SerializedMessage {
 
 /// System-level controls that travel across the wire.
 ///
-/// akka.net: `Akka.Remote/RemoteWatcher.cs` + the system-message serializer.
+/// + the system-message serializer.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum RemoteSystemMsg {
     Stop,

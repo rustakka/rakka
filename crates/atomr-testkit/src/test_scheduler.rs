@@ -1,10 +1,8 @@
 //! `TestScheduler` — virtual-time scheduler for deterministic tests.
 //!
-//! Phase 4 of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Akka.TestKit.TestScheduler`. Differs in API shape because we
-//! lean on Tokio's `time::pause` for suspension and provide a
-//! lightweight `advance_by`/`advance_to` helper that drives both
-//! Tokio's clock and a list of registered callbacks.
+//! Leans on Tokio's `time::pause` for suspension and provides a lightweight
+//! `advance_by`/`advance_to` helper that drives both Tokio's clock and a
+//! list of registered callbacks.
 //!
 //! Typical pattern:
 //!
@@ -85,7 +83,7 @@ impl TestScheduler {
     /// Cancel a scheduled callback if it hasn't fired or been
     /// cancelled yet. Returns `true` iff this call performed the
     /// cancellation; subsequent cancels of the same token are no-ops
-    /// returning `false` (akka.net `Cancel` parity).
+    /// returning `false`.
     pub fn cancel(&self, token: ScheduledToken) -> bool {
         let mut g = self.inner.lock().unwrap();
         for (tok, entry) in g.entries.iter_mut() {

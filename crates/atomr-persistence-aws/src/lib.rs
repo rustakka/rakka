@@ -1,4 +1,4 @@
-//! atomr-persistence-aws. akka.net: `Akka.Persistence.DynamoDB`.
+//! atomr-persistence-aws.
 //!
 //! Single-table design:
 //! - partition key `pid` (S) = persistence id

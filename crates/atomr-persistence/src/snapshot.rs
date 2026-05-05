@@ -1,4 +1,4 @@
-//! Snapshot store plugin. akka.net: `SnapshotStore`, `MemorySnapshotStore`.
+//! Snapshot store plugin.
 
 use std::collections::HashMap;
 use std::sync::Arc;

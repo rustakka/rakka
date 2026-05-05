@@ -26,7 +26,7 @@ use super::remote::RemoteRef;
 /// * [`Sender::Remote`] — the sender lives in another `ActorSystem`,
 ///   reached via remoting. Carries a path + a remote handle so replies
 ///   can be serialized back without a `downcast`.
-/// * [`Sender::None`] — no sender attached (the akka.net analog of
+/// * [`Sender::None`] — no sender attached (the analog of
 ///   `IActorRef.NoSender`).
 #[derive(Clone)]
 #[non_exhaustive]

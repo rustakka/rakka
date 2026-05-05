@@ -1,4 +1,4 @@
-//! Transport abstraction. akka.net: `Remote/Transport/Transport.cs`.
+//! Transport abstraction.
 //!
 //! A `Transport` is a bidirectional, addressable, frame-oriented channel
 //! between two `ActorSystem`s. The Akka protocol layer

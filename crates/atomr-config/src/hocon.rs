@@ -1,4 +1,4 @@
-//! HOCON-subset parser for migrating Akka.NET / Pekko `reference.conf`
+//! HOCON-subset parser for migrating Pekko `reference.conf`
 //! files (Phase 2 of `docs/full-port-plan.md`).
 //!
 //! Supports the slice of HOCON that the upstream `reference.conf`

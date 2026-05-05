@@ -1,5 +1,4 @@
 //! Akka-protocol layer atop a raw [`Transport`].
-//! akka.net: `Remote/Transport/AkkaProtocolTransport.cs`.
 //!
 //! This wrapper handles handshake (Associate / Associate reply),
 //! validates the protocol version + cookie, attributes inbound frames to

@@ -1,11 +1,9 @@
 //! `RemoteProps` — typed Props serialization for `Deploy::remote`.
 //!
-//! Phase 5.I of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Akka.Remote.RemoteDeploymentWatcher` + Hyperion-serialized
-//! Props. Without a portable Props codec the remote deployer can
-//! only ship `(manifest, bytes)` pairs — this module gives users an
-//! opt-in registry where each manifest maps to a typed factory that
-//! reconstructs the actor on the receiving node.
+//! Without a portable Props codec the remote deployer can only ship
+//! `(manifest, bytes)` pairs — this module gives users an opt-in registry
+//! where each manifest maps to a typed factory that reconstructs the actor
+//! on the receiving node.
 
 use std::collections::HashMap;
 use std::sync::Arc;

@@ -2,11 +2,9 @@
 //! [`crate::MembershipState`] and emits the resulting downing
 //! actions.
 //!
-//! Phase 6.F of `docs/full-port-plan.md`. Akka.NET parity:
-//! `SBR.SplitBrainResolverWorker` — runs on a tick with a stability
-//! deadline; if the partition has been observed for at least
-//! `stable_after`, it consults the configured strategy and returns
-//! the actions the leader should apply.
+//! Runs on a tick with a stability deadline; if the partition has been
+//! observed for at least `stable_after`, it consults the configured
+//! strategy and returns the actions the leader should apply.
 
 use std::time::{Duration, Instant};
 

@@ -1,5 +1,4 @@
 //! `DistributedPubSub.Mediator` (local-topic subset).
-//! akka.net: `Akka.Cluster.Tools/PublishSubscribe/DistributedPubSubMediator.cs`.
 //!
 //! Phase 7 of `docs/full-port-plan.md`. The mediator owns a local
 //! per-node topic table; cross-node gossip plugs in once Phase 6's
@@ -11,7 +10,7 @@
 //! * **Group routing** — `subscribe_to_group(topic, group, ref)`
 //!   buckets subscribers; `send_to_group(topic, group, msg)` picks
 //!   one round-robin recipient per call.
-//! * **send_to_one(path)** — single recipient by path, akka.net's
+//! * **send_to_one(path)** — single recipient by path,
 //!   `DistributedPubSubMediator.Send` semantics.
 
 use std::collections::HashMap;

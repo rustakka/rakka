@@ -1,5 +1,4 @@
 //! Restart combinators — re-run the inner graph on failure/completion.
-//! akka.net: `Dsl/RestartSource.cs`, `Dsl/RestartFlow.cs`, `Dsl/RestartSink.cs`.
 
 use std::time::Duration;
 
@@ -30,7 +29,7 @@ pub struct RestartSource;
 
 impl RestartSource {
     /// Re-subscribe to the source returned by the factory after it completes
-    /// (and every element it produced has been emitted). Mirrors
+    /// (and every element it produced has been emitted). Equivalent to
     /// `RestartSource.WithBackoff` when combined with the built-in backoff.
     pub fn with_backoff<T, F>(settings: RestartSettings, factory: F) -> Source<T>
     where

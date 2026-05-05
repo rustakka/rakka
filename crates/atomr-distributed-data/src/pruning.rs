@@ -1,5 +1,4 @@
-//! Pruning state for replicated CRDTs. akka.net:
-//! `Akka.DistributedData.PruningState`.
+//! Pruning state for replicated CRDTs.
 //!
 //! When a cluster member is permanently removed, its contributions to
 //! a CRDT (vector entries, set elements added by it, etc.) must be
@@ -33,7 +32,7 @@ pub enum PruningPhase {
 }
 
 /// State carried alongside a CRDT entry — maps each *removed* node
-/// to its pruning phase. Per akka.net `PruningState`, the map's keys
+/// to its pruning phase. Per, the map's keys
 /// are the addresses that have left the cluster.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PruningState {
@@ -194,7 +193,7 @@ mod tests {
 // -- WriteAggregator / ReadAggregator -------------------------------
 
 /// Counts acks against a target derived from a [`crate::WriteConsistency`]
-/// and `cluster_size`. akka.net: `WriteAggregator`.
+/// and `cluster_size`.
 #[derive(Debug)]
 pub struct WriteAggregator {
     target: usize,
@@ -236,7 +235,7 @@ impl WriteAggregator {
 }
 
 /// Counts replies against a target derived from a [`crate::ReadConsistency`]
-/// and `cluster_size`. akka.net: `ReadAggregator`. Identical shape to
+/// and `cluster_size`. Identical shape to
 /// `WriteAggregator` but distinct so call sites cannot mix them up.
 #[derive(Debug)]
 pub struct ReadAggregator {

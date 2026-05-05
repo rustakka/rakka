@@ -1,4 +1,4 @@
-//! `ActorCell` — the per-actor runtime. akka.net: `Actor/ActorCell.cs`
+//! `ActorCell` — the per-actor runtime.
 //! and its partial classes (`.Children.cs`, `.DeathWatch.cs`,
 //! `.DefaultMessages.cs`, `.FaultHandling.cs`, `.ReceiveTimeout.cs`).
 //!
@@ -44,7 +44,7 @@ pub struct ChildEntry {
     pub system_tx: mpsc::UnboundedSender<SystemMsg>,
 }
 
-/// Marker used only for public type references (akka.net: `ActorCell`).
+/// Marker used only for public type references.
 pub struct ActorCell<A: Actor> {
     _marker: std::marker::PhantomData<A>,
 }

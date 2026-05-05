@@ -1,8 +1,6 @@
-//! Routing-junction operators on `Source<T>`.
-//!
-//! Phase 12.6 of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Partition`, `Balance`, `Unzip`, `Interleave`. Each consumes a
-//! single source and exposes N downstream sources.
+//! Routing-junction operators on `Source<T>`: `Partition`, `Balance`,
+//! `Unzip`, `Interleave`. Each consumes a single source and exposes N
+//! downstream sources.
 
 use futures::stream::StreamExt;
 use tokio::sync::mpsc;
@@ -13,7 +11,6 @@ use crate::source::Source;
 /// each element is sent to the output picked by `f(item)`.
 /// Out-of-range outputs are dropped.
 ///
-/// Akka.NET: `GraphDsl.Partition(n, fn)`.
 pub fn partition<T, F>(src: Source<T>, n: usize, mut f: F) -> Vec<Source<T>>
 where
     T: Send + 'static,
@@ -43,7 +40,6 @@ where
 
 /// `balance(n)` — round-robin one source into `n` outputs.
 ///
-/// Akka.NET: `GraphDsl.Balance(n)`.
 pub fn balance<T: Send + 'static>(src: Source<T>, n: usize) -> Vec<Source<T>> {
     assert!(n >= 1, "balance: n must be >= 1");
     let mut cursor = 0usize;
@@ -56,9 +52,8 @@ pub fn balance<T: Send + 'static>(src: Source<T>, n: usize) -> Vec<Source<T>> {
 
 /// `unzip(src)` — split a source of `(A, B)` pairs into two sources.
 /// The second is buffered if the first lags (no backpressure across
-/// the split — matches akka.net's fan-out semantics).
+/// the split — matches fan-out semantics).
 ///
-/// Akka.NET: `GraphDsl.Unzip<A, B>()`.
 pub fn unzip<A, B>(src: Source<(A, B)>) -> (Source<A>, Source<B>)
 where
     A: Send + 'static,

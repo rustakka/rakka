@@ -1,4 +1,4 @@
-//! Listener router. akka.net: `Routing/Listeners.cs`, `ListenerSpec`.
+//! Listener router.
 //!
 //! A pub/sub registry: any number of subscriber `ActorRef<M>` may
 //! `subscribe`; messages routed via [`ListenerRouter::publish`] are

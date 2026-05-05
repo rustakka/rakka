@@ -1,4 +1,4 @@
-//! Akka protocol data units. akka.net: `Remote/Transport/AkkaPduCodec.cs`.
+//! Akka protocol data units.
 //!
 //! Every byte that crosses an association is one of these PDUs:
 //!

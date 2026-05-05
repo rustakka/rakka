@@ -1,5 +1,4 @@
 //! Rate-limiting / blackholing transport adapter.
-//! akka.net: `Remote/Transport/ThrottleTransportAdapter.cs`.
 
 use std::sync::Arc;
 use std::time::Duration;

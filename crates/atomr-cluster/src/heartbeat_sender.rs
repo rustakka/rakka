@@ -1,12 +1,10 @@
 //! Heartbeat sender — periodically updates the failure detector
 //! with a synthetic heartbeat per peer.
 //!
-//! Phase 6.E of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Cluster/ClusterHeartbeatSender.cs`. The sender owns the per-peer
-//! interval timer and feeds the local
-//! [`crate::HeartbeatState`] book-keeping. The actual cross-node
-//! heartbeat PDU exchange wires in once Phase 5.D's reader/writer
-//! split + Phase 6.D's gossip transport land.
+//! The sender owns the per-peer interval timer and feeds the local
+//! [`crate::HeartbeatState`] book-keeping. The actual cross-node heartbeat
+//! PDU exchange wires in once Phase 5.D's reader/writer split + Phase
+//! 6.D's gossip transport land.
 
 use std::collections::HashMap;
 use std::sync::Arc;

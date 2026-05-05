@@ -1,4 +1,4 @@
-//! atomr-persistence-tck. akka.net: `Akka.Persistence.TCK`.
+//! atomr-persistence-tck.
 //!
 //! Provides reusable spec functions plugin authors can call against their
 //! [`Journal`](atomr_persistence::Journal) and

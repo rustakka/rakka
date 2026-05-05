@@ -1,4 +1,4 @@
-//! Graph junction spec parity. akka.net:
+//! Graph junction spec parity.
 //! `GraphMergeSpec`, `GraphMergeSortedSpec`, `GraphMergePrioritizedSpec`,
 //! `GraphZipSpec`, `GraphZipWithIndexSpec`, `GraphBroadcastSpec`.
 

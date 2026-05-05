@@ -1,7 +1,6 @@
 //! Time-windowed operators on `Source<T>`.
 //!
-//! Phase 12.2 of `docs/full-port-plan.md`. Akka.NET / Akka Streams
-//! parity: `GroupedWithin`, `IdleTimeout`, `KeepAlive`. Implemented
+//! Operators: `GroupedWithin`, `IdleTimeout`, `KeepAlive`. Implemented
 //! using `futures::stream::unfold` to avoid pulling in `async-stream`.
 
 use std::time::Duration;
@@ -12,7 +11,7 @@ use crate::source::Source;
 
 /// `grouped_within(n, dur)` — emit `Vec<T>` chunks of up to `n`
 /// elements; flush early when `dur` elapses since the chunk's first
-/// element. Akka.NET: `Source.GroupedWithin(n, dur)`.
+/// element.
 pub fn grouped_within<T: Send + 'static>(src: Source<T>, n: usize, duration: Duration) -> Source<Vec<T>> {
     assert!(n >= 1, "grouped_within: n must be >= 1");
 
@@ -88,7 +87,7 @@ enum DeadlineOrItem<T> {
 
 /// `keep_alive(idle, gen)` — inject a synthetic element whenever the
 /// upstream is silent for longer than `idle`. The synthetic element is
-/// produced by `gen()` (typically a heartbeat). Akka.NET:
+/// produced by `gen()` (typically a heartbeat).
 /// `Source.KeepAlive(idle, () => element)`.
 pub fn keep_alive<T, F>(src: Source<T>, idle: Duration, mut gen: F) -> Source<T>
 where
@@ -111,7 +110,7 @@ where
 
 /// `initial_delay(d)` — sleep `d` before forwarding the first element.
 /// Once the first element has been emitted, downstream sees the source
-/// as a normal pass-through. Akka.NET: `Source.InitialDelay(d)`.
+/// as a normal pass-through.
 pub fn initial_delay<T: Send + 'static>(src: Source<T>, delay: Duration) -> Source<T> {
     let inner = src.into_boxed();
     let stream = stream::unfold((inner, Some(delay)), |(mut inner, pending_delay)| async move {
@@ -125,9 +124,8 @@ pub fn initial_delay<T: Send + 'static>(src: Source<T>, delay: Duration) -> Sour
 }
 
 /// `idle_timeout(d)` — complete the stream early if no element
-/// arrives for `d`. Akka.NET's variant raises a typed exception; we
-/// surface "completed early" so a downstream `recover_with` /
-/// `Sink::collect_with_status` can disambiguate.
+/// arrives for `d`. We surface "completed early" so a downstream
+/// `recover_with` / `Sink::collect_with_status` can disambiguate.
 pub fn idle_timeout<T: Send + 'static>(src: Source<T>, idle: Duration) -> Source<T> {
     let inner = src.into_boxed();
     let stream = stream::unfold(inner, move |mut inner| async move {

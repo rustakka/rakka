@@ -1,6 +1,6 @@
-//! Lease spec parity. akka.net: `Akka.Coordination.Lease` invariants.
+//! Lease spec parity.invariants.
 //! Mirrors the assertions from `LeaseSpec` (KubernetesLease tests fold
-//! into the same trait-level invariants in akka.net).
+//! into the same trait-level invariants in).
 
 use atomr_coordination::{InMemoryLease, Lease, LeaseError, LeaseRegistry};
 

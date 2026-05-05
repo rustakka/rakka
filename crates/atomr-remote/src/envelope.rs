@@ -1,4 +1,4 @@
-//! Remote message envelope. akka.net: `Remote/MessageSerializer.cs` +
+//! Remote message envelope.+
 //! `Remote/RemoteEnvelope.cs`.
 
 use serde::{Deserialize, Serialize};

@@ -1,4 +1,4 @@
-//! BoundedStash spec parity. akka.net: `StashMailboxSpec`,
+//! BoundedStash spec parity.,
 //! `Stash` overflow tests.
 
 use atomr_core::actor::{BoundedStash, StashOverflow, StashResult};

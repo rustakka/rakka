@@ -1,5 +1,4 @@
 //! Journal plugin trait and an in-memory implementation.
-//! akka.net: `IJournal`, `AsyncWriteJournal`, `MemoryJournal`.
 
 use std::collections::HashMap;
 use std::sync::Arc;

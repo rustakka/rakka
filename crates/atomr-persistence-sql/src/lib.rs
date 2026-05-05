@@ -1,6 +1,6 @@
 //! atomr-persistence-sql. Unified SQL Journal + SnapshotStore provider.
 //!
-//! akka.net: `Akka.Persistence.Sql`. Uses `sqlx` under the hood so a single
+//! Uses `sqlx` under the hood so a single
 //! code path targets SQLite (default), Postgres, MySQL, and (later) MSSQL.
 
 mod config;

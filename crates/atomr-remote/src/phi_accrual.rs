@@ -1,5 +1,5 @@
 //! Phi accrual failure detector. Straight port of the math from
-//! akka.net's `Remote/PhiAccrualFailureDetector.cs`, which itself ports
+//! which itself ports
 //! Hayashibara's algorithm.
 
 use std::collections::VecDeque;

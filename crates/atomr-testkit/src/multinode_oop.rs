@@ -1,5 +1,5 @@
-//! Out-of-process `MultiNodeSpec`. akka.net analog:
-//! `Akka.Remote.TestKit.MultiNodeSpec` with a controller process and
+//! Out-of-process `MultiNodeSpec`.
+//! With a controller process and
 //! N child processes coordinated over the loopback transport.
 //!
 //! The line protocol is intentionally trivial (one ASCII command per
@@ -29,7 +29,7 @@ use parking_lot::Mutex;
 use thiserror::Error;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{Notify, oneshot};
+use tokio::sync::{oneshot, Notify};
 use tokio::task::JoinHandle;
 
 #[derive(Debug, Error)]
@@ -79,7 +79,8 @@ impl MultiNodeOopController {
         assert!(expected_nodes >= 1, "expected_nodes must be ≥ 1");
         let listener = TcpListener::bind("127.0.0.1:0").await?;
         let addr = listener.local_addr()?;
-        let inner = Arc::new(ControllerInner { expected: expected_nodes, labels: Mutex::new(HashMap::new()) });
+        let inner =
+            Arc::new(ControllerInner { expected: expected_nodes, labels: Mutex::new(HashMap::new()) });
         let inner_a = inner.clone();
         let handle = tokio::spawn(async move {
             loop {
@@ -218,11 +219,7 @@ impl MultiNodeOopNode {
             }
         }
         if let Some(rest) = trimmed.strip_prefix("TIMEOUT ") {
-            return Err(MultiNodeOopError::BarrierTimeout {
-                label: rest.to_string(),
-                got: 0,
-                expected: 0,
-            });
+            return Err(MultiNodeOopError::BarrierTimeout { label: rest.to_string(), got: 0, expected: 0 });
         }
         Err(MultiNodeOopError::UnexpectedReply(trimmed.to_string()))
     }

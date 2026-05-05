@@ -1,4 +1,4 @@
-//! Cluster-sharding spec parity. akka.net:
+//! Cluster-sharding spec parity.
 //! `LeastShardAllocationStrategySpec`,
 //! `LeastShardAllocationStrategyRandomizedSpec`,
 //! `ShardRegionSpec` (handoff invariants).

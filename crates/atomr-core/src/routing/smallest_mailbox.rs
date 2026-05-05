@@ -1,9 +1,9 @@
-//! Smallest-mailbox router. akka.net: `Routing/SmallestMailboxPool.cs`.
+//! Smallest-mailbox router.
 //!
 //! True mailbox-size inspection requires hooking into the mpsc internals,
 //! which is not stable. This port approximates by round-robin as a baseline
 //! and allows plugging in a custom size probe. Matches the behaviour of
-//! akka.net when mailbox size introspection is unavailable (it falls back
+//! when mailbox size introspection is unavailable (it falls back
 //! to round-robin per routee).
 
 use std::sync::atomic::{AtomicUsize, Ordering};

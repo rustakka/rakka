@@ -1,11 +1,11 @@
-//! 3-node convergence spec for the Replicator. akka.net:
-//! `Akka.DistributedData.Tests.MultiNode.ReplicatorSpec` (subset that
+//! 3-node convergence spec for the Replicator.
+//! (subset that
 //! does not require remoting).
 //!
 //! Asserts that three independent ReplicatorActors with disjoint
 //! GCounter increments converge to the same merged value once each
 //! has observed every other's snapshot via cross-write (the in-process
-//! analog of gossip). The properties asserted match akka.net's
+//! analog of gossip). The properties asserted match
 //! "eventual consistency" invariant for GCounter.
 
 use atomr_distributed_data::{

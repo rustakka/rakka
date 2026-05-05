@@ -1,5 +1,5 @@
-//! Cluster ↔ remote integration. akka.net: `Cluster/ClusterDaemon.cs`
-//! interactions with `Akka.Remote`.
+//! Cluster ↔ remote integration.
+//! Interactions with.
 //!
 //! `ClusterRemoteAdapter` runs the gossip dissemination loop on top of
 //! `atomr-remote`'s [`RemoteSystem`]. It exposes a local "cluster" actor

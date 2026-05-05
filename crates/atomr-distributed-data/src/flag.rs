@@ -1,5 +1,4 @@
 //! `Flag` CRDT — monotonic boolean (false → true; once true, stays true).
-//! akka.net: `Akka.DistributedData.Flag`.
 
 use serde::{Deserialize, Serialize};
 

@@ -1,4 +1,4 @@
-//! Reachability. akka.net: `Cluster/Reachability.cs`.
+//! Reachability.
 //!
 //! Records which observers think which subjects are reachable. A node is
 //! considered unreachable if any observer reports it as such.

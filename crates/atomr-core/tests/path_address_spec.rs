@@ -1,4 +1,4 @@
-//! ActorPath / Address spec parity. akka.net:
+//! ActorPath / Address spec parity.
 //! `ActorPathSpec`, `AddressSpec`, `RelativeActorPathSpec`,
 //! `RemotePathParsingSpec`.
 

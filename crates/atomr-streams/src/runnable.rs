@@ -1,5 +1,4 @@
 //! RunnableGraph — a `Source` + terminal `Sink` waiting to be materialized.
-//! akka.net: `Dsl/RunnableGraph.cs`.
 
 use std::future::Future;
 

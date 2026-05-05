@@ -1,4 +1,4 @@
-//! Hashed wheel timer — port of akka.net's `HashedWheelTimerScheduler.cs`.
+//! Hashed wheel timer — port of.
 //!
 //! A hashed wheel is a cyclic array of "buckets"; scheduling a timeout
 //! places the deadline in the bucket that corresponds to

@@ -1,4 +1,4 @@
-//! atomr-persistence-mongodb. akka.net: `Akka.Persistence.MongoDB`.
+//! atomr-persistence-mongodb.
 //!
 //! Stores events in a MongoDB collection keyed by `(persistence_id,
 //! sequence_nr)` with a unique compound index. Snapshots live in a

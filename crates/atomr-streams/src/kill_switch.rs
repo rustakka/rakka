@@ -1,4 +1,4 @@
-//! KillSwitch — external shutdown for a running stream. akka.net: `KillSwitch.cs`.
+//! KillSwitch — external shutdown for a running stream.
 //!
 //! `KillSwitch::shutdown()` completes every attached source; `abort(err)`
 //! makes attached sources fail (modelled as early completion plus the

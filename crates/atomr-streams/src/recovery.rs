@@ -1,7 +1,6 @@
 //! Recovery operators on `Source<Result<T, E>>`.
 //!
-//! Phase 12.7 of `docs/full-port-plan.md`. Akka.NET / Akka Streams
-//! parity: `Recover`, `RecoverWith`, `RecoverWithRetries`, `MapError`.
+//! Operators: `Recover`, `RecoverWith`, `RecoverWithRetries`, `MapError`.
 //!
 //! These operators are exposed as free functions that take a
 //! `Source<Result<T, E>>` and return a transformed `Source`. They
@@ -16,7 +15,6 @@ use futures::stream::StreamExt;
 /// to `T` (success values are unwrapped). The first error stops the
 /// upstream — subsequent elements are dropped.
 ///
-/// Akka.NET: `Source.Recover<T>(Func<Exception, Option<T>>)`.
 pub fn recover<T, E, F>(src: Source<Result<T, E>>, mut f: F) -> Source<T>
 where
     T: Send + 'static,
@@ -45,7 +43,6 @@ where
 /// Map the error variant via `f`. Both `Ok` and `Err` continue
 /// downstream; only the `Err` payload type changes.
 ///
-/// Akka.NET: `Source.SelectError`.
 pub fn map_error<T, E1, E2, F>(src: Source<Result<T, E1>>, mut f: F) -> Source<Result<T, E2>>
 where
     T: Send + 'static,
@@ -63,7 +60,7 @@ where
 /// Replace the upstream's tail with `replacement` upon the first
 /// `Err(_)`. Pre-error `Ok(_)` values flow through unchanged.
 ///
-/// Akka.NET: `Source.RecoverWithRetries(maxAttempts, …)` with
+/// with
 /// `maxAttempts = 1` (multi-attempt retry waits on the
 /// `RestartSource` machinery — Phase 12 follow-on).
 pub fn recover_with<T, E>(src: Source<Result<T, E>>, replacement: Source<T>) -> Source<T>
@@ -98,7 +95,6 @@ where
 /// error, capped at `max_attempts` total replacements. After
 /// `max_attempts`, subsequent errors propagate as terminations.
 ///
-/// Akka.NET: `Source.RecoverWithRetries(maxAttempts, factory)`.
 pub fn recover_with_retries<T, E, F>(
     src: Source<Result<T, E>>,
     max_attempts: usize,
@@ -132,7 +128,7 @@ where
     Source { inner: stream.boxed() }
 }
 
-/// Alias for [`map_error`] matching akka.net's `Source.SelectError`
+/// Alias for [`map_error`] matching
 /// naming. Keeping both names makes porting tests verbatim possible.
 pub fn select_error<T, E1, E2, F>(src: Source<Result<T, E1>>, f: F) -> Source<Result<T, E2>>
 where

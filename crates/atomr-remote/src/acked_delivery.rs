@@ -1,4 +1,4 @@
-//! Reliable sliding-window delivery. akka.net: `Remote/Transport/AckedDelivery.cs`.
+//! Reliable sliding-window delivery.
 //!
 //! Each `Endpoint` maintains an [`AckedSendBuffer`] of in-flight envelopes
 //! and an [`AckedReceiveBuffer`] that suppresses duplicates and produces

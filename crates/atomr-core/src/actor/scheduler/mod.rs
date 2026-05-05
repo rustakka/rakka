@@ -1,5 +1,4 @@
 //! Scheduler — timers backing `schedule_once` / `schedule_at_fixed_rate`.
-//! akka.net: `Actor/Scheduler/`.
 
 mod hashed_wheel;
 mod tokio_scheduler;
@@ -27,7 +26,7 @@ impl SchedulerHandle {
     }
 }
 
-/// The scheduler trait. akka.net: `IScheduler`.
+/// The scheduler trait.
 pub trait Scheduler: Send + Sync {
     fn schedule_once(&self, delay: Duration, task: BoxFuture<'static, ()>) -> SchedulerHandle;
 

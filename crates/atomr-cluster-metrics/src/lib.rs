@@ -1,4 +1,4 @@
-//! atomr-cluster-metrics. akka.net: `Akka.Cluster.Metrics`.
+//! atomr-cluster-metrics.
 //!
 //! Phase 10 of `docs/full-port-plan.md`. Three layers:
 //!
@@ -220,8 +220,7 @@ mod tests {
 
 // -- EWMA smoothing --------------------------------------------------
 
-/// Exponentially-weighted moving average. akka.net:
-/// `Akka.Cluster.Metrics.EWMA`.
+/// Exponentially-weighted moving average.
 ///
 /// `alpha` is the smoothing factor in `(0.0, 1.0]`; larger `alpha`
 /// follows the new sample more aggressively.
@@ -258,7 +257,7 @@ impl Ewma {
 
 // -- Metrics selectors ------------------------------------------------
 
-/// What dimension drives `WeightedRoutees`. akka.net:
+/// What dimension drives `WeightedRoutees`.
 /// `MetricsSelector` / `CpuMetricsSelector` / `HeapMetricsSelector` /
 /// `MixMetricsSelector`.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -288,7 +287,7 @@ impl MetricsSelector {
 // -- Weighted routees -------------------------------------------------
 
 /// Pick a routee with probability proportional to its
-/// [`MetricsSelector::weight`]. akka.net: `WeightedRoutees`.
+/// [`MetricsSelector::weight`].
 pub struct WeightedRoutees {
     metrics: Arc<ClusterMetrics>,
     selector: MetricsSelector,

@@ -1,4 +1,4 @@
-//! `RemoteSettings`. akka.net: `Remote/RemoteSettings.cs`.
+//! `RemoteSettings`.
 //!
 //! Knobs for the remoting subsystem. Defaults are conservative and
 //! suitable for development; production deployments should tune the
@@ -50,16 +50,16 @@ pub struct RemoteSettings {
 
     // -- Phase 5.J: phi-accrual failure-detector tuning --
     //
-    // These mirror akka.net's `akka.remote.watch-failure-detector.*`
+    // These mirror
     // keys. Producing a `FailureDetectorRegistry` from `RemoteSettings`
     // honours each knob.
-    /// φ value above which the peer is considered failed (akka.net
+    /// φ value above which the peer is considered failed (
     /// default: 8.0 for watch, 10.0 for cluster).
     pub phi_threshold: f64,
     /// Maximum sample size kept in the heart-beat history.
     pub phi_max_sample_size: usize,
     /// Floor on the inter-arrival std-dev (avoids over-confidence on
-    /// suspiciously stable links). akka.net default: 100ms.
+    /// suspiciously stable links). default: 100ms.
     pub phi_min_std_deviation: Duration,
     /// Pause window the detector tolerates before suspicion grows.
     pub phi_acceptable_heartbeat_pause: Duration,
@@ -80,8 +80,8 @@ pub struct RemoteSettings {
     pub send_queue_overflow: SendQueueOverflow,
 }
 
-/// Overflow policy for the bounded outbound send queue. akka.net parity:
-/// the equivalent strategies in `Akka.Remote.SendBufferOverflowStrategy`.
+/// Overflow policy for the bounded outbound send queue.
+/// The equivalent strategies in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum SendQueueOverflow {
@@ -128,7 +128,7 @@ impl Default for RemoteSettings {
 
 impl RemoteSettings {
     /// Read overrides from the given config. Any missing key falls back to
-    /// the default value. Layout mirrors Akka.NET's `akka.remote.dot-netty.tcp.*`.
+    /// the default value. Layout mirrors.
     pub fn from_config(_cfg: &Config) -> Self {
         // The atomr-config crate's reader is intentionally minimal at this
         // stage. Future versions will pull `akka.remote.*` keys here.

@@ -1,6 +1,6 @@
-//! In-memory Replicator. akka.net: `Akka.DistributedData/Replicator.cs`.
+//! In-memory Replicator.
 //!
-//! The full akka.net replicator gossips deltas to other nodes; this port
+//! The full replicator gossips deltas to other nodes; this port
 //! implements the local storage/merge aspects. Remote replication plugs
 //! into `atomr-cluster` in a later phase.
 

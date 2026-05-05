@@ -1,5 +1,4 @@
 //! Extensions — per-`ActorSystem` singletons keyed by type.
-//! akka.net: `Actor/Extensions.cs`.
 
 use std::any::{Any, TypeId};
 use std::sync::Arc;
@@ -11,7 +10,7 @@ pub trait Extension: Any + Send + Sync {}
 
 impl<T: Any + Send + Sync> Extension for T {}
 
-/// Identifier trait mirroring akka.net's `IExtensionId<T>`.
+/// Identifier trait mirroring.
 pub trait ExtensionId<E: Extension>: Send + Sync {
     fn create(&self) -> E;
 }

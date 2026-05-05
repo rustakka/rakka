@@ -1,4 +1,4 @@
-//! Serialization framework. akka.net: `src/core/Akka/Serialization/`.
+//! Serialization framework.
 //!
 //! A `Serializer` is a pluggable codec identified by a numeric id. The
 //! registry maps both rust `TypeId` and serializer id to concrete codecs.

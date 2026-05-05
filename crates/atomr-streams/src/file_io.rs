@@ -1,4 +1,4 @@
-//! FileIO — read/write files as streams of `Bytes`. akka.net: `Dsl/FileIO.cs`.
+//! FileIO — read/write files as streams of `Bytes`.
 
 use std::io;
 use std::path::{Path, PathBuf};
@@ -14,7 +14,7 @@ use crate::source::Source;
 pub struct FileIO;
 
 impl FileIO {
-    /// Read a file in chunks of `chunk_size` bytes. akka.net: `FileIO.FromFile`.
+    /// Read a file in chunks of `chunk_size` bytes.
     pub fn from_path(path: impl Into<PathBuf>, chunk_size: usize) -> Source<io::Result<Bytes>> {
         let path: PathBuf = path.into();
         let cap = chunk_size.max(512);
@@ -54,7 +54,6 @@ impl FileIO {
     }
 
     /// Write every `Bytes` chunk to `path`, truncating any existing file.
-    /// akka.net: `FileIO.ToFile`.
     pub async fn to_path(source: Source<Bytes>, path: impl AsRef<Path>) -> io::Result<u64> {
         let mut file = File::create(path.as_ref()).await?;
         let mut stream = source.into_boxed();

@@ -1,5 +1,5 @@
 //! `TestKit` — a thin wrapper around an `ActorSystem` that tests use for
-//! defaults and lifetime management. akka.net: `Akka.TestKit/TestKitBase.cs`.
+//! defaults and lifetime management.
 
 use std::time::Duration;
 

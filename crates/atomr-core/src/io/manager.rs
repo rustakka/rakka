@@ -1,6 +1,6 @@
 //! `TcpManager` / `UdpManager` actor-style wrappers.
 //!
-//! akka.net's `IO.Tcp.Manager` is an actor that mediates `Bind`/`Connect`
+//! is an actor that mediates `Bind`/`Connect`
 //! commands and dispatches per-connection child actors. Our equivalent is
 //! a small state machine driven by mpsc channels — callers get an
 //! [`IoEvent`] stream of inbound connections / read bytes / disconnects.
@@ -35,13 +35,22 @@ pub enum IoEvent {
 pub enum TcpCommand {
     /// Listen on `addr`. The kernel-assigned port flows back as
     /// `IoEvent::Bound { addr }`.
-    Bind { addr: SocketAddr },
+    Bind {
+        addr: SocketAddr,
+    },
     /// Initiate an outbound connection. On success a
     /// `IoEvent::Connected { id, peer }` is published; subsequent
     /// reads / writes use the same `ConnId` API as inbound.
-    Connect { addr: SocketAddr },
-    Send { id: ConnId, bytes: Vec<u8> },
-    Close { id: ConnId },
+    Connect {
+        addr: SocketAddr,
+    },
+    Send {
+        id: ConnId,
+        bytes: Vec<u8>,
+    },
+    Close {
+        id: ConnId,
+    },
     Shutdown,
 }
 

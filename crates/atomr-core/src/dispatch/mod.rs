@@ -1,4 +1,4 @@
-//! Dispatcher + mailbox subsystem. akka.net: `src/core/Akka/Dispatch`.
+//! Dispatcher + mailbox subsystem.
 
 pub mod dispatcher;
 pub mod mailbox;

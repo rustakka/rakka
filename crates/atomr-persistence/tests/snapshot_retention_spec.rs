@@ -1,8 +1,8 @@
-//! Snapshot store retention spec parity. akka.net: `Akka.Persistence.Tests.SnapshotSpec`.
+//! Snapshot store retention spec parity.
 //!
-//! Maps the akka.net retention invariants onto the
+//! Maps the retention invariants onto the
 //! [`atomr_persistence::SnapshotStore`] surface (`save` / `load` / `delete`)
-//! using the in-memory store. Where akka.net exposes a fine-grained
+//! using the in-memory store. Where exposes a fine-grained
 //! `SnapshotSelectionCriteria { max_sequence_nr }` /
 //! `LoadSnapshot(persistenceId, criteria, toSequenceNr)`, the rust trait
 //! collapses retention onto a single
@@ -98,7 +98,7 @@ async fn delete_single_snapshot_removes_only_that_one() {
 
 #[tokio::test]
 async fn delete_with_bound_removes_everything_at_or_below_and_keeps_newer() {
-    // Mirrors akka.net `delete_snapshots(criteria { max_sequence_nr })`.
+    // Mirrors.
     let store = InMemorySnapshotStore::new();
     for seq in [1u64, 2, 3, 4, 5] {
         save(&store, "p", seq, format!("v{seq}").as_bytes()).await;
@@ -120,7 +120,7 @@ async fn delete_with_bound_removes_everything_at_or_below_and_keeps_newer() {
 
 #[tokio::test]
 async fn keep_last_n_pattern_via_caller_driven_delete() {
-    // akka.net: callers prune by `delete_snapshots(criteria { max_sequence_nr = highest - N })`
+    // callers prune by `delete_snapshots(criteria { max_sequence_nr = highest - N })`
     // to retain the last N snapshots. Mapping onto the rust trait:
     // save N+1 snapshots, then `delete(pid, highest - N)` — that drops
     // everything at-or-below `highest - N` and keeps strictly newer ones.

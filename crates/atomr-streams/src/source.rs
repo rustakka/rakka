@@ -1,4 +1,4 @@
-//! Source — the origin of elements in a stream graph. akka.net: `Dsl/Source.cs`.
+//! Source — the origin of elements in a stream graph.
 //!
 //! Implemented as a thin wrapper around a boxed [`futures::Stream`]; each
 //! combinator returns a new `Source` whose inner stream lazily applies the
@@ -18,7 +18,7 @@ pub struct Source<T> {
 }
 
 impl<T: Send + 'static> Source<T> {
-    // --- factories (akka.net: `Dsl/Source.cs`) ---------------------------------
+    // --- factories ---------------------------------
 
     #[allow(clippy::should_implement_trait)]
     pub fn from_iter<I: IntoIterator<Item = T> + Send + 'static>(iter: I) -> Self
@@ -106,7 +106,7 @@ impl<T: Send + 'static> Source<T> {
         Source { inner: self.inner.map(f).boxed() }
     }
 
-    /// akka.net: `SelectAsync` (ordered, bounded parallelism).
+    /// (ordered, bounded parallelism).
     pub fn map_async<U, F, Fut>(self, parallelism: usize, f: F) -> Source<U>
     where
         F: FnMut(T) -> Fut + Send + 'static,
@@ -117,7 +117,6 @@ impl<T: Send + 'static> Source<T> {
         Source { inner: self.inner.map(f).buffered(p).boxed() }
     }
 
-    /// akka.net: `SelectAsyncUnordered`.
     pub fn map_async_unordered<U, F, Fut>(self, parallelism: usize, f: F) -> Source<U>
     where
         F: FnMut(T) -> Fut + Send + 'static,
@@ -131,7 +130,7 @@ impl<T: Send + 'static> Source<T> {
     /// `async_boundary(buffer)` — explicit async stage that decouples
     /// the upstream and downstream pipelines onto separate Tokio
     /// tasks via a bounded mpsc channel of capacity `buffer`.
-    /// Akka.NET / Akka Streams: the `.async` call. Phase 12.3 of
+    /// the `.async` call. Phase 12.3 of
     /// `docs/full-port-plan.md`.
     ///
     /// Useful when an upstream stage is CPU-heavy and you want
@@ -207,7 +206,7 @@ impl<T: Send + 'static> Source<T> {
         }
     }
 
-    /// akka.net: `Grouped(n)` — emit vectors of up to n items.
+    /// Emit vectors of up to n items.
     pub fn grouped(self, n: usize) -> Source<Vec<T>> {
         Source { inner: self.inner.chunks(n.max(1)).boxed() }
     }
@@ -252,7 +251,7 @@ impl<T: Send + 'static> Source<T> {
         Source { inner: other.inner.chain(self.inner).boxed() }
     }
 
-    /// akka.net: `Delay` — shift every element by `d`.
+    /// Shift every element by `d`.
     pub fn delay(self, d: Duration) -> Source<T> {
         Source {
             inner: self
@@ -265,7 +264,7 @@ impl<T: Send + 'static> Source<T> {
         }
     }
 
-    /// akka.net: `InitialDelay` — wait `d` before emitting the first element.
+    /// Wait `d` before emitting the first element.
     pub fn initial_delay(self, d: Duration) -> Source<T> {
         let inner = self.inner;
         Source {
@@ -278,7 +277,7 @@ impl<T: Send + 'static> Source<T> {
         }
     }
 
-    /// akka.net: `Throttle` — limit element rate (one per `interval`).
+    /// Limit element rate (one per `interval`).
     pub fn throttle(self, interval: Duration) -> Source<T> {
         Source {
             inner: self
@@ -291,12 +290,11 @@ impl<T: Send + 'static> Source<T> {
         }
     }
 
-    /// akka.net: `Buffer(size, OverflowStrategy)`.
     pub fn buffer(self, size: usize, strategy: OverflowStrategy) -> Source<T> {
         crate::overflow::apply(self, size, strategy)
     }
 
-    /// akka.net: `WireTap` — observes each element without affecting the stream.
+    /// Observes each element without affecting the stream.
     pub fn wire_tap<F>(self, mut f: F) -> Source<T>
     where
         F: FnMut(&T) + Send + 'static,

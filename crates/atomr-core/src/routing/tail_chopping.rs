@@ -1,13 +1,13 @@
-//! Tail-chopping router. akka.net: `Routing/TailChoppingPool.cs`.
+//! Tail-chopping router.
 //!
-//! Phase 3.3 of `docs/full-port-plan.md`. Akka.NET semantics:
+//! semantics:
 //! a request is sent to a randomly-picked routee; if no reply
 //! arrives within `interval`, a second routee is tried; and so on
 //! until either a reply arrives or `within` is exceeded. Useful for
 //! latency-sensitive workloads where a stuck or slow node would
 //! otherwise tail-latency the whole call.
 //!
-//! The actual reply path is the caller's responsibility (akka.net
+//! The actual reply path is the caller's responsibility (
 //! relies on the `Ask` machinery to pick a winner); this router
 //! exposes the per-attempt fan-out + interval policy as a typed
 //! schedule.

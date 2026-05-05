@@ -1,4 +1,4 @@
-//! Linear `Source` operator spec parity. akka.net: `FlowSpec`,
+//! Linear `Source` operator spec parity.,
 //! `FlowMapSpec`, `FlowFilterSpec`, `FlowTakeSpec`, `FlowSkipSpec`,
 //! `FlowScanSpec`, `FlowIntersperseSpec`, `FlowBufferSpec`,
 //! `FlowThrottleSpec`, `FlowZipWithIndexSpec`.
@@ -175,7 +175,7 @@ async fn source_single_yields_exactly_one_element() {
 
 #[tokio::test]
 async fn linear_pipeline_composes_map_filter_take_skip_scan() {
-    // Mirrors akka.net `FlowSpec` style end-to-end pipeline assertion.
+    // Mirrors style end-to-end pipeline assertion.
     let out: Vec<i32> = Sink::collect(
         Source::from_iter(1..=20_i32)
             .map(|x| x * 2) // 2,4,6,...,40

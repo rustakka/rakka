@@ -1,4 +1,4 @@
-//! TCP stream helpers. akka.net: `Dsl/Tcp.cs`.
+//! TCP stream helpers.
 //!
 //! * [`Tcp::outgoing_connection`] — connect to `addr` and expose the remote
 //!   side as a `(Sink<Bytes>, Source<io::Result<Bytes>>)` pair.

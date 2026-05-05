@@ -1,4 +1,4 @@
-//! Mailbox configuration. akka.net: `Dispatch/Mailbox.cs`, `Mailboxes.cs`.
+//! Mailbox configuration.
 //!
 //! The mailbox holds queued messages for a single actor. Our implementation
 //! uses `tokio::mpsc::UnboundedReceiver` as the user queue and a separate
@@ -14,7 +14,7 @@ pub enum MailboxKind {
     UnboundedDeque,
     UnboundedPriority,
     UnboundedStablePriority,
-    /// Control messages bypass user messages. akka.net:
+    /// Control messages bypass user messages.
     /// `UnboundedControlAwareMessageQueue`.
     UnboundedControlAware,
     /// Bounded variant with control-priority bypass.
@@ -22,7 +22,7 @@ pub enum MailboxKind {
 }
 
 /// What a bounded mailbox does when its capacity is reached.
-/// akka.net: `BoundedNodeMessageQueue` overflow policy.
+/// overflow policy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum OverflowStrategy {
     /// Drop the new (incoming) message and log it as a dead letter.

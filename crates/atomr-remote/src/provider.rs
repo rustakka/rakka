@@ -1,4 +1,4 @@
-//! `RemoteActorRefProvider`. akka.net: `Remote/RemoteActorRefProvider.cs`.
+//! `RemoteActorRefProvider`.
 //!
 //! Plug-in for `atomr_core::ActorSystem` that resolves
 //! `akka.tcp://...`-style paths into `RemoteActorRefImpl` handles.

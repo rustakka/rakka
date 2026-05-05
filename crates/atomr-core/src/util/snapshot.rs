@@ -1,6 +1,6 @@
 //! `Snapshot<T>` — read-mostly immutable-snapshot container.
 //!
-//! Phase 13.B/C of `docs/full-port-plan.md`. Akka.NET's hot-path
+//! hot-path
 //! shared state (cluster gossip, sharding allocation tables) is
 //! read by every dispatcher pump but updated rarely; we mirror the
 //! "swap an Arc snapshot" idiom from `arc-swap` so readers never

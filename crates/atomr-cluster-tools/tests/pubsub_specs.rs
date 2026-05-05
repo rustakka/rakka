@@ -1,8 +1,7 @@
 //! Phase Y — `DistributedPubSubMediatorSpec` parity sweep.
 //!
-//! Single-node parity check for the akka.net spec
-//! `Akka.Cluster.Tools.Tests/PublishSubscribe/DistributedPubSubMediatorSpec.cs`.
-//! Covers the local-mediator subset of the Akka invariants:
+//! Single-node parity check for the spec.
+//! Covers the local-mediator invariants:
 //!
 //! * Subscribe + `publish_msg::<M>` delivers to a typed `ActorRef<M>`.
 //! * Multiple subscribers on a topic each receive every published message.
@@ -59,7 +58,7 @@ async fn multiple_subscribers_all_receive_publish() {
 
 #[tokio::test]
 async fn group_subscribers_get_point_to_point_semantics() {
-    // akka.net DistributedPubSubMediatorSpec — `Send` (group-routed) goes
+    // DistributedPubSubMediatorSpec — `Send` (group-routed) goes
     // to exactly one bucket member per call, not all of them.
     let bus = DistributedPubSub::new();
     let mut a = Inbox::<u32>::new("ga");
@@ -152,7 +151,7 @@ fn topic_and_group_snapshots_track_bookkeeping() {
     assert_eq!(bus.group_count(), 3, "group_count counts distinct (topic,group) buckets");
 
     // After dropping every subscriber under a topic, the topic key remains
-    // (mirrors akka.net which keeps the topic actor alive); the snapshot
+    // (mirrors which keeps the topic actor alive); the snapshot
     // count is the number of `topic` keys, not non-empty subscriber lists.
     let path = inbox.actor_ref().path().clone();
     bus.unsubscribe("t1", &path);

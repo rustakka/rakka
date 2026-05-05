@@ -1,9 +1,7 @@
 //! # atomr-core
 //!
-//! Idiomatic Rust port of `akka.net/src/core/Akka`.
-//!
-//! Public modules mirror the upstream folder layout 1:1 to make tracking
-//! upstream changes tractable. See `PORTING.md` at the workspace root.
+//! Idiomatic Rust actor runtime — typed actors, hierarchical supervision,
+//! dispatchers, mailboxes, scheduler, dead letters, and event streams.
 //!
 //! ## Quick start
 //!

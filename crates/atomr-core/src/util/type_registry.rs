@@ -1,5 +1,5 @@
 //! TypeId-keyed registry used by the `Extensions` subsystem.
-//! akka.net: `Util/Reflection.cs` (partial — we do not need runtime reflection).
+//! (partial — we do not need runtime reflection).
 
 use std::any::{Any, TypeId};
 use std::sync::Arc;

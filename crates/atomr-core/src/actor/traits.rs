@@ -1,5 +1,4 @@
 //! Core `Actor` trait and message envelope.
-//! akka.net: `Actor/ActorBase.cs`, `ReceiveActor.cs`.
 
 use async_trait::async_trait;
 
@@ -31,7 +30,7 @@ impl<M> MessageEnvelope<M> {
 
 /// The user-facing `Actor` trait.
 ///
-/// Akka.NET's `ReceiveActor` is expressed here as: each actor has an
+/// is expressed here as: each actor has an
 /// associated `Msg` type (typically an enum) and implements an async
 /// `handle` that matches on it.
 #[async_trait]
@@ -41,10 +40,10 @@ pub trait Actor: Sized + Send + 'static {
     /// Process a single message.
     async fn handle(&mut self, ctx: &mut Context<Self>, msg: Self::Msg);
 
-    /// Called once before the first message (akka.net: `PreStart`).
+    /// Called once before the first message.
     async fn pre_start(&mut self, _ctx: &mut Context<Self>) {}
 
-    /// Called after the actor has been stopped (akka.net: `PostStop`).
+    /// Called after the actor has been stopped.
     async fn post_stop(&mut self, _ctx: &mut Context<Self>) {}
 
     /// Called when the actor is about to be restarted by the supervisor.

@@ -1,4 +1,4 @@
-//! A Shard owns entities (by entity_id). akka.net: `Shard.cs`.
+//! A Shard owns entities (by entity_id).
 
 use std::collections::HashMap;
 
@@ -6,8 +6,8 @@ use parking_lot::RwLock;
 
 /// Entity handler — a hook invoked when a message arrives for an entity.
 ///
-/// Replaces the `IActorRef` per entity in akka.net; the `tell` hook can
-/// forward into whatever actor runtime the caller wires up.
+/// The `tell` hook can forward into whatever actor runtime the caller wires
+/// up.
 pub type EntityHandler<M> = Box<dyn Fn(&str, M) + Send + Sync + 'static>;
 
 pub struct Shard<M: Send + 'static> {

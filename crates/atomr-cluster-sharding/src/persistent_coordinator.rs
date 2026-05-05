@@ -1,11 +1,8 @@
 //! `PersistentShardCoordinator` — event-sourced allocation table.
 //!
-//! Phase 9.D of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Akka.Cluster.Sharding.PersistentShardCoordinator`. Wraps a
-//! [`ShardCoordinator`] and persists every allocation / rebalance
-//! decision through `atomr_persistence::Eventsourced` so a
-//! coordinator restart on a different node restores the exact same
-//! allocation table.
+//! Wraps a [`ShardCoordinator`] and persists every allocation / rebalance
+//! decision through `atomr_persistence::Eventsourced` so a coordinator
+//! restart on a different node restores the exact same allocation table.
 //!
 //! Events:
 //! ```text

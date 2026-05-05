@@ -1,5 +1,4 @@
 //! Inbox — a receive-from-the-outside handle into a synthetic actor.
-//! akka.net: `Actor/Inbox.cs`.
 
 use std::sync::Weak;
 use std::time::Duration;

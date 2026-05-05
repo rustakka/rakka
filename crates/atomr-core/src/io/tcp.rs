@@ -1,5 +1,5 @@
 //! Minimal Tcp bind/connect helpers.
-//! akka.net: `IO/TcpConnection.cs`, `TcpListener.cs`, etc.
+//! etc.
 
 use std::io;
 use std::net::SocketAddr;

@@ -2,7 +2,7 @@
 //!
 //! Hyperion is a CLR-specific binary serializer tightly coupled to
 //! System.Reflection. A line-by-line port is impractical in Rust. To keep
-//! the crate name reserved (matching Akka.NET layout) while providing
+//! the crate name reserved (matching layout) while providing
 //! useful functionality, this crate exposes a Serde/bincode-based
 //! `HyperionSerializer<T>` that implements the same
 //! [`atomr_core::serialization::Serializer`] trait used everywhere
@@ -16,7 +16,7 @@ use atomr_core::serialization::{Serializer, SerializerError};
 use bincode::config;
 use serde::{de::DeserializeOwned, Serialize};
 
-/// Default identifier for the Hyperion-compat slot. akka.net reserves
+/// Default identifier for the Hyperion-compat slot. reserves
 /// serializer id 7 for Hyperion; we keep the same number for parity.
 pub const HYPERION_SERIALIZER_ID: u32 = 7;
 

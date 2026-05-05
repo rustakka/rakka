@@ -1,4 +1,4 @@
-//! Routing spec parity. akka.net's RoundRobinSpec, RandomSpec,
+//! Routing spec parity. RoundRobinSpec, RandomSpec,
 //! ConsistentHashingRouterSpec, ScatterGatherFirstCompletedSpec,
 //! TailChoppingSpec.
 

@@ -1,6 +1,5 @@
 //! Simple Tokio-backed scheduler. Not as efficient as a hashed wheel at
 //! millions of timers, but perfect for typical actor workloads.
-//! akka.net: `Actor/Scheduler/SchedulerBase.cs` + `DefaultScheduler`.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;

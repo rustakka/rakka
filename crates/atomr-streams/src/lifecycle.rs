@@ -1,7 +1,6 @@
 //! Lifecycle operators on `Source<T>`.
 //!
-//! Phase 12.8 of `docs/full-port-plan.md`. Akka.NET / Akka Streams
-//! parity: `WatchTermination`, `Monitor`, `Log`. Each one wraps a
+//! Operators: `WatchTermination`, `Monitor`, `Log`. Each one wraps a
 //! source and surfaces side-channel signals (completion, every
 //! element, log line) without altering the elements themselves.
 
@@ -18,7 +17,6 @@ use crate::source::Source;
 /// (whether by exhaustion or by the receiver being polled past the
 /// final element).
 ///
-/// Akka.NET: `Source.WatchTermination`.
 pub fn watch_termination<T: Send + 'static>(src: Source<T>) -> (Source<T>, oneshot::Receiver<()>) {
     let (tx, rx) = oneshot::channel();
     let inner = src.into_boxed();
@@ -40,7 +38,6 @@ pub fn watch_termination<T: Send + 'static>(src: Source<T>) -> (Source<T>, onesh
 /// element flowing through, without consuming or transforming it.
 /// Useful for telemetry instrumentation.
 ///
-/// Akka.NET: `Source.Monitor`.
 pub fn monitor<T, F>(src: Source<T>, mut on_each: F) -> Source<T>
 where
     T: Send + 'static,
@@ -53,7 +50,7 @@ where
 /// `count_elements(src)` — convenience: returns the source unchanged
 /// plus an `Arc<AtomicU64>` that totals every element.
 ///
-/// Akka.NET: typically expressed as `monitor(... |_| counter.inc())`.
+/// typically expressed as `monitor(. |_| counter.inc())`.
 pub fn count_elements<T: Send + 'static>(src: Source<T>) -> (Source<T>, Arc<AtomicU64>) {
     let counter = Arc::new(AtomicU64::new(0));
     let c2 = counter.clone();

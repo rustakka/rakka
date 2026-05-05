@@ -1,5 +1,4 @@
 //! Coordinated shutdown — phase-ordered cleanup hooks.
-//! akka.net: `Actor/CoordinatedShutdown.cs`.
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -8,7 +7,7 @@ use std::time::Duration;
 use futures_util::future::BoxFuture;
 use parking_lot::Mutex;
 
-/// Phases modeled on akka.net's defaults.
+/// Phases modeled on defaults.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Phase {
     BeforeServiceUnbind = 0,
@@ -44,7 +43,7 @@ impl Phase {
 }
 
 /// Per-phase timeout — if any hook exceeds this duration the phase
-/// is abandoned and (if `recover`) the next phase begins. akka.net:
+/// is abandoned and (if `recover`) the next phase begins.
 /// `phase.timeout` and `recover`.
 #[derive(Debug, Clone)]
 pub struct PhaseConfig {
@@ -86,7 +85,7 @@ impl CoordinatedShutdown {
         self.phase_configs.lock().insert(phase, config);
     }
 
-    /// Has shutdown already been initiated? akka.net:
+    /// Has shutdown already been initiated?
     /// `CoordinatedShutdown.IsRunning`.
     pub fn is_running(&self) -> bool {
         *self.started.lock()

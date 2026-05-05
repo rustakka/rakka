@@ -1,4 +1,4 @@
-//! `ActorSystem` — root of the actor hierarchy. akka.net: `Actor/ActorSystem.cs`.
+//! `ActorSystem` — root of the actor hierarchy.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -106,7 +106,6 @@ impl ActorSystem {
 
     /// Look up an actor by full path string. Local paths return the local
     /// child if it exists; remote paths consult the installed remote provider.
-    /// akka.net: `ActorSystem.ActorSelection`.
     pub fn actor_selection(&self, path_str: &str) -> Option<UntypedActorRef> {
         let path = parse_actor_path(path_str)?;
         if path.address.has_local_scope() || path.address == self.inner.address {
@@ -143,7 +142,7 @@ impl ActorSystem {
         Some(ActorRef::from_remote(handle, serialize))
     }
 
-    /// Spawn a top-level actor under `/user`. akka.net: `ActorOf`.
+    /// Spawn a top-level actor under `/user`.
     pub fn actor_of<A: Actor>(
         &self,
         props: Props<A>,

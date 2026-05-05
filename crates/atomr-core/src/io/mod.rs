@@ -1,6 +1,6 @@
-//! Network IO — small TCP/UDP helpers mirroring akka.net's `IO.Tcp` / `IO.Udp`
+//! Network IO — small TCP/UDP helpers mirroring / `IO.Udp`
 //! but exposed as simple functions returning `tokio::net` primitives wrapped
-//! in channel-driven actors. akka.net: `src/core/Akka/IO`.
+//! in channel-driven actors.
 
 pub mod manager;
 pub mod tcp;

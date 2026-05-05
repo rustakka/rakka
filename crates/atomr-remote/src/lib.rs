@@ -1,4 +1,4 @@
-//! `atomr-remote`. akka.net: `src/core/Akka.Remote/`.
+//! `atomr-remote`.
 //!
 //! Cross-process actor remoting for `atomr`. Two `ActorSystem`s on
 //! different machines (or different ports on the same machine) become
@@ -15,30 +15,6 @@
 //! remote_a.register_bincode::<String>();
 //! # Ok(()) }
 //! ```
-//!
-//! ## Module map
-//!
-//! | Akka.NET | atomr |
-//! |---|---|
-//! | `Akka.Remote.RemoteSettings` | [`settings::RemoteSettings`] |
-//! | `Akka.Remote.AddressUidExtension` | [`address_uid::AddressUid`] |
-//! | `Akka.Remote.Transport.Transport` | [`transport::Transport`] |
-//! | `Akka.Remote.Transport.DotNetty.TcpTransport` | [`transport::TcpTransport`] |
-//! | `Akka.Remote.Transport.AkkaProtocolTransport` | [`transport::AkkaProtocolTransport`] |
-//! | `Akka.Remote.Transport.ThrottleTransportAdapter` | [`transport::ThrottleTransport`] |
-//! | `Akka.Remote.Transport.FailureInjectorTransportAdapter` | [`transport::FailureInjectorTransport`] |
-//! | `Akka.Remote.Transport.TestTransport` | [`transport::TestTransport`] |
-//! | `Akka.Remote.EndpointManager` | [`endpoint_manager::EndpointManager`] |
-//! | `Akka.Remote.Endpoint` (Reader+Writer) | [`endpoint::EndpointHandle`] |
-//! | `Akka.Remote.Transport.AckedDelivery` | [`acked_delivery`] |
-//! | `Akka.Remote.RemoteActorRef` | [`remote_ref::RemoteActorRefImpl`] |
-//! | `Akka.Remote.RemoteActorRefProvider` | [`provider::RemoteActorRefProvider`] |
-//! | `Akka.Remote.RemoteSystemDaemon` | [`system_daemon::RemoteSystemDaemon`] |
-//! | `Akka.Remote.RemoteDeployer` | [`system_daemon::RemoteDeployer`] |
-//! | `Akka.Remote.RemoteWatcher` | [`remote_watcher::RemoteWatcher`] |
-//! | `Akka.Remote.RemoteMetricsExtension` | [`metrics::RemoteMetrics`] |
-//! | `Akka.Remote.DefaultFailureDetectorRegistry` | [`failure_detector_registry::FailureDetectorRegistry`] |
-//! | `Akka.Remote.Routing.RemoteRouterConfig` | [`router::RemoteRouterConfig`] |
 
 #![forbid(unsafe_code)]
 #![deny(rust_2018_idioms)]

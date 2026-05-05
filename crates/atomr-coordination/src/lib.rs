@@ -1,4 +1,4 @@
-//! atomr-coordination. akka.net: `Akka.Coordination` / `Lease` API.
+//! atomr-coordination./ `Lease` API.
 
 use std::collections::HashMap;
 use std::sync::Arc;
