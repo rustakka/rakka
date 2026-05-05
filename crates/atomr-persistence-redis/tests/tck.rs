@@ -6,7 +6,8 @@ use std::env;
 
 use atomr_persistence_redis::{RedisConfig, RedisJournal, RedisSnapshotStore};
 use atomr_persistence_tck::{
-    journal_concurrent_suite, journal_extended_suite, journal_suite, snapshot_round_trip, snapshot_suite,
+    journal_concurrent_suite, journal_extended_suite, journal_replay_edge_cases, journal_suite,
+    snapshot_extended_suite, snapshot_round_trip, snapshot_suite,
 };
 
 fn it_url() -> Option<String> {
@@ -23,6 +24,7 @@ async fn redis_journal_passes_tck() {
     let j = RedisJournal::connect(cfg).await.expect("redis journal");
     journal_suite(j.clone(), "redis-j").await;
     journal_extended_suite(j.clone(), "redis-j").await;
+    journal_replay_edge_cases(j.clone(), "redis-j").await;
     journal_concurrent_suite(j, "redis-j").await;
 }
 
@@ -35,7 +37,8 @@ async fn redis_snapshot_passes_tck() {
     let cfg = RedisConfig::new(url).with_key_prefix(format!("tck:{}", uuid_like()));
     let s = RedisSnapshotStore::connect(cfg).await.expect("redis snapshot");
     assert!(snapshot_round_trip(s.clone(), "redis-s").await);
-    snapshot_suite(s, "redis-s-full").await;
+    snapshot_suite(s.clone(), "redis-s-full").await;
+    snapshot_extended_suite(s, "redis-s-ext").await;
 }
 
 fn uuid_like() -> String {

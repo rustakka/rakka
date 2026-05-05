@@ -5,7 +5,8 @@ use std::env;
 
 use atomr_persistence_mongodb::{MongoConfig, MongoJournal, MongoSnapshotStore};
 use atomr_persistence_tck::{
-    journal_concurrent_suite, journal_extended_suite, journal_suite, snapshot_round_trip, snapshot_suite,
+    journal_concurrent_suite, journal_extended_suite, journal_replay_edge_cases, journal_suite,
+    snapshot_extended_suite, snapshot_round_trip, snapshot_suite,
 };
 
 fn it_url() -> Option<String> {
@@ -28,6 +29,7 @@ async fn mongo_journal_passes_tck() {
     let j = MongoJournal::connect(cfg).await.expect("mongo journal");
     journal_suite(j.clone(), "mongo-j").await;
     journal_extended_suite(j.clone(), "mongo-j").await;
+    journal_replay_edge_cases(j.clone(), "mongo-j").await;
     journal_concurrent_suite(j, "mongo-j").await;
 }
 
@@ -40,5 +42,6 @@ async fn mongo_snapshot_passes_tck() {
     let cfg = MongoConfig::new(url, unique_db());
     let s = MongoSnapshotStore::connect(cfg).await.expect("mongo snapshot");
     assert!(snapshot_round_trip(s.clone(), "mongo-s").await);
-    snapshot_suite(s, "mongo-s-full").await;
+    snapshot_suite(s.clone(), "mongo-s-full").await;
+    snapshot_extended_suite(s, "mongo-s-ext").await;
 }
