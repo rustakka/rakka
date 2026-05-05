@@ -14,7 +14,7 @@ pub use journal_suite::{
     journal_concurrent_suite, journal_extended_suite, journal_replay_edge_cases, journal_round_trip,
     journal_suite, journal_tag_suite,
 };
-pub use snapshot_suite::{snapshot_round_trip, snapshot_suite};
+pub use snapshot_suite::{snapshot_extended_suite, snapshot_round_trip, snapshot_suite};
 
 #[cfg(test)]
 mod tests {
@@ -54,5 +54,10 @@ mod tests {
     #[tokio::test]
     async fn in_memory_journal_edge_cases() {
         journal_replay_edge_cases(InMemoryJournal::new(), "tck-j-edge").await;
+    }
+
+    #[tokio::test]
+    async fn in_memory_snapshot_extended_suite() {
+        snapshot_extended_suite(InMemorySnapshotStore::new(), "tck-s-ext").await;
     }
 }
