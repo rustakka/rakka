@@ -137,6 +137,34 @@ pub async fn journal_concurrent_suite<J: Journal>(journal: Arc<J>, pid_prefix: &
     }
 }
 
+/// Edge-case replay assertions: empty pid, replay past the end,
+/// delete-to-zero, replay against a deleted prefix. Mirrors a subset
+/// of upstream `JournalSpec`'s "additional behaviour" suite.
+pub async fn journal_replay_edge_cases<J: Journal>(journal: Arc<J>, pid_prefix: &str) {
+    let empty = format!("{pid_prefix}-never-written");
+    // Replay against a never-written id is empty, not an error.
+    let r = journal.replay_messages(&empty, 1, u64::MAX, 10).await.unwrap();
+    assert!(r.is_empty(), "replay of never-written pid should be empty");
+    // highest_sequence_nr is 0 for an unknown pid.
+    assert_eq!(journal.highest_sequence_nr(&empty, 0).await.unwrap(), 0);
+
+    let pid = format!("{pid_prefix}-edge");
+    journal.write_messages((1..=4u64).map(|i| repr(&pid, i, None)).collect()).await.unwrap();
+
+    // Replay starting past the highest written sequence is empty.
+    let past = journal.replay_messages(&pid, 100, u64::MAX, 10).await.unwrap();
+    assert!(past.is_empty(), "replay starting past head should be empty");
+
+    // delete_messages_to(0) is a no-op (parity: akka.net delete-to-0
+    // never deletes the marker event at seq 0 because seq starts at 1).
+    journal.delete_messages_to(&pid, 0).await.unwrap();
+    assert_eq!(journal.replay_messages(&pid, 1, u64::MAX, 10).await.unwrap().len(), 4);
+
+    // Replay range with from > to yields empty (no panic).
+    let inverted = journal.replay_messages(&pid, 5, 3, 10).await.unwrap();
+    assert!(inverted.is_empty(), "from>to should yield empty replay");
+}
+
 /// Conformance for optional tag-based querying. Callers gate this on a
 /// `supports_tags` capability flag since not every backend implements it.
 pub async fn journal_tag_suite<J: Journal>(journal: Arc<J>, pid_prefix: &str) {
