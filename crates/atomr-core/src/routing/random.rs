@@ -1,4 +1,4 @@
-//! Random router. akka.net: `Routing/RandomPool.cs`.
+//! Random router.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 

@@ -1,4 +1,4 @@
-//! atomr-persistence-redis. akka.net: `Akka.Persistence.Redis`.
+//! atomr-persistence-redis.
 //!
 //! Stores each persistence-id's journal as a sorted set keyed by sequence
 //! number and each snapshot stream as a secondary sorted set keyed the same

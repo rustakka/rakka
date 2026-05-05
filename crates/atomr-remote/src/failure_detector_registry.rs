@@ -1,6 +1,4 @@
 //! Per-`Address` failure detector registry.
-//! akka.net: `Remote/FailureDetectorRegistry.cs`,
-//! `Remote/DefaultFailureDetectorRegistry.cs`.
 
 use std::sync::Arc;
 

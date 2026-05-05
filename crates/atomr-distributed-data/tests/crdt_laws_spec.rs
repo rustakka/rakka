@@ -1,6 +1,6 @@
-//! CRDT algebraic-laws spec parity. akka.net: every CRDT must be a
+//! CRDT algebraic-laws spec parity. : every CRDT must be a
 //! semilattice — merge is commutative, associative, and idempotent.
-//! Mirrors the akka.net `Akka.DistributedData.Tests.{GCounter, GSet,
+//! Mirrors the `{GCounter, GSet,
 //! ORSet, PNCounter, LWWRegister, Flag}Spec` cross-suite assertions.
 
 use atomr_distributed_data::{CrdtMerge, Flag, GCounter, GSet, LwwRegister, OrSet, PNCounter};

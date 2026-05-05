@@ -1,5 +1,4 @@
 //! Backoff supervisor — restart child with exponential backoff.
-//! akka.net: `Pattern/BackoffSupervisor.cs`.
 
 use std::time::Duration;
 

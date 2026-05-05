@@ -1,5 +1,4 @@
 //! ShardRegion — routes messages to the correct local or remote shard.
-//! akka.net: `ShardRegion.cs`.
 
 use std::collections::HashMap;
 use std::sync::Arc;

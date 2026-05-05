@@ -1,4 +1,4 @@
-//! Hosting builder spec parity. akka.net: `Akka.Hosting`. Asserts
+//! Hosting builder spec parity. Asserts
 //! the construct-and-shutdown contract, DI service resolution from
 //! the hosted system, and on-start hook firing order.
 

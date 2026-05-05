@@ -1,9 +1,6 @@
 //! Remember-entities — persist active entity ids so they restart on
 //! shard re-allocation.
 //!
-//! Phase 9.G of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Akka.Cluster.Sharding.RememberEntities`.
-//!
 //! [`RememberedEntities`] is the in-memory book-keeping layer
 //! (per-shard entity-id sets). [`RememberEntitiesStore`] is the
 //! pluggable trait the shard region calls to persist / load the

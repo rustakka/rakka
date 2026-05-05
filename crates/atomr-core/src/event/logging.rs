@@ -1,4 +1,4 @@
-//! Log events published on the event stream. akka.net: `Event/Logging.cs`.
+//! Log events published on the event stream.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LogLevel {

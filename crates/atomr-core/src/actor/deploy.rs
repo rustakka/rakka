@@ -1,4 +1,4 @@
-//! `Deploy` and `Scope`. akka.net: `Actor/Deploy.cs`, `Actor/Scope.cs`.
+//! `Deploy` and `Scope`.
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Deploy {

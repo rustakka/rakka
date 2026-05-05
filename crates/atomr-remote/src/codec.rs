@@ -1,4 +1,4 @@
-//! Length-prefixed framing for `AkkaPdu`. akka.net: `Remote/Transport/Codec`.
+//! Length-prefixed framing for `AkkaPdu`.
 //!
 //! On the wire each frame is `u32` big-endian length, followed by a
 //! bincode-serialized [`AkkaPdu`].

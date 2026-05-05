@@ -1,5 +1,4 @@
 //! Default TCP transport.
-//! akka.net: `Remote/Transport/DotNetty/TcpTransport.cs`.
 //!
 //! Each association is one TCP connection carrying length-prefixed
 //! [`AkkaPdu`] frames in both directions.

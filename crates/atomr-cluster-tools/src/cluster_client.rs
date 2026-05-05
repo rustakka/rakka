@@ -1,5 +1,4 @@
 //! ClusterClient / ClusterReceptionist — dispatching to actors addressable by name.
-//! akka.net: `Akka.Cluster.Tools/Client/ClusterClient.cs`.
 //!
 //! Phase 7.D of `docs/full-port-plan.md` — adds initial-contacts +
 //! retry/backoff so a non-cluster client can discover the
@@ -43,8 +42,7 @@ impl ClusterReceptionist {
     }
 }
 
-/// Settings for a `ClusterClient`. Mirrors akka.net's
-/// `ClusterClientSettings`.
+/// Settings for a `ClusterClient`.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct ClusterClientSettings {

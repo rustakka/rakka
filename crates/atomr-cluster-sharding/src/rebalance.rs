@@ -1,9 +1,7 @@
 //! Rebalance algorithm runner.
 //!
-//! Phase 9.F of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Akka.Cluster.Sharding.ShardCoordinator.Rebalance` — runs the
-//! configured [`crate::ShardAllocationStrategy`] every `tick`, picks
-//! shards to move, and drives them through the
+//! Runs the configured [`crate::ShardAllocationStrategy`] every `tick`,
+//! picks shards to move, and drives them through the
 //! [`crate::HandoffCoordinator`] state machine in lock-step with the
 //! [`crate::ShardCoordinator`].
 //!

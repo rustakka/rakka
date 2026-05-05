@@ -1,4 +1,4 @@
-//! atomr-persistence. akka.net: `src/core/Akka.Persistence`.
+//! atomr-persistence.
 //!
 //! Event-sourced persistent actor model with pluggable journal and snapshot stores.
 

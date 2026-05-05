@@ -1,4 +1,4 @@
-//! MembershipState parity spec. akka.net: `Cluster.Tests.ClusterSpec`
+//! MembershipState parity spec.
 //! and the `MembershipState` invariants under `Cluster/MembershipState.cs`.
 //!
 //! Focuses on the [`MembershipState`] public surface:
@@ -7,11 +7,11 @@
 //! `apply_leader_actions`.
 //!
 //! Notes on parity gaps (see Phase PP brief):
-//! * akka.net's `MembersByStatus(MemberStatus)` lookup is currently
+//! * lookup is currently
 //!   only exposed for `Up` (via [`MembershipState::up_members`]).
 //!   The general-status variant is not part of atomr's public API yet,
 //!   so the spec only asserts the `Up` filter.
-//! * akka.net's `Cluster.State.LeaderCandidates` does not have a
+//! * does not have a
 //!   matching free helper on [`MembershipState`]; atomr exposes
 //!   single-leader election via the [`atomr_cluster::elect_leader`]
 //!   function. The "leader candidates" assertion is therefore skipped
@@ -101,7 +101,7 @@ fn remove_is_noop_for_unknown_address() {
 
 #[test]
 fn member_transitioning_to_removed_disappears_from_count() {
-    // akka.net invariant: members in `Removed` status are purged on
+    // invariant: members in `Removed` status are purged on
     // the next leader tick. atomr enforces this in
     // `MembershipState::apply_leader_actions`, which both transitions
     // `Down -> Removed` and drops `Removed` rows from `members`.

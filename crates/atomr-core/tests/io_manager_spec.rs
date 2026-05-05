@@ -1,4 +1,4 @@
-//! TcpManager / UdpManager spec parity. akka.net analog:
+//! TcpManager / UdpManager spec parity.
 //! `IO.Tcp.Manager` / `IO.Udp.Manager` with their Bind / Connect /
 //! Connected / Closed event taxonomy.
 

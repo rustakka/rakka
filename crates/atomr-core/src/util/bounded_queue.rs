@@ -1,5 +1,4 @@
 //! A simple bounded FIFO queue used by bounded mailboxes.
-//! akka.net: `Util/BoundedQueue.cs`.
 
 use std::collections::VecDeque;
 

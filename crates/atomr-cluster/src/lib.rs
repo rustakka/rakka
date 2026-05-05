@@ -1,4 +1,4 @@
-//! atomr-cluster. akka.net: `src/core/Akka.Cluster/`.
+//! atomr-cluster.
 //!
 //! Contains membership, gossip, reachability, heartbeat, and the
 //! split-brain resolver strategies.

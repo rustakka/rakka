@@ -1,6 +1,5 @@
 //! Pluggable serializer registry for remote payloads.
-//! akka.net: `Remote/Serialization/MessageSerializer.cs` +
-//! `Akka.Serialization` core.
+//! Core.
 //!
 //! Every payload that crosses the wire carries a `serializer_id` and a
 //! `manifest` (type name). On the receiving side those two fields key

@@ -1,4 +1,4 @@
-//! Dead-letter sink. akka.net: `Actor/DeadLetterMailbox.cs`, `Event/*DeadLetter.cs`.
+//! Dead-letter sink.
 
 use std::any::Any;
 use std::sync::Arc;
@@ -7,7 +7,7 @@ use parking_lot::Mutex;
 
 use crate::actor::ActorPath;
 
-/// Why a message ended up at the dead-letter sink. akka.net:
+/// Why a message ended up at the dead-letter sink.
 /// `Event/AllDeadLetters.cs`, `Event/DroppedMessage.cs`,
 /// `Event/SuppressedDeadLetter.cs`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

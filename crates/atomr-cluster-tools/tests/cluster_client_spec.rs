@@ -1,4 +1,4 @@
-//! Cluster-client + receptionist spec parity. akka.net:
+//! Cluster-client + receptionist spec parity.
 //! `ClusterClientSettingsSpec`, `ClusterClientSpec`, and the
 //! receptionist registration assertions inside both.
 

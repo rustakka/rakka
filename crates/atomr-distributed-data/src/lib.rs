@@ -1,4 +1,4 @@
-//! atomr-distributed-data. akka.net: `src/contrib/cluster/Akka.DistributedData`.
+//! atomr-distributed-data.
 //!
 //! Provides CRDTs (`GCounter`, `PNCounter`, `GSet`, `ORSet`, `LWWRegister`,
 //! `Flag`, `ORMap`, `LWWMap`, `PNCounterMap`) and a `Replicator` that

@@ -1,5 +1,5 @@
-//! Actor ref providers. akka.net: `Actor/ActorRefProvider.cs`,
-//! `Actor/LocalActorRefProvider.cs`, `Akka.Remote/RemoteActorRefProvider.cs`.
+//! Actor ref providers.,
+//! `Actor/LocalActorRefProvider.cs`.
 
 use super::address::Address;
 use super::path::ActorPath;

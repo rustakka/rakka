@@ -1,4 +1,4 @@
-//! Last-writer-wins register. akka.net: `LWWRegister`.
+//! Last-writer-wins register.
 
 use serde::{Deserialize, Serialize};
 

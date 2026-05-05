@@ -1,4 +1,4 @@
-//! atomr-cluster-sharding. akka.net: `src/contrib/cluster/Akka.Cluster.Sharding`.
+//! atomr-cluster-sharding.
 
 mod allocation;
 mod coordinator;

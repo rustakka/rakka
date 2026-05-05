@@ -1,4 +1,4 @@
-//! Overflow strategies for bounded buffers. akka.net: `OverflowStrategy.cs`.
+//! Overflow strategies for bounded buffers.
 //!
 //! Implemented as a helper that wraps a source into a bounded tokio mpsc
 //! channel and applies the chosen drop/fail/backpressure policy when the

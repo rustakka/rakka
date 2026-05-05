@@ -1,4 +1,4 @@
-//! The `actor` subsystem. akka.net: `src/core/Akka/Actor`.
+//! The `actor` subsystem.
 //!
 //! Everything user-visible about actors lives here: [`Actor`], [`ActorRef`],
 //! [`ActorSystem`], [`Props`], [`Context`], plus paths/addresses and the

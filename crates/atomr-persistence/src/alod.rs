@@ -1,4 +1,4 @@
-//! At-least-once delivery. akka.net: `AtLeastOnceDeliverySemantic`.
+//! At-least-once delivery.
 
 use std::collections::BTreeMap;
 

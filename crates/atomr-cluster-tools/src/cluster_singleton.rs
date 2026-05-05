@@ -1,5 +1,4 @@
 //! ClusterSingletonManager / Proxy — one logical actor across the cluster.
-//! akka.net: `Akka.Cluster.Tools/Singleton/`.
 //!
 //! Phase 7.C of `docs/full-port-plan.md`. Handover protocol:
 //!

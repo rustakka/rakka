@@ -1,5 +1,5 @@
 //! `Context<A>` — the actor's window into the system.
-//! akka.net: `Actor/IActorContext.cs`, `ActorCell.cs` (partial).
+//! (partial).
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Weak;
@@ -104,7 +104,7 @@ impl<A: Actor> Context<A> {
     }
 
     /// Watch another actor. The sender is notified with a `SystemMsg::Terminated`
-    /// when the watched actor stops. akka.net: `Context.Watch`.
+    /// when the watched actor stops.
     pub fn watch<M: Send + 'static>(&mut self, target: &ActorRef<M>) {
         if self.watching.insert(target.path().clone()) {
             let _ = target.system_sender().send(SystemMsg::Watch(self.self_ref.as_untyped()));
@@ -119,7 +119,6 @@ impl<A: Actor> Context<A> {
     }
 
     /// Stash the currently-processed message for later unstash.
-    /// akka.net: `IStash.Stash()`.
     pub fn stash(&mut self, msg: A::Msg) {
         self.stash.push_back(msg);
     }
@@ -133,12 +132,12 @@ impl<A: Actor> Context<A> {
         out
     }
 
-    /// Stop self. akka.net: `Context.Stop(Self)`.
+    /// Stop self.
     pub fn stop_self(&mut self) {
         self.stopping = true;
     }
 
-    /// Set idle-receive timeout (like akka.net `SetReceiveTimeout`).
+    /// Set idle-receive timeout (like).
     pub fn set_receive_timeout(&mut self, d: Option<Duration>) {
         self.receive_timeout = d;
     }
@@ -146,7 +145,7 @@ impl<A: Actor> Context<A> {
     /// Typed sender of the message currently being processed.
     ///
     /// Returns [`Sender::None`] if the sender slot was empty (the
-    /// akka.net analog of `Sender == NoSender`).
+    /// analog of `Sender == NoSender`).
     pub fn sender(&self) -> &Sender {
         &self.current_sender
     }

@@ -1,9 +1,5 @@
 //! Passivation — stop idle entities to bound memory.
 //!
-//! Phase 9 of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Akka.Cluster.Sharding.Shard` passivation logic with
-//! `entity_recovery_strategy` knobs.
-//!
 //! [`PassivationTracker`] holds a `last_seen` timestamp per entity
 //! and exposes [`PassivationTracker::idle_since`] to surface entities
 //! that haven't received traffic past the configured TTL. The shard

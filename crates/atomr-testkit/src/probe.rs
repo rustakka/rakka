@@ -1,5 +1,4 @@
 //! `TestProbe` — typed message receiver used in assertions.
-//! akka.net: `Akka.TestKit/TestProbe.cs`.
 
 use std::time::Duration;
 
@@ -29,7 +28,7 @@ impl<M: Send + 'static> TestProbe<M> {
         self.inbox.actor_ref()
     }
 
-    /// Wait for a single message (akka.net: `ExpectMsg`).
+    /// Wait for a single message.
     pub async fn expect_msg(&mut self, timeout: Duration) -> Result<M, TestProbeError> {
         match self.inbox.receive(timeout).await {
             Ok(m) => Ok(m),
@@ -39,7 +38,6 @@ impl<M: Send + 'static> TestProbe<M> {
     }
 
     /// Wait for a message that matches the given predicate.
-    /// akka.net: `ExpectMsg<T>(Func<T, bool>)`.
     pub async fn expect_msg_pf<F>(&mut self, timeout: Duration, mut pred: F) -> Result<M, TestProbeError>
     where
         F: FnMut(&M) -> bool,
@@ -63,7 +61,7 @@ impl<M: Send + 'static> TestProbe<M> {
     // -- Phase 4 matchers ------------------------------------------
 
     /// Wait for a message and assert it matches the variant returned
-    /// by `extract`. Akka.NET: `ExpectMsg<T>(...)` where `T` selects
+    /// by `extract`.where `T` selects
     /// a sub-variant of the message enum. The `extract` closure
     /// returns `Some(payload)` for the desired variant.
     pub async fn expect_msg_class<T, F>(&mut self, timeout: Duration, extract: F) -> Result<T, TestProbeError>
@@ -76,7 +74,6 @@ impl<M: Send + 'static> TestProbe<M> {
 
     /// Receive exactly `n` messages or return [`TestProbeError::Timeout`]
     /// if `timeout` elapses before they all arrive.
-    /// Akka.NET: `ReceiveN(int n, TimeSpan)`.
     pub async fn receive_n(&mut self, n: usize, timeout: Duration) -> Result<Vec<M>, TestProbeError> {
         let deadline = std::time::Instant::now() + timeout;
         let mut out = Vec::with_capacity(n);
@@ -90,7 +87,7 @@ impl<M: Send + 'static> TestProbe<M> {
 
     /// Receive messages while `pred` returns true, stopping at the
     /// first message for which `pred` returns false (that message is
-    /// discarded). Akka.NET: `ReceiveWhile`.
+    /// discarded).
     pub async fn receive_while<F>(&mut self, timeout: Duration, mut pred: F) -> Result<Vec<M>, TestProbeError>
     where
         F: FnMut(&M) -> bool,
@@ -117,7 +114,6 @@ impl<M: Send + 'static> TestProbe<M> {
     }
 
     /// Drain messages until one matches `pred`. Discards mismatches.
-    /// Akka.NET: `FishForMessage`.
     pub async fn fish_for_message<F>(&mut self, timeout: Duration, mut pred: F) -> Result<M, TestProbeError>
     where
         F: FnMut(&M) -> bool,
@@ -135,7 +131,6 @@ impl<M: Send + 'static> TestProbe<M> {
 
     /// Receive `expected.len()` messages and assert that the multi-set
     /// of received messages equals `expected` (order-insensitive).
-    /// Akka.NET: `ExpectMsgAllOf`.
     pub async fn expect_all_of(&mut self, timeout: Duration, expected: Vec<M>) -> Result<(), TestProbeError>
     where
         M: PartialEq + std::fmt::Debug,
@@ -154,7 +149,7 @@ impl<M: Send + 'static> TestProbe<M> {
         Ok(())
     }
 
-    /// Wait for a message and assert it equals `expected`. Akka.NET:
+    /// Wait for a message and assert it equals `expected`.
     /// `ExpectMsg<T>(T expected)`.
     pub async fn expect_msg_eq(&mut self, timeout: Duration, expected: M) -> Result<M, TestProbeError>
     where
@@ -169,7 +164,7 @@ impl<M: Send + 'static> TestProbe<M> {
     }
 
     /// Receive `n` messages, asserting they appear in the exact order
-    /// of `expected`. Akka.NET: `ExpectMsgAllOf` with sequential
+    /// of `expected`.with sequential
     /// matching semantics.
     pub async fn expect_msg_all_of_in_order(
         &mut self,
@@ -189,7 +184,7 @@ impl<M: Send + 'static> TestProbe<M> {
 }
 
 /// Run `body` with the given budget, returning [`TestProbeError::Timeout`]
-/// if it does not finish in time. Akka.NET: `Within(TimeSpan, Action)`.
+/// if it does not finish in time.
 ///
 /// `body` receives the original `Duration` so it can pass it down to
 /// `expect_msg`-style helpers and have them inherit the deadline.

@@ -1,4 +1,4 @@
-//! Cluster heartbeat state. akka.net: `Cluster/ClusterHeartbeat.cs`.
+//! Cluster heartbeat state.
 
 use std::collections::HashMap;
 

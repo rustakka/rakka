@@ -1,4 +1,4 @@
-//! Typed pub/sub. akka.net: `Event/EventStream.cs`.
+//! Typed pub/sub.
 
 use std::any::{Any, TypeId};
 use std::sync::Arc;
@@ -49,7 +49,7 @@ impl EventStream {
 
     /// Subscribe with a predicate filter — only events matching
     /// `pred(t)` are delivered to `f`. Phase 3.5 of
-    /// `docs/full-port-plan.md`. Akka.NET's
+    /// `docs/full-port-plan.md`.
     /// `EventStream.Subscribe(IActorRef, predicate)` analog.
     pub fn subscribe_filtered<T, P>(&self, pred: P, f: impl Fn(&T) + Send + Sync + 'static) -> Subscription
     where

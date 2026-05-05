@@ -1,10 +1,9 @@
 //! Routers — distribute messages across a pool of routees.
-//! akka.net: `src/core/Akka/Routing/`.
 //!
 //! We model a "routee" as any [`crate::actor::ActorRef<M>`] for a common
 //! message type `M`. Each router type carries routing state and exposes a
 //! single `route(msg)` entry point. For brevity here we expose 6 routing
-//! logics — the full akka.net set.
+//! logics — the full set.
 
 mod broadcast;
 mod consistent_hash;

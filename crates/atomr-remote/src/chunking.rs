@@ -1,10 +1,8 @@
 //! Message chunking for payloads that exceed `maximum-frame-size`.
 //!
-//! Phase 5.F of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Akka.Remote.Configuration.Maximum-Frame-Size` + per-PDU
-//! length-prefix split. Senders that produce payloads larger than
-//! `chunk_size` use [`Chunker::split`] to fragment into ordered
-//! chunks; receivers feed each chunk to [`Reassembler::push`] until
+//! Per-PDU length-prefix split. Senders that produce payloads larger than
+//! `chunk_size` use [`Chunker::split`] to fragment into ordered chunks;
+//! receivers feed each chunk to [`Reassembler::push`] until
 //! `Some(Vec<u8>)` comes back.
 //!
 //! The wire envelope around chunks is a tiny `(message_id, chunk_idx,

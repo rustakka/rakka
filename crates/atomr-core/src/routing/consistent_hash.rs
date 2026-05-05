@@ -1,4 +1,4 @@
-//! Consistent-hash router. akka.net: `Routing/ConsistentHash.cs`.
+//! Consistent-hash router.
 
 use std::collections::BTreeMap;
 use std::hash::{Hash, Hasher};

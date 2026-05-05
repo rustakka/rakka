@@ -1,10 +1,9 @@
 //! Leader election.
 //!
-//! Phase 6 of `docs/full-port-plan.md`. Akka.NET's leader is the
-//! lowest-address `Up`/`Leaving` member that's reachable from the
-//! current node — deterministic given the gossip-converged
-//! membership state. This module implements that pure function plus
-//! the transition rules that fire on each gossip tick.
+//! The leader is the lowest-address `Up`/`Leaving` member that's reachable
+//! from the current node — deterministic given the gossip-converged
+//! membership state. This module implements that pure function plus the
+//! transition rules that fire on each gossip tick.
 //!
 //! The full state machine (`Joining → Up → Leaving → Exiting →
 //! Removed`) lives here as helpers; the active driver that wires
@@ -51,7 +50,7 @@ pub fn next_status(current: MemberStatus, converged: bool) -> Option<MemberStatu
 }
 
 /// Convergence holds when every member that this node believes is
-/// alive is also reachable. Akka.NET's gossip uses convergence as a
+/// alive is also reachable. gossip uses convergence as a
 /// pre-condition for the leader's status-transition tick (the
 /// leader won't move members from `Joining → Up` while a partition
 /// is in flight).
@@ -154,7 +153,7 @@ mod tests {
 // -- Distributed leader-election handover ---------------------------
 
 /// Handover event emitted by a [`LeaderHandover`] watcher when the
-/// elected leader changes between snapshots. akka.net analog:
+/// elected leader changes between snapshots.
 /// `Cluster.LeaderChanged` event published on the cluster's domain
 /// event stream.
 #[derive(Debug, Clone, PartialEq, Eq)]

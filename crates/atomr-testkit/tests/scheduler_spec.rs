@@ -1,5 +1,4 @@
-//! TestScheduler virtual-time spec parity. akka.net:
-//! `Akka.TestKit.TestScheduler`. Asserts deterministic timing under
+//! TestScheduler virtual-time spec. Asserts deterministic timing under
 //! `advance_by` / `advance_to`, cancel semantics, and cross-token
 //! ordering.
 

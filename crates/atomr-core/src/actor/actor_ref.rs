@@ -1,4 +1,4 @@
-//! `ActorRef` — typed handle to an actor. akka.net: `Actor/ActorRef.cs`.
+//! `ActorRef` — typed handle to an actor.
 //!
 //! Refs are polymorphic: a [`ActorRef<M>`] is either backed by a local
 //! mailbox (cheap, in-process, the common case) or by a remote handle that
@@ -84,7 +84,7 @@ impl<M: Send + 'static> ActorRef<M> {
         matches!(&*self.inner, RefImpl::Remote { .. })
     }
 
-    /// Fire-and-forget send. akka.net: `Tell`.
+    /// Fire-and-forget send.
     pub fn tell(&self, msg: M) {
         match &*self.inner {
             RefImpl::Local { user, path, system_ref, .. } => {
@@ -115,7 +115,7 @@ impl<M: Send + 'static> ActorRef<M> {
         }
     }
 
-    /// Stop the actor. akka.net: `Stop(ActorRef)`.
+    /// Stop the actor.
     pub fn stop(&self) {
         match &*self.inner {
             RefImpl::Local { system, .. } => {
@@ -129,7 +129,7 @@ impl<M: Send + 'static> ActorRef<M> {
 
     /// Ask pattern: callers supply a closure that embeds a `oneshot::Sender<R>`
     /// in the message. The future resolves when the actor replies, or errors
-    /// out on timeout/actor-stop. akka.net: `Ask`.
+    /// out on timeout/actor-stop.
     ///
     /// Note: `ask_with` only works on local refs. For remote ask, use the
     /// dedicated `atomr-remote::ask_remote` helper which routes the reply

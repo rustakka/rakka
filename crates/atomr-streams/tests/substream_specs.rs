@@ -1,4 +1,4 @@
-//! Substream + recovery operator spec parity. akka.net:
+//! Substream + recovery operator spec parity.
 //! `FlowGroupBySpec`, `FlowSplitWhenSpec`, `FlowSplitAfterSpec`,
 //! `FlowPrefixAndTailSpec`, `FlowRecoverWithSpec`, `FlowRecoverWithRetriesSpec`.
 //!
@@ -31,7 +31,7 @@ use atomr_streams::{
 #[tokio::test]
 async fn group_by_preserves_per_key_ordering() {
     // Items routed to the same key must appear on the per-key
-    // sub-source in their original upstream order. akka.net:
+    // sub-source in their original upstream order. :
     // `FlowGroupBySpec.GroupBy_must_work_with_normal_user_scenario`.
     let s = Source::from_iter(vec![10, 21, 30, 41, 50, 61]);
     let outer = group_by(s, 2, |x: &i32| *x % 2);
@@ -47,7 +47,7 @@ async fn group_by_preserves_per_key_ordering() {
 #[tokio::test]
 async fn group_by_drops_keys_past_max_substreams_cap() {
     // Cap at 2 keys; only the first two distinct keys should produce
-    // sub-sources. akka.net: `FlowGroupBySpec.GroupBy_must_fail_when_value
+    // sub-sources. : `FlowGroupBySpec.GroupBy_must_fail_when_value
     // _of_too_many_substreams` (we silently drop instead of failing —
     // the rust port elects the "drop new keys" policy).
     let s = Source::from_iter(vec![1, 2, 3, 4, 5, 6, 7, 8, 9]);
@@ -69,7 +69,7 @@ async fn group_by_drops_keys_past_max_substreams_cap() {
 #[tokio::test]
 async fn group_by_finishes_every_substream_when_upstream_finishes() {
     // Sub-sources must terminate cleanly once the parent source
-    // exhausts. akka.net: `FlowGroupBySpec.GroupBy_must_work_with_empty
+    // exhausts. : `FlowGroupBySpec.GroupBy_must_work_with_empty
     // _input_stream` / `should_close_substreams_after_main_stream
     // _completion`.
     let s = Source::from_iter(vec![1, 2, 3, 4]);
@@ -86,7 +86,7 @@ async fn group_by_finishes_every_substream_when_upstream_finishes() {
 
 #[tokio::test]
 async fn group_by_handles_empty_upstream() {
-    // No keys, no sub-sources. akka.net: empty-input case.
+    // No keys, no sub-sources.
     let s: Source<i32> = Source::empty();
     let outer = group_by(s, 4, |x: &i32| *x);
     let pairs = Sink::collect(outer).await;
@@ -98,7 +98,7 @@ async fn group_by_handles_empty_upstream() {
 #[tokio::test]
 async fn split_when_places_pivot_in_new_chunk() {
     // Predicate-true element belongs to the **new** substream (it
-    // marks the boundary). akka.net: `FlowSplitWhenSpec`.
+    // marks the boundary).
     let s = Source::from_iter(vec![1, 2, 10, 3, 4, 20, 5]);
     let outer = split_when(s, |x: &i32| *x >= 10);
     let mut chunks = Vec::new();
@@ -124,7 +124,7 @@ async fn split_when_with_no_match_yields_single_chunk() {
 #[tokio::test]
 async fn split_after_keeps_pivot_in_previous_chunk() {
     // Predicate-true element ends the current substream and stays
-    // with it. akka.net: `FlowSplitAfterSpec`.
+    // with it.
     let s = Source::from_iter(vec![1, 2, 10, 3, 4, 20, 5]);
     let outer = split_after(s, |x: &i32| *x >= 10);
     let mut chunks = Vec::new();
@@ -152,7 +152,6 @@ async fn split_after_pivot_at_end_does_not_emit_empty_chunk() {
 #[tokio::test]
 async fn prefix_and_tail_with_zero_yields_empty_prefix_and_full_tail() {
     // n == 0: prefix is empty, tail receives every element.
-    // akka.net: `FlowPrefixAndTailSpec.must_handle_zero_take_count`.
     let s = Source::from_iter(vec![1, 2, 3, 4]);
     let outer = prefix_and_tail(s, 0);
     let mut pairs = Sink::collect(outer).await;
@@ -166,7 +165,7 @@ async fn prefix_and_tail_with_zero_yields_empty_prefix_and_full_tail() {
 #[tokio::test]
 async fn prefix_and_tail_with_n_greater_than_len_yields_full_prefix_and_empty_tail() {
     // n > len: prefix gets everything, tail is empty.
-    // akka.net: `FlowPrefixAndTailSpec.must_complete_with_short_prefix
+    // `FlowPrefixAndTailSpec.must_complete_with_short_prefix
     // _and_empty_tail_when_input_is_short`.
     let s = Source::from_iter(vec![1, 2, 3]);
     let outer = prefix_and_tail(s, 10);
@@ -193,7 +192,7 @@ async fn prefix_and_tail_with_exact_n_yields_full_prefix_and_empty_tail() {
 #[tokio::test]
 async fn recover_emits_fallback_element_and_terminates_on_first_error() {
     // `Some(fallback)` → emit it, then terminate. Subsequent upstream
-    // elements after the error are dropped. akka.net:
+    // elements after the error are dropped. :
     // `FlowRecoverSpec.A_Recover_must_recover_when_there_is_a_failure`.
     let s: Source<Result<i32, &'static str>> =
         Source::from_iter(vec![Ok(1), Ok(2), Err("boom"), Ok(99), Ok(100)]);
@@ -205,7 +204,7 @@ async fn recover_emits_fallback_element_and_terminates_on_first_error() {
 #[tokio::test]
 async fn recover_with_none_drops_the_error_and_terminates() {
     // `None` → swallow the error, terminate without emitting
-    // anything more. akka.net: `FlowRecoverSpec` `None` shape.
+    // anything more.`None` shape.
     let s: Source<Result<i32, &'static str>> = Source::from_iter(vec![Ok(1), Ok(2), Err("e"), Ok(3)]);
     let recovered = recover(s, |_e| None);
     let collected = Sink::collect(recovered).await;
@@ -217,7 +216,7 @@ async fn recover_with_none_drops_the_error_and_terminates() {
 #[tokio::test]
 async fn recover_with_switches_stream_tail_on_error() {
     // First Err triggers replacement source; pre-error Oks flow
-    // through. akka.net: `FlowRecoverWithSpec.A_RecoverWith_must
+    // through. : `FlowRecoverWithSpec.A_RecoverWith_must
     // _recover_when_there_is_a_failure`.
     let s: Source<Result<i32, &'static str>> = Source::from_iter(vec![Ok(1), Ok(2), Err("e"), Ok(99)]);
     let replacement: Source<i32> = Source::from_iter(vec![100, 200, 300]);
@@ -240,7 +239,7 @@ async fn recover_with_passes_through_when_upstream_succeeds() {
 #[tokio::test]
 async fn recover_with_retries_exhausts_attempts_then_stops() {
     // max_attempts = 2: first two errors trigger replacements; the
-    // third error trips the stream. akka.net:
+    // third error trips the stream. :
     // `FlowRecoverWithRetriesSpec.must_terminate_with_failure_after_max
     // _retries`.
     let s: Source<Result<i32, &'static str>> =
@@ -283,7 +282,7 @@ async fn recover_with_retries_zero_attempts_stops_on_first_error() {
 #[tokio::test]
 async fn map_error_rewrites_error_payload_without_collapsing_successes() {
     // Successes flow through Ok-shaped; errors get their payload
-    // remapped. akka.net: `Source.SelectError`.
+    // remapped.
     let s: Source<Result<i32, &'static str>> = Source::from_iter(vec![Ok(1), Err("x"), Ok(2)]);
     let mapped = map_error(s, |e| format!("wrapped:{e}"));
     let collected = Sink::collect(mapped).await;

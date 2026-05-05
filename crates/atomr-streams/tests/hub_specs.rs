@@ -1,6 +1,4 @@
-//! BroadcastHub / MergeHub spec parity. akka.net:
-//! `Akka.Streams.Tests.Dsl.BroadcastHubSpec`,
-//! `Akka.Streams.Tests.Dsl.MergeHubSpec`.
+//! BroadcastHub / MergeHub spec parity.
 
 use atomr_streams::{BroadcastHub, MergeHub, Sink, Source};
 use std::time::Duration;

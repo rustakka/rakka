@@ -1,8 +1,6 @@
 //! `RecoveryPermitter` — bounded concurrent recoveries.
 //!
-//! Phase 11 of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Akka.Persistence.RecoveryPermitter` (config:
-//! `akka.persistence.max-concurrent-recoveries`).
+//! Configured via `atomr.persistence.max-concurrent-recoveries`.
 //!
 //! Without a permitter, every actor that starts up triggers a journal
 //! replay; thousands of restart-storming actors can DoS the journal

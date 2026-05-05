@@ -1,4 +1,4 @@
-//! At-least-once delivery spec parity. akka.net:
+//! At-least-once delivery spec parity.
 //! `AtLeastOnceDeliverySpec`,
 //! `AtLeastOnceDeliveryReceiveActorSpec`,
 //! `AtLeastOnceDeliveryFailureSpec`,

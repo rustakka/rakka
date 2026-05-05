@@ -1,5 +1,5 @@
 //! Integration tests for the actor lifecycle.
-//! akka.net parity targets: basic spawn, tell, ask, watch.
+//! parity targets: basic spawn, tell, ask, watch.
 
 use std::sync::Arc;
 use std::time::Duration;

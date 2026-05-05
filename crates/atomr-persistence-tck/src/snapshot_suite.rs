@@ -41,10 +41,9 @@ pub async fn snapshot_suite<S: SnapshotStore>(store: Arc<S>, pid_prefix: &str) {
     assert!(store.load(&b).await.is_none(), "delete_to(MAX) should clear all");
 }
 
-/// Extended snapshot conformance suite. Mirrors a subset of upstream's
-/// `Akka.Persistence.TCK.Snapshot.SnapshotStoreSpec`, covering: latest-wins
-/// across multiple saves, cross-pid isolation, partial deletes, no-op deletes
-/// against unknown pids, and concurrent saves for the same pid.
+/// Extended snapshot conformance suite. Covers: latest-wins across multiple
+/// saves, cross-pid isolation, partial deletes, no-op deletes against unknown
+/// pids, and concurrent saves for the same pid.
 pub async fn snapshot_extended_suite<S: SnapshotStore>(store: Arc<S>, pid_prefix: &str) {
     let a = format!("{pid_prefix}-xA");
     let b = format!("{pid_prefix}-xB");

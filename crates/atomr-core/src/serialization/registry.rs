@@ -1,4 +1,4 @@
-//! Registry mapping types to serializers. akka.net: `Serialization/Serialization.cs`.
+//! Registry mapping types to serializers.
 //!
 //! The default impl only supports `JsonSerializer` to keep the public API
 //! simple. Callers who need additional codecs add an enum-based

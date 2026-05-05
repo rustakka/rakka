@@ -1,19 +1,18 @@
-//! Serialization registry spec parity. akka.net:
-//! `Akka.Tests/Serialization/SerializationSpec.cs`.
+//! Serialization registry spec parity.
 //!
 //! atomr's registry is `TypeId`-keyed and currently exposes only
-//! `JsonSerializer`. These tests assert the invariants that map onto
-//! akka.net's `SerializationSpec` for the public surface that exists today:
+//! `JsonSerializer`. These tests assert the invariants for the public
+//! surface that exists today:
 //!
 //! - registered codecs round-trip typed values through `to_bytes`/`from_bytes`,
 //! - the manifest reported by `Serializer::manifest` reflects the rust type
-//!   name and is what akka.net would use as the lookup key,
+//!   name and is what callers use as the lookup key,
 //! - re-registering for the same type replaces the previous serializer,
 //! - looking up an unregistered type yields `SerializerError::NotRegistered`,
 //! - JSON (atomr's default codec) produces stable, deterministic bytes for
 //!   primitives and small structs.
 //!
-//! Note on the original akka.net spec: `SerializationSpec` exercises a
+//! Note on the original spec: `SerializationSpec` exercises a
 //! manifest -> serializer lookup. atomr keys by `TypeId` instead, so the
 //! "lookup by manifest" check here is expressed as: the serializer's
 //! `manifest()` matches `std::any::type_name::<T>()` and the registry
@@ -48,7 +47,7 @@ fn registered_serializer_roundtrips_typed_value() {
 #[test]
 fn manifest_reports_rust_type_name() {
     // The registry is TypeId-keyed, but the codec still surfaces a manifest
-    // that downstream remoting layers can use, mirroring akka.net's
+    // that downstream remoting layers can use, mirroring
     // `Serializer.Manifest`.
     let s = JsonSerializer::<Greeting>::new(7);
     assert_eq!(s.manifest(), std::any::type_name::<Greeting>());
@@ -65,7 +64,7 @@ fn registry_resolves_registered_type_and_rejects_unregistered() {
     let bytes = reg.to_bytes(&g).expect("serialize Greeting");
     let _: Greeting = reg.from_bytes(&bytes).expect("deserialize Greeting");
 
-    // Unregistered type yields NotRegistered (the analog of akka.net's
+    // Unregistered type yields NotRegistered (the analog of
     // "no serializer found for manifest").
     let other = Other { flag: true };
     let err = reg.to_bytes(&other).expect_err("Other not registered");
@@ -105,7 +104,7 @@ fn decode_failure_surfaces_decode_error() {
 
 #[test]
 fn json_default_produces_stable_bytes_for_primitives() {
-    // atomr's default codec is `JsonSerializer` (akka.net's default is the
+    // atomr's default codec is `JsonSerializer` (default is the
     // Newtonsoft JSON serializer). JSON is canonical for these primitives,
     // so the byte output is stable across runs.
     let s_u32 = JsonSerializer::<u32>::new(10);

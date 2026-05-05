@@ -1,4 +1,4 @@
-//! atomr-persistence-query. akka.net: `Akka.Persistence.Query`.
+//! atomr-persistence-query.
 //!
 //! Phase 11 of `docs/full-port-plan.md` extends the read-journal
 //! surface to match upstream: `events_by_persistence_id`,

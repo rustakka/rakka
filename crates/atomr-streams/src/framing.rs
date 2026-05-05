@@ -1,5 +1,4 @@
 //! Framing utilities — split a byte stream into messages.
-//! akka.net: `Dsl/Framing.cs`, `Dsl/JsonFraming.cs`.
 
 use bytes::{Buf, Bytes, BytesMut};
 use futures::stream::{BoxStream, StreamExt};
@@ -26,7 +25,7 @@ struct FrameState<S> {
 
 impl Framing {
     /// Split an incoming `Bytes` stream using a single-byte delimiter, dropping
-    /// the delimiter from each produced frame. akka.net: `Framing.Delimiter`.
+    /// the delimiter from each produced frame.
     pub fn delimiter(delimiter: u8, max_frame_length: usize) -> Flow<Bytes, Result<Bytes, FramingError>> {
         Flow {
             transform: Box::new(move |stream: BoxStream<'static, Bytes>| {
@@ -74,7 +73,7 @@ impl Framing {
     }
 
     /// Split by length-prefixed frames. The prefix is a little-endian u32
-    /// giving the size of the payload. akka.net: `Framing.LengthField`.
+    /// giving the size of the payload.
     pub fn length_field(max_frame_length: usize) -> Flow<Bytes, Result<Bytes, FramingError>> {
         Flow {
             transform: Box::new(move |stream: BoxStream<'static, Bytes>| {

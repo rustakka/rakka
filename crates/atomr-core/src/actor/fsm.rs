@@ -1,8 +1,8 @@
-//! Finite state machine DSL. akka.net: `Actor/FSM.cs`.
+//! Finite state machine DSL.
 //!
 //! See also the [`fsm!`](crate::fsm) macro for a terse table-style
 //! `FiniteStateMachine` impl, and [`FsmBuilder`] for a closure-based
-//! declarative DSL that mirrors akka.net's `When(state) { ... }` and
+//! declarative DSL that mirrors and
 //! `WhenUnhandled` / `OnTransition` / `OnTermination` blocks.
 
 use std::collections::HashMap;
@@ -96,7 +96,7 @@ type TransitionHook<S> = Box<dyn FnMut(&S, &S) + Send + 'static>;
 
 type TerminationHook<S, D> = Box<dyn FnMut(&S, &D) + Send + 'static>;
 
-/// Reason an FSM stopped. akka.net: `FSM.Reason`.
+/// Reason an FSM stopped.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum FsmStopReason {
@@ -105,7 +105,7 @@ pub enum FsmStopReason {
     Failure(String),
 }
 
-/// Builder for a closure-driven FSM. Akka.NET parity:
+/// Builder for a closure-driven FSM.
 ///
 /// ```text
 /// When(Idle) { case Go => goto(Running) using d+1 }
@@ -116,8 +116,8 @@ pub enum FsmStopReason {
 /// ```
 ///
 /// Each `when_state` / `whenever` handler returns:
-/// * `Some(FsmTransition)` to transition (akka.net `goto`/`stay`).
-/// * `None` to fall through to `whenever` (akka.net `WhenUnhandled`),
+/// * `Some(FsmTransition)` to transition.
+/// * `None` to fall through to `whenever`,
 ///   then to drop the message.
 pub struct FsmBuilder<S: Clone + Eq + Hash + 'static, D: Clone + 'static, M: 'static> {
     initial_state: Option<S>,
@@ -162,8 +162,8 @@ where
         self
     }
 
-    /// Akka.NET `When(state) { ... }`. Override an existing handler if
-    /// any.
+    /// Register a per-state handler. Overrides any existing handler for
+    /// the same state.
     pub fn when_state<F>(mut self, state: S, handler: F) -> Self
     where
         F: FnMut(&S, &D, M) -> Option<FsmTransition<S, D>> + Send + 'static,
@@ -172,8 +172,7 @@ where
         self
     }
 
-    /// Akka.NET `WhenUnhandled { ... }`. Runs when the per-state
-    /// handler returns `None`.
+    /// Fallback handler. Runs when the per-state handler returns `None`.
     pub fn whenever<F>(mut self, handler: F) -> Self
     where
         F: FnMut(&S, &D, M) -> Option<FsmTransition<S, D>> + Send + 'static,
@@ -182,7 +181,6 @@ where
         self
     }
 
-    /// Akka.NET `OnTransition { case from -> to => ... }`.
     pub fn on_transition<F>(mut self, hook: F) -> Self
     where
         F: FnMut(&S, &S) + Send + 'static,
@@ -191,7 +189,6 @@ where
         self
     }
 
-    /// Akka.NET `OnTermination { case reason => ... }`.
     pub fn on_termination<F>(mut self, hook: F) -> Self
     where
         F: FnMut(&S, &D) + Send + 'static,
@@ -216,7 +213,7 @@ where
     }
 }
 
-/// Built FSM. Drive it by `handle(msg)` per akka.net's `Receive`.
+/// Built FSM. Drive it by `handle(msg)` per.
 pub struct Fsm<S: Clone + Eq + Hash + 'static, D: Clone + 'static, M: 'static> {
     current_state: S,
     current_data: D,

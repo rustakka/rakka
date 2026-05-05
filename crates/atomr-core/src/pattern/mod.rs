@@ -1,5 +1,4 @@
 //! Higher-level patterns on top of the core actor primitives.
-//! akka.net: `src/core/Akka/Pattern`.
 
 mod ask;
 mod backoff;

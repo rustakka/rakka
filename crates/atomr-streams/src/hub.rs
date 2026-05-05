@@ -1,14 +1,12 @@
 //! Hub patterns: dynamic many-to-many fan-out / fan-in.
 //!
-//! Phase 12.5 of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Akka.Streams.Dsl.BroadcastHub`, `MergeHub`. Hubs let consumers
-//! attach to a live source (Broadcast) or producers attach to a live
-//! sink (Merge) at runtime, after the graph has materialized.
+//! `BroadcastHub` and `MergeHub`. Hubs let consumers attach to a live source
+//! (Broadcast) or producers attach to a live sink (Merge) at runtime, after
+//! the graph has materialized.
 //!
-//! Built on `tokio::sync::broadcast` (BroadcastHub) and
-//! `tokio::sync::mpsc` (MergeHub). The `BroadcastHub` buffer is
-//! bounded; slow subscribers see lagged elements as silent gaps —
-//! matching akka.net's `BroadcastHub.sink(bufferSize)` lag policy.
+//! Built on `tokio::sync::broadcast` (BroadcastHub) and `tokio::sync::mpsc`
+//! (MergeHub). The `BroadcastHub` buffer is bounded; slow subscribers see
+//! lagged elements as silent gaps.
 
 use futures::stream::{self, StreamExt};
 use tokio::sync::{broadcast, mpsc};

@@ -1,4 +1,4 @@
-//! JSON serializer using `serde_json`. akka.net: `Serialization/NewtonSoftJsonSerializer.cs`.
+//! JSON serializer using `serde_json`.
 
 use std::marker::PhantomData;
 

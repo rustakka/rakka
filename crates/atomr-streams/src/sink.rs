@@ -1,8 +1,8 @@
-//! Sink — consumes a `Source`, produces a materialized value. akka.net: `Dsl/Sink.cs`.
+//! Sink — consumes a `Source`, produces a materialized value.
 //!
 //! Each factory here returns a future that drives the source to completion and
 //! produces the materialized value. These wrappers mirror the most common
-//! Akka.Streams sinks (`Fold`, `Aggregate`, `Sum`, `First`, `Last`, `Seq`,
+//! Sinks (`Fold`, `Aggregate`, `Sum`, `First`, `Last`, `Seq`,
 //! `ForEach`, `Ignore`) and add a lightweight `SinkQueue`.
 
 use std::future::Future;
@@ -18,7 +18,7 @@ use crate::source::Source;
 pub struct Sink;
 
 impl Sink {
-    /// akka.net: `Fold` — drive the source and accumulate a single value.
+    /// Drive the source and accumulate a single value.
     pub async fn fold<T, Acc, F>(source: Source<T>, init: Acc, mut f: F) -> Acc
     where
         T: Send + 'static,
@@ -28,7 +28,7 @@ impl Sink {
         source.into_boxed().fold(init, move |acc, x| futures::future::ready(f(acc, x))).await
     }
 
-    /// akka.net: `AggregateAsync` — async fold.
+    /// Async fold.
     pub async fn fold_async<T, Acc, F, Fut>(source: Source<T>, init: Acc, f: F) -> Acc
     where
         T: Send + 'static,
@@ -39,7 +39,7 @@ impl Sink {
         source.into_boxed().fold(init, f).await
     }
 
-    /// akka.net: `Sink.Seq` — collect into a Vec.
+    /// Collect into a Vec.
     pub async fn collect<T>(source: Source<T>) -> Vec<T>
     where
         T: Send + 'static,
@@ -47,7 +47,6 @@ impl Sink {
         source.into_boxed().collect().await
     }
 
-    /// akka.net: `Sink.First`.
     pub async fn first<T>(source: Source<T>) -> Option<T>
     where
         T: Send + 'static,
@@ -55,7 +54,6 @@ impl Sink {
         source.into_boxed().next().await
     }
 
-    /// akka.net: `Sink.Last`.
     pub async fn last<T>(source: Source<T>) -> Option<T>
     where
         T: Send + 'static,
@@ -63,7 +61,6 @@ impl Sink {
         source.into_boxed().fold(None, |_, x| async move { Some(x) }).await
     }
 
-    /// akka.net: `Sink.Sum`.
     pub async fn sum<T>(source: Source<T>) -> T
     where
         T: Send + Default + std::ops::Add<Output = T> + 'static,
@@ -72,7 +69,6 @@ impl Sink {
         Self::fold(source, init, |acc, x| acc + x).await
     }
 
-    /// akka.net: `Sink.Count`.
     pub async fn count<T>(source: Source<T>) -> u64
     where
         T: Send + 'static,
@@ -94,7 +90,6 @@ impl Sink {
             .await
     }
 
-    /// akka.net: `Sink.ForEachAsync`.
     pub async fn for_each_async<T, F, Fut>(source: Source<T>, parallelism: usize, f: F)
     where
         T: Send + 'static,
@@ -105,12 +100,11 @@ impl Sink {
         source.into_boxed().for_each_concurrent(p, f).await
     }
 
-    /// akka.net: `Sink.Ignore`.
     pub async fn ignore<T: Send + 'static>(source: Source<T>) {
         source.into_boxed().for_each(|_| futures::future::ready(())).await
     }
 
-    /// Send each element to an `UnboundedSender`. akka.net: `Sink.ActorRef`
+    /// Send each element to an `UnboundedSender`.
     /// (atomr equivalent uses an mpsc channel).
     pub async fn to_sender<T>(source: Source<T>, tx: tokio::sync::mpsc::UnboundedSender<T>)
     where
@@ -124,7 +118,7 @@ impl Sink {
         }
     }
 
-    /// akka.net: `Sink.Queue` — run the source and expose a pull-based API.
+    /// Run the source and expose a pull-based API.
     /// The returned `SinkQueue::pull` future returns `Ok(Some(t))` per element,
     /// `Ok(None)` after the stream completes.
     pub fn queue<T>(source: Source<T>) -> SinkQueue<T>

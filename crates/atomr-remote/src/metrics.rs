@@ -1,5 +1,4 @@
 //! Remote metrics extension.
-//! akka.net: `Remote/RemoteMetricsExtension.cs`.
 //!
 //! Lightweight per-`Address` counters for sent/received messages and
 //! bytes. The dashboard / `atomr-telemetry` consume this via

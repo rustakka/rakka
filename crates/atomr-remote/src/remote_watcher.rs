@@ -1,4 +1,4 @@
-//! `RemoteWatcher`. akka.net: `Remote/RemoteWatcher.cs`.
+//! `RemoteWatcher`.
 //!
 //! Tracks local actors that are watching remote ones and surfaces
 //! `Terminated` when:

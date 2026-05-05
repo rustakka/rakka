@@ -1,4 +1,4 @@
-//! Actor lifecycle parity spec. akka.net: `Tests/ActorLifeCycleSpec.cs`.
+//! Actor lifecycle parity spec.
 //!
 //! Asserts the contract of pre_start / post_stop / pre_restart /
 //! post_restart hook ordering, supervision-driven restart semantics

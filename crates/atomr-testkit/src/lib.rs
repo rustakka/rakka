@@ -1,4 +1,4 @@
-//! atomr-testkit. akka.net: `src/core/Akka.TestKit/`.
+//! atomr-testkit.
 //!
 //! Provides:
 //! * [`TestKit`] — an actor system preconfigured for tests.

@@ -1,4 +1,4 @@
-//! Cluster membership types. akka.net: `Cluster/Member.cs`.
+//! Cluster membership types.
 
 use std::cmp::Ordering;
 
@@ -33,7 +33,7 @@ impl Member {
         Self { status, ..self.clone() }
     }
 
-    /// akka.net `Member.AgeOrdering`: oldest first, then address.
+    /// oldest first, then address.
     /// "Oldest" == lowest `up_number` (joined earliest).
     pub fn age_ordering(a: &Member, b: &Member) -> Ordering {
         a.up_number.cmp(&b.up_number).then_with(|| {

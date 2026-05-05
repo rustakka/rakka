@@ -1,4 +1,4 @@
-//! Reachability spec parity. akka.net: `ReachabilitySpec`.
+//! Reachability spec parity.
 //!
 //! A subject is "reachable" iff *no* observer reports it unreachable.
 //! Observers can recover (a previously-reported-unreachable subject

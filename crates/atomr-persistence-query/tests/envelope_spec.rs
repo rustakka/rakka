@@ -1,4 +1,4 @@
-//! Parity spec for `Akka.Persistence.Query` envelope/offset invariants.
+//! Spec for persistence-query envelope/offset invariants.
 //!
 //! Covers:
 //! - `EventEnvelope::from(PersistentRepr)` field carry-over and the

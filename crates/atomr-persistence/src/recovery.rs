@@ -1,4 +1,4 @@
-//! Recovery parameters. akka.net: `Recovery`, `SnapshotSelectionCriteria`.
+//! Recovery parameters.
 
 #[derive(Debug, Clone, Copy)]
 pub struct Recovery {

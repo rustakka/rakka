@@ -1,9 +1,8 @@
 //! TLS settings + helpers.
 //!
-//! Phase 5.E of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Akka.Remote.SslSettings`. The actual handshake plugs into the
-//! `TcpTransport` through the `TlsConfig` shape; that wiring lands
-//! once the reader/writer split (5.D) is in.
+//! The actual handshake plugs into the `TcpTransport` through the
+//! `TlsConfig` shape; that wiring lands once the reader/writer split (5.D)
+//! is in.
 //!
 //! For now we ship the typed configuration + a lightweight helper
 //! to load PEM-encoded cert/key pairs into the form `rustls`

@@ -1,5 +1,5 @@
 //! `EventFilter` — observes events on an `EventStream` and blocks until
-//! expected number of matches are seen. akka.net: `Akka.TestKit/EventFilter/`.
+//! expected number of matches are seen.
 
 use std::any::Any;
 use std::sync::atomic::{AtomicUsize, Ordering};

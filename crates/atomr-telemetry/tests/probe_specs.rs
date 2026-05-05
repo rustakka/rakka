@@ -1,5 +1,5 @@
-//! Telemetry probe spec parity. akka.net's telemetry analogues are
-//! distributed across `Akka.Diagnostics`, `Akka.Cluster.Metrics`, and
+//! Telemetry probe spec parity. telemetry analogues are
+//! Distributed across,, and
 //! per-subsystem health endpoints; atomr unifies them under a typed
 //! `TelemetryBus` + per-subsystem registries. These tests assert each
 //! probe's record/snapshot contract.

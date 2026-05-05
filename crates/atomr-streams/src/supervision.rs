@@ -1,8 +1,5 @@
 //! Stream-level supervision deciders.
 //!
-//! Phase 12.4 of `docs/full-port-plan.md`. Akka.NET / Akka Streams
-//! parity: `Supervision.Decider` + `withAttributes(supervisionStrategy(…))`.
-//!
 //! Stream operators on `Source<Result<T, E>>` consult a [`Decider`]
 //! to decide what to do on each `Err`:
 //!
@@ -45,7 +42,7 @@ pub mod deciders {
         Arc::new(|_| SupervisionDirective::Resume)
     }
 
-    /// Always `Stop` — first error tears the stream down (akka.net
+    /// Always `Stop` — first error tears the stream down (
     /// default).
     pub fn stopping<E: Send + Sync + 'static>() -> Decider<E> {
         Arc::new(|_| SupervisionDirective::Stop)

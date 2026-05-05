@@ -1,4 +1,4 @@
-//! Failure detector trait. akka.net: `Remote/FailureDetector.cs`.
+//! Failure detector trait.
 
 use std::time::Duration;
 

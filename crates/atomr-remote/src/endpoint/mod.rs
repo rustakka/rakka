@@ -1,6 +1,4 @@
 //! Per-association `Endpoint` actor.
-//! akka.net: `Remote/EndpointWriter.cs`, `Remote/EndpointReader.cs`,
-//! `Remote/Endpoint.cs`.
 //!
 //! Each endpoint owns one peer (`Address` + UID). The writer half pumps
 //! outbound user/system payloads (with heartbeats when idle); the reader

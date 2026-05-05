@@ -1,11 +1,9 @@
 //! `MultiNodeSpec` — shared-barrier harness for multi-node tests.
 //!
-//! Phase 4 of `docs/full-port-plan.md`. Akka.NET's
-//! `Akka.Remote.TestKit.MultiNodeSpec` spawns N OS processes and
-//! synchronizes them via a controller; we instead spawn N
-//! `ActorSystem`s in the same Tokio runtime (each on a distinct
-//! local address/port) and synchronize them via in-process barriers.
-//! That covers the cluster / sharding / persistence integration
+//! Rather than spawn N OS processes coordinated via an external controller,
+//! atomr spawns N `ActorSystem`s in the same Tokio runtime (each on a
+//! distinct local address/port) and synchronizes them via in-process
+//! barriers. That covers the cluster / sharding / persistence integration
 //! suites without needing a separate test runner.
 //!
 //! For genuine OS-process isolation (TCP loopback, real sockets),

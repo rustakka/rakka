@@ -1,5 +1,4 @@
 //! `Props` — a recipe for constructing an actor.
-//! akka.net: `Actor/Props.cs`.
 
 use std::fmt;
 use std::sync::Arc;

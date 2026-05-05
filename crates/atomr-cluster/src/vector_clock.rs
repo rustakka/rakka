@@ -1,4 +1,4 @@
-//! Vector clock. akka.net: `Cluster/VectorClock.cs`.
+//! Vector clock.
 
 use std::cmp::Ordering;
 use std::collections::BTreeMap;

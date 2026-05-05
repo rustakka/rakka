@@ -1,5 +1,4 @@
 //! Source.Queue — a source fed by an explicit producer handle.
-//! akka.net: `ISourceQueue`, `Source.Queue`.
 
 use tokio::sync::mpsc;
 
@@ -19,7 +18,7 @@ pub struct SourceQueue<T> {
 }
 
 impl<T: Send + 'static> SourceQueue<T> {
-    /// Create a source + producer pair. akka.net: `Source.Queue<T>(size, overflow)`.
+    /// Create a source + producer pair.
     pub fn new() -> (Self, Source<T>) {
         let (tx, rx) = mpsc::unbounded_channel();
         (Self { tx }, Source::from_receiver(rx))

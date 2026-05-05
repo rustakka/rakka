@@ -1,7 +1,6 @@
 //! 3-phase shard handoff state machine.
 //!
-//! Phase 9.H of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Akka.Cluster.Sharding.Shard` "handoff" path. Three phases:
+//! Three phases:
 //!
 //! ```text
 //! BeginHandoff(shard) ── source region acks ──► HandingOff

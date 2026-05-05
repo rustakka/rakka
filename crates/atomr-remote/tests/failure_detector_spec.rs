@@ -1,4 +1,4 @@
-//! Failure detector spec parity. akka.net:
+//! Failure detector spec parity.
 //! `Remote.Tests/AccrualFailureDetectorSpec`,
 //! `Remote.Tests/PhiAccrualModelBasedSpecs`,
 //! `Remote.Tests/DeadlineFailureDetectorSpec`,
@@ -31,10 +31,8 @@ fn fast_phi(threshold: f64, acceptable_pause_ms: u64) -> PhiAccrualFailureDetect
 
 // ---- PhiAccrualFailureDetector ------------------------------------------
 
-/// akka.net `AccrualFailureDetectorSpec`:
 /// "must be available after a series of successful heartbeats". A brand-new
-/// detector that has never received a heartbeat is reported as available
-/// (akka.net default — it must not flag peers it has not yet observed).
+/// detector that has never received a heartbeat is reported as available.
 #[test]
 fn phi_new_detector_with_no_heartbeats_is_available() {
     let d = fast_phi(8.0, 5);
@@ -74,7 +72,7 @@ fn phi_unavailable_after_long_pause() {
 }
 
 /// `reset` clears history and last-heartbeat, returning the detector to
-/// the "no heartbeat yet" state (akka.net `FailureDetector.Reset`).
+/// the "no heartbeat yet" state.
 #[test]
 fn phi_reset_returns_to_initial_state() {
     let d = fast_phi(8.0, 1);
@@ -89,7 +87,7 @@ fn phi_reset_returns_to_initial_state() {
 
 // ---- DeadlineFailureDetector --------------------------------------------
 
-/// akka.net `DeadlineFailureDetectorSpec`: a detector with no heartbeats
+/// a detector with no heartbeats
 /// is available (cannot fail something it has not started watching).
 #[test]
 fn deadline_new_detector_is_available() {
@@ -126,7 +124,7 @@ fn deadline_heartbeat_restores_availability() {
 
 // ---- FailureDetectorRegistry --------------------------------------------
 
-/// akka.net `FailureDetectorRegistrySpec`: an unknown address is reported
+/// an unknown address is reported
 /// as available because the registry has not yet started monitoring it.
 #[test]
 fn registry_unknown_address_is_available() {

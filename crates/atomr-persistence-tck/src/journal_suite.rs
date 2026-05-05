@@ -63,7 +63,7 @@ pub async fn journal_suite<J: Journal>(journal: Arc<J>, pid_prefix: &str) {
 }
 
 /// Extended suite covering edge cases drawn from upstream's
-/// `Akka.Persistence.TCK.Journal.JournalSpec`: replay-from-mid,
+/// Replay-from-mid,
 /// replay-after-delete, idempotent replay, max=0 short-circuit, and
 /// concurrent-writer interleaving.
 pub async fn journal_extended_suite<J: Journal>(journal: Arc<J>, pid_prefix: &str) {
@@ -76,7 +76,7 @@ pub async fn journal_extended_suite<J: Journal>(journal: Arc<J>, pid_prefix: &st
     assert_eq!(mid.first().unwrap().sequence_nr, 4);
     assert_eq!(mid.last().unwrap().sequence_nr, 7);
 
-    // max=0 must return zero (parity with akka.net's `Replay(max=0)`).
+    // max=0 must return zero (parity with).
     let none = journal.replay_messages(&pid, 1, 100, 0).await.unwrap();
     assert!(none.is_empty(), "max=0 returned {} entries", none.len());
 
@@ -155,7 +155,7 @@ pub async fn journal_replay_edge_cases<J: Journal>(journal: Arc<J>, pid_prefix: 
     let past = journal.replay_messages(&pid, 100, u64::MAX, 10).await.unwrap();
     assert!(past.is_empty(), "replay starting past head should be empty");
 
-    // delete_messages_to(0) is a no-op (parity: akka.net delete-to-0
+    // delete_messages_to(0) is a no-op (parity: delete-to-0
     // never deletes the marker event at seq 0 because seq starts at 1).
     journal.delete_messages_to(&pid, 0).await.unwrap();
     assert_eq!(journal.replay_messages(&pid, 1, u64::MAX, 10).await.unwrap().len(), 4);

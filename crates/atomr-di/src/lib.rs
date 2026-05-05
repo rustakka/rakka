@@ -1,4 +1,4 @@
-//! atomr-di. akka.net: `Akka.DI.Core` / `DependencyResolver`.
+//! atomr-di./ `DependencyResolver`.
 //!
 //! Minimal type-keyed service container. Registered providers are `Arc`'d
 //! factory functions producing `Arc<T>` on demand.

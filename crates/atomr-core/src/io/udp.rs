@@ -1,4 +1,4 @@
-//! UDP helpers. akka.net: `IO/UdpManager.cs`.
+//! UDP helpers.
 
 use std::io;
 use std::net::SocketAddr;

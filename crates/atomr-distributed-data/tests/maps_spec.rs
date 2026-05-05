@@ -1,4 +1,4 @@
-//! ddata-maps spec parity. akka.net:
+//! ddata-maps spec parity.
 //! `ORDictionarySpec`, `LWWDictionarySpec`, `PNCounterDictionarySpec`,
 //! `ORMultiDictionarySpec`.
 

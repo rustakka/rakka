@@ -1,4 +1,4 @@
-//! Deadline failure detector. akka.net: `Remote/DeadlineFailureDetector.cs`.
+//! Deadline failure detector.
 //!
 //! A simpler FD: any peer that hasn't heartbeat within `acceptable_heartbeat_pause`
 //! is considered unreachable.

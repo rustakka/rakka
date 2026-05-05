@@ -1,5 +1,4 @@
 //! Stash — buffers messages that should be deferred until `unstash_all`.
-//! akka.net: `Actor/Stash/*`.
 //!
 //! Phase 3.6 of `docs/full-port-plan.md`. Two layers:
 //!
@@ -9,8 +8,8 @@
 //!   pluggable [`StashOverflow`] policy. Actor authors can hold one
 //!   per actor instance for back-pressure-aware stashing.
 //!
-//! `Stash` (marker trait) stays for symmetry with akka.net's
-//! `IWithStash`.
+//! `Stash` (marker trait) stays as an opt-in marker that an actor uses
+//! the stash storage on its `Context`.
 
 use std::collections::VecDeque;
 
@@ -97,7 +96,7 @@ impl<M> BoundedStash<M> {
         }
     }
 
-    /// Drain the stash front-to-back. Maintains akka.net's
+    /// Drain the stash front-to-back. Maintains
     /// "messages prepended in order" semantic — caller front-prepends
     /// to the mailbox.
     pub fn unstash_all(&mut self) -> Vec<M> {

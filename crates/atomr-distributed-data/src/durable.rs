@@ -1,6 +1,6 @@
 //! Durable storage backend for the Replicator. Phase 8.F.
 //!
-//! akka.net pairs the Replicator with a `DurableStore` that flushes
+//! pairs the Replicator with a `DurableStore` that flushes
 //! CRDT state to disk so a node can rejoin the cluster without losing
 //! local writes. Backends in upstream are LMDB / H2 / SQLite.
 //!

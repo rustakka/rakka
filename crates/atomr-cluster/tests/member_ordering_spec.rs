@@ -1,4 +1,4 @@
-//! Member ordering parity. akka.net: `MemberOrderingSpec`,
+//! Member ordering parity.,
 //! `MemberOrderingModelBasedTests`.
 //!
 //! The age ordering is "oldest first": a lower `up_number` sorts

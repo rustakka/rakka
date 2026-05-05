@@ -1,4 +1,4 @@
-//! Heartbeat sender + state spec parity. akka.net:
+//! Heartbeat sender + state spec parity.
 //! `ClusterHeartbeatSenderSpec`, `ClusterHeartBeatSenderStateSpec`,
 //! and `HeartbeatNodeRingSpec`.
 //!
@@ -8,9 +8,9 @@
 //! `due_peers` + `record_tick` (rather than a single `tick`
 //! that mutates) and `HeartbeatState::heartbeat(addr)` (rather
 //! than `record(peer, now)`); the assertions below mirror the
-//! akka.net invariants by composing those primitives.
+//! invariants by composing those primitives.
 //!
-//! Note: `HeartbeatNodeRingSpec` in akka.net pins the
+//! Note: `HeartbeatNodeRingSpec` in pins the
 //! deterministic peer-ring used to pick *which* peers a node
 //! sends to. atomr's current sender simply heartbeats every
 //! known peer (the ring filter is a TODO once larger clusters
@@ -131,7 +131,7 @@ fn ticks_per_peer_counts_emitted_heartbeats() {
 
 // -- ClusterHeartbeatSenderSpec — PeerHeartbeat carries the address ----
 //
-// In akka.net the wire-level `Heartbeat` PDU carries the sender's
+// In the wire-level `Heartbeat` PDU carries the sender's
 // `UniqueAddress`. atomr's sender keeps the address as the map key
 // (canonical string form) and the per-peer record holds the
 // last-tick + count. We assert that, given a `due_peers` result, the

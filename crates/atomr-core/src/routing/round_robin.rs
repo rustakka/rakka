@@ -1,4 +1,4 @@
-//! Round-robin router. akka.net: `Routing/RoundRobinPool.cs`.
+//! Round-robin router.
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 

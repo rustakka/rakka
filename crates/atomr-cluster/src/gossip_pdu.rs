@@ -1,11 +1,9 @@
 //! Gossip dissemination PDUs.
 //!
-//! Phase 6.D of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Cluster/ClusterMessages.cs` — the `GossipStatus` /
-//! `GossipEnvelope` / `GossipMerge` PDUs the leader exchanges with
-//! peers on each tick. The actual transport plug-in (over
-//! atomr-remote) wires up once Phase 5.D ships; this module
-//! contains the typed shapes.
+//! `GossipStatus` / `GossipEnvelope` / `GossipMerge` are the PDUs the
+//! leader exchanges with peers on each tick. The actual transport plug-in
+//! (over atomr-remote) wires up once Phase 5.D ships; this module contains
+//! the typed shapes.
 
 use atomr_core::actor::Address;
 use serde::{Deserialize, Serialize};

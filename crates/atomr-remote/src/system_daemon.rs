@@ -1,6 +1,4 @@
 //! `RemoteSystemDaemon` + `RemoteDeployer`.
-//! akka.net: `Remote/RemoteSystemDaemon.cs`, `Remote/RemoteDeployer.cs`,
-//! `Remote/RemoteDeploymentWatcher.cs`.
 //!
 //! On the receiving side every inbound envelope addressed at
 //! `/remote/<system>@<host>:<port>/...` is dispatched here. The daemon

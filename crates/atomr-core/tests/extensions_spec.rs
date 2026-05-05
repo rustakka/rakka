@@ -1,4 +1,4 @@
-//! Extensions registry spec parity. akka.net:
+//! Extensions registry spec parity.
 //! `Actor.Extensions` + ExtensionsSpec.
 
 use std::sync::atomic::{AtomicU32, Ordering};

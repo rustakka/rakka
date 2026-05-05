@@ -1,9 +1,5 @@
 //! Shard allocation strategies.
 //!
-//! Phase 9 of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Akka.Cluster.Sharding.IShardAllocationStrategy` and its
-//! built-in implementations.
-//!
 //! A strategy answers two questions:
 //!
 //! 1. **Where to place a new shard?** [`ShardAllocationStrategy::
@@ -81,7 +77,7 @@ impl ShardAllocationStrategy for LeastShardAllocationStrategy {
 }
 
 /// Pin every shard to a specific region (useful for tests / static
-/// allocation). akka.net analog: a custom strategy returning a
+/// allocation). analog: a custom strategy returning a
 /// constant region.
 pub struct PinnedAllocationStrategy {
     pub region: String,

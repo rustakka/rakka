@@ -1,5 +1,4 @@
 //! Scatter-gather-first-completed router.
-//! akka.net: `Routing/ScatterGatherFirstCompletedPool.cs`.
 
 use std::time::Duration;
 

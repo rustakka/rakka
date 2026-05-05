@@ -1,4 +1,4 @@
-//! Config errors. akka.net: `Configuration/ConfigurationException.cs`.
+//! Config errors.
 
 use thiserror::Error;
 

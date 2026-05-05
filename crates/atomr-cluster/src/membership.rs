@@ -1,4 +1,4 @@
-//! Membership state. akka.net: `Cluster/MembershipState.cs`.
+//! Membership state.
 
 use std::collections::BTreeSet;
 

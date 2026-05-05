@@ -1,4 +1,4 @@
-//! Pool resizer config. akka.net: `Routing/Resizer.cs`,
+//! Pool resizer config.,
 //! `DefaultResizer.cs`, `ResizerSpec`.
 //!
 //! A resizer monitors pressure on a pool of routees and decides whether
@@ -7,7 +7,7 @@
 //! [`ResizerConfig::compute_delta`] to advise the parent on how many
 //! routees to add or remove.
 //!
-//! The semantics mirror akka.net's `DefaultResizer`:
+//! The semantics mirror:
 //!   * `lower_bound` ≤ pool size ≤ `upper_bound`
 //!   * pressure is measured as the count of busy routees
 //!   * if pressure ≥ `pressure_threshold * pool_size` for

@@ -1,4 +1,4 @@
-//! Remote router config. akka.net: `Remote/Routing/RemoteRouterConfig.cs`.
+//! Remote router config.
 //!
 //! Wraps a local routing strategy so that the routees can be deployed
 //! across a list of remote `Address`es. The local pool decides *which*

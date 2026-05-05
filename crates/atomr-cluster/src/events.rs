@@ -1,10 +1,9 @@
 //! Cluster events bus.
 //!
-//! Phase 6 of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Cluster/ClusterEvent.cs`. Events are published when membership
-//! transitions, leader changes, or reachability flips. Subscribers
-//! register a per-event-class callback (or a multi-class one via the
-//! [`ClusterEvent`] enum) and receive each event in publish order.
+//! Events are published when membership transitions, leader changes, or
+//! reachability flips. Subscribers register a per-event-class callback (or
+//! a multi-class one via the [`ClusterEvent`] enum) and receive each event
+//! in publish order.
 //!
 //! The bus is a thin `RwLock<Vec<callback>>` rather than an actor
 //! because subscribers are typically a handful of long-lived objects
@@ -39,7 +38,7 @@ pub enum ClusterEvent {
 
 impl ClusterEvent {
     /// Translate a status transition `(old, new)` into the
-    /// corresponding `ClusterEvent`, mirroring akka.net's
+    /// corresponding `ClusterEvent`, mirroring
     /// `ClusterCoreDaemon` event-emission rules. Returns `None` when
     /// the transition is a no-op (`old == new`).
     pub fn from_status_transition(member: Member, old: MemberStatus) -> Option<ClusterEvent> {

@@ -1,4 +1,4 @@
-//! Vector-clock spec parity. akka.net: `VectorClockSpec`.
+//! Vector-clock spec parity.
 //!
 //! Asserts the documented happens-before relation across the four
 //! cases (Same / Before / After / Concurrent) and that `merge` is the

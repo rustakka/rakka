@@ -1,5 +1,4 @@
 //! `ActorPath` — immutable, hierarchical, string-backed path.
-//! akka.net: `Actor/ActorPath.cs`.
 
 use std::fmt;
 

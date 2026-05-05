@@ -1,5 +1,4 @@
 //! In-memory deterministic transport for tests.
-//! akka.net: `Remote/Transport/TestTransport.cs`.
 
 use std::sync::Arc;
 

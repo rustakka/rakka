@@ -1,4 +1,4 @@
-//! Grow-only and observed-remove sets. akka.net: `GSet`, `ORSet`.
+//! Grow-only and observed-remove sets.
 
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;

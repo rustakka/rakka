@@ -1,10 +1,8 @@
 //! `ReceivePersistent` — closure-style helper for persistent actors.
 //!
-//! Phase 11.D of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Akka.Persistence.ReceivePersistentActor`. Where [`crate::Eventsourced`]
-//! makes the user implement a trait, `ReceivePersistent` lets ad-hoc /
-//! script-shaped actors register handler closures up front and run a
-//! command loop without a custom struct.
+//! Where [`crate::Eventsourced`] makes the user implement a trait,
+//! `ReceivePersistent` lets ad-hoc / script-shaped actors register handler
+//! closures up front and run a command loop without a custom struct.
 //!
 //! ```ignore
 //! use atomr_persistence::{ReceivePersistent, RecoveryPermitter, InMemoryJournal};

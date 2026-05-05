@@ -1,4 +1,4 @@
-//! Fan-in and fan-out junctions. akka.net: `Dsl/Graph.cs`.
+//! Fan-in and fan-out junctions.
 //!
 //! This port exposes the common linear-composition junctions without the
 //! upstream graph-DSL plumbing: `merge`, `merge_all`, `concat`, `zip`,
@@ -8,23 +8,23 @@ use futures::stream::{select_all, StreamExt};
 
 use crate::source::Source;
 
-/// akka.net: `Merge<T>` (interleaving, order not guaranteed).
+/// (interleaving, order not guaranteed).
 pub fn merge<T: Send + 'static>(a: Source<T>, b: Source<T>) -> Source<T> {
     Source { inner: futures::stream::select(a.into_boxed(), b.into_boxed()).boxed() }
 }
 
-/// akka.net: `Merge(sources)` with arbitrary fan-in.
+/// with arbitrary fan-in.
 pub fn merge_all<T: Send + 'static, I: IntoIterator<Item = Source<T>>>(sources: I) -> Source<T> {
     let boxed = sources.into_iter().map(|s| s.into_boxed()).collect::<Vec<_>>();
     Source { inner: select_all(boxed).boxed() }
 }
 
-/// akka.net: `Concat<T>` — drain first source fully, then second.
+/// Drain first source fully, then second.
 pub fn concat<T: Send + 'static>(a: Source<T>, b: Source<T>) -> Source<T> {
     a.concat(b)
 }
 
-/// akka.net: `Zip` — pair corresponding elements.
+/// Pair corresponding elements.
 pub fn zip<A, B>(a: Source<A>, b: Source<B>) -> Source<(A, B)>
 where
     A: Send + 'static,
@@ -33,7 +33,7 @@ where
     Source { inner: a.into_boxed().zip(b.into_boxed()).boxed() }
 }
 
-/// akka.net: `ZipWith` — pair corresponding elements and apply `f`.
+/// Pair corresponding elements and apply `f`.
 pub fn zip_with<A, B, C, F>(a: Source<A>, b: Source<B>, mut f: F) -> Source<C>
 where
     A: Send + 'static,
@@ -44,12 +44,11 @@ where
     Source { inner: a.into_boxed().zip(b.into_boxed()).map(move |(x, y)| f(x, y)).boxed() }
 }
 
-/// akka.net: `ZipWithIndex`.
 pub fn zip_with_index<T: Send + 'static>(source: Source<T>) -> Source<(u64, T)> {
     Source { inner: source.into_boxed().enumerate().map(|(i, v)| (i as u64, v)).boxed() }
 }
 
-/// akka.net: `MergeSorted<T>` — merge two **already-sorted** sources
+/// Merge two **already-sorted** sources
 /// preserving total order. Both inputs must be ascending; output is
 /// ascending. Buffers one element per side via tokio mpsc.
 pub fn merge_sorted<T: Ord + Send + 'static>(a: Source<T>, b: Source<T>) -> Source<T> {
@@ -105,7 +104,7 @@ pub fn merge_sorted<T: Ord + Send + 'static>(a: Source<T>, b: Source<T>) -> Sour
     Source::from_receiver(rx)
 }
 
-/// akka.net: `MergePrioritized` — every input contributes elements in
+/// Every input contributes elements in
 /// proportion to its weight when both have items pending, falling
 /// through to whichever side has work otherwise. Weights ≥ 1.
 pub fn merge_prioritized<T: Send + 'static>(
@@ -153,7 +152,7 @@ pub fn merge_prioritized<T: Send + 'static>(
     Source::from_receiver(rx)
 }
 
-/// akka.net: `Broadcast(2)` — cheap fan-out into two independent sources
+/// Cheap fan-out into two independent sources
 /// using cloned items and a bounded channel per downstream.
 pub fn broadcast<T>(source: Source<T>) -> (Source<T>, Source<T>)
 where

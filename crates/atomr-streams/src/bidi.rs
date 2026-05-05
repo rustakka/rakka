@@ -1,4 +1,4 @@
-//! BidiFlow — composed of two flows in opposite directions. akka.net: `BidiFlow`.
+//! BidiFlow — composed of two flows in opposite directions.
 
 use crate::flow::Flow;
 

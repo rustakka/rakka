@@ -1,9 +1,6 @@
 //! `ClusterDaemon` — the actor that owns [`MembershipState`] and drives
 //! the active gossip / leader-action / SBR ticks.
 //!
-//! Phase 6.C / 6.D / 6.F of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Cluster/ClusterDaemon.cs`.
-//!
 //! Architecture
 //! ------------
 //! * One `tokio::task::JoinHandle` runs the main loop.

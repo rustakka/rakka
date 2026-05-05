@@ -1,4 +1,4 @@
-//! Cluster singleton spec parity. akka.net:
+//! Cluster singleton spec parity.
 //! `ClusterSingletonProxySpec`, `ClusterSingletonRestartSpec`,
 //! `ClusterSingletonLeavingSpeedSpec`.
 //!

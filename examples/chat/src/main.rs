@@ -1,4 +1,4 @@
-//! Chat example. akka.net: `src/examples/Cluster.Tools.Chat`.
+//! Chat example.
 //!
 //! Single-process demonstration of DistributedPubSub.
 

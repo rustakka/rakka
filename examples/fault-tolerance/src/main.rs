@@ -1,4 +1,4 @@
-//! Fault-tolerance example. akka.net: `src/examples/FaultTolerance`.
+//! Fault-tolerance example.
 //!
 //! Demonstrates supervision with OneForOne strategy and restart semantics.
 

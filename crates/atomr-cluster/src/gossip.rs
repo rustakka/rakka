@@ -1,4 +1,4 @@
-//! Gossip envelope. akka.net: `Cluster/Gossip.cs`, `GossipOverview.cs`.
+//! Gossip envelope.
 
 use serde::{Deserialize, Serialize};
 
@@ -36,7 +36,7 @@ impl Gossip {
     }
 }
 
-/// Snapshot of seen-by + unreachable info. akka.net: `GossipOverview.cs`.
+/// Snapshot of seen-by + unreachable info.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct GossipOverview {
     pub seen_by: Vec<String>,

@@ -1,17 +1,14 @@
 //! `DDataShardCoordinator` — DistributedData-backed allocation table.
 //!
-//! Phase 9.E of `docs/full-port-plan.md`. Akka.NET parity:
-//! `Akka.Cluster.Sharding.DDataShardCoordinator`. The persistent
-//! variant (Phase 9.D) journals every allocation; the DData variant
-//! stores the table as a CRDT in `atomr-distributed-data` so the
-//! coordinator state converges across the cluster without an
-//! event-sourced log.
+//! The persistent variant (Phase 9.D) journals every allocation; the DData
+//! variant stores the table as a CRDT in `atomr-distributed-data` so the
+//! coordinator state converges across the cluster without an event-sourced
+//! log.
 //!
-//! The CRDT used here is `LWWMap<String, String>` (`shard_id →
-//! region`), which mirrors akka.net's choice. Concurrent writes are
-//! resolved by timestamp; the higher timestamp wins. The
-//! coordinator is responsible for using monotonic timestamps so that
-//! it doesn't accidentally lose a real allocation to a stale write.
+//! The CRDT used here is `LWWMap<String, String>` (`shard_id → region`).
+//! Concurrent writes are resolved by timestamp; the higher timestamp wins.
+//! The coordinator is responsible for using monotonic timestamps so that it
+//! doesn't accidentally lose a real allocation to a stale write.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -157,7 +154,7 @@ mod tests {
         assert_eq!(snap.get(&"s1".to_string()), Some(&"r1".to_string()));
     }
 
-    /// Replicating Akka.NET's "DData coordinator joins late and
+    /// Replicating "DData coordinator joins late and
     /// converges to the cluster's view" property: empty local +
     /// merge-in a populated remote should adopt every allocation.
     #[test]

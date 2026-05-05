@@ -1,4 +1,4 @@
-//! Endpoint manager state-machine spec parity. akka.net:
+//! Endpoint manager state-machine spec parity.
 //! `EndpointRegistrySpec`, `RemotingSpec` (subset) — peer-state
 //! tracking and tombstone purge invariants.
 
