@@ -6,6 +6,28 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-05-05
+
+### Added
+- **Native aarch64-Linux wheels.** PyPI now ships pre-built wheels
+  for `aarch64-unknown-linux-gnu` and `aarch64-unknown-linux-musl`,
+  built natively on GitHub-hosted ARM runners (`ubuntu-22.04-arm`).
+  This closes the gap where ARM Linux users had to install from the
+  source distribution and required a local Rust toolchain. The build
+  is native (no cross-compile) so the prior `ring` / `aws-lc-rs`
+  cross-build issue inside the manylinux container no longer applies.
+
+  PyPI wheel coverage as of v0.3.1:
+
+  | Platform              | Wheel |
+  |-----------------------|-------|
+  | linux-gnu x86_64      | ✓     |
+  | linux-musl x86_64     | ✓     |
+  | linux-gnu aarch64     | ✓ (new) |
+  | linux-musl aarch64    | ✓ (new) |
+  | macOS universal2      | ✓     |
+  | windows-msvc x86_64   | ✓     |
+
 ## [0.3.0] — 2026-05-05
 
 ### Repositioned
