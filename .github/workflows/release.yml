@@ -155,13 +155,23 @@ jobs:
             target: x86_64-unknown-linux-gnu
             python-target: x86_64
             manylinux: auto
-          # NOTE: aarch64-linux-gnu wheel is intentionally not built —
-          # `ring` (pulled in transitively by `rustls` via `aws-lc-rs`)
-          # fails to cross-compile inside the manylinux container with
-          # `__ARM_ARCH` undefined. ARM Linux users install from sdist.
+          # aarch64 Linux glibc — built natively on a GitHub-hosted
+          # ARM runner so we don't have to cross-compile `ring` /
+          # `aws-lc-rs` inside the x86_64 manylinux container (which
+          # was the reason this wheel was skipped before v0.3.1).
+          - os: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            python-target: aarch64
+            manylinux: auto
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             python-target: x86_64
+            manylinux: musllinux_1_2
+          # aarch64 Linux musl — also built natively on the ARM
+          # runner, mirroring the glibc coverage.
+          - os: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-musl
+            python-target: aarch64
             manylinux: musllinux_1_2
           # macOS — universal2 yields a single fat wheel covering
           # both x86_64 and arm64 architectures.
