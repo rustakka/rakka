@@ -233,14 +233,16 @@ impl TcpClusterTransport {
 
     /// Listen on the configured bind address. The returned `Address`
     /// reflects the actually-bound socket (so callers that pass
-    /// `0.0.0.0:0` learn the auto-allocated port).
+    /// `0.0.0.0:0` learn the auto-allocated port). The protocol
+    /// scheme is forced to `akka.tcp` since the resolved address
+    /// represents a real TCP listener.
     pub async fn listen(&self) -> std::io::Result<Address> {
         let listener = TcpListener::bind(self.bind).await?;
         let bound = listener.local_addr()?;
         *self.listen_addr.lock() = Some(bound);
         let host = self.advertised_host.clone().unwrap_or_else(|| bound.ip().to_string());
         let resolved = Address::remote(
-            self.self_addr.protocol.clone(),
+            "akka.tcp",
             self.self_addr.system.clone(),
             host,
             bound.port(),
