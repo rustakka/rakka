@@ -36,8 +36,9 @@ pub enum SystemMsg {
 /// Bookkeeping entry for a child on the parent's side.
 #[derive(Debug)]
 pub struct ChildEntry {
-    /// Reserved for future child introspection APIs.
-    #[allow(dead_code)]
+    /// Full path of the child. Used by the parent's death-watch
+    /// cleanup to confirm the slot still belongs to the actor that is
+    /// finalizing (a fast respawn could have replaced it).
     pub path: ActorPath,
     #[allow(dead_code)]
     pub untyped: UntypedActorRef,
@@ -220,6 +221,22 @@ async fn finalize<A: Actor>(actor: &mut A, ctx: &mut Context<A>) {
         let _ = child.system_tx.send(SystemMsg::Stop);
     }
     if let Some(system) = ctx.system.upgrade() {
+        // Free the user_guardian slot for this child name once it has
+        // fully stopped (post_stop returned, watchers notified). This
+        // makes `system.actor_of(name)` succeed for a fresh actor
+        // re-using the same name. Child names are unique among
+        // *currently-alive* siblings, not unique forever.
+        if ctx.path.elements.len() == 2 && ctx.path.elements[0].as_str() == "user" {
+            let name = ctx.path.elements[1].as_str();
+            let mut guardian = system.user_guardian.lock();
+            // Only remove if the entry still corresponds to *this* actor
+            // (matched by path); this guards against a fast respawn that
+            // happened to win the lock before the dying actor reached
+            // finalize (which the current API forbids, but we are defensive).
+            if guardian.get(name).is_some_and(|c| c.path == ctx.path) {
+                guardian.remove(name);
+            }
+        }
         if let Some(obs) = system.spawn_observer.read().as_ref() {
             obs.on_stop(&ctx.path);
         }
