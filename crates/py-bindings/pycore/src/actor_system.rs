@@ -6,7 +6,7 @@ use once_cell::sync::Lazy;
 use pyo3::prelude::*;
 
 use atomr_core::actor::{ActorSystem as RustSystem, Props as RustProps};
-use atomr_core::supervision::SupervisorStrategy;
+use atomr_core::supervision::{OneForOneStrategy, SupervisorStrategy};
 
 use crate::actor_ref::PyActorRef;
 use crate::config::PyConfig;
@@ -82,6 +82,7 @@ impl PyActorSystem {
         let factory = props_ref.factory.clone_ref(py);
         let dispatcher_name = props_ref.dispatcher.clone();
         let role = props_ref.interpreter_role.clone();
+        let supervisor_budget = props_ref.supervisor_budget;
         drop(props_ref);
 
         let kind = dispatcher::parse(&dispatcher_name, 1);
@@ -89,14 +90,22 @@ impl PyActorSystem {
         pool.register_actor()?;
 
         let hash_seed = stable_hash(&format!("{}/{}", self.inner.name(), name));
-        let strategy = SupervisorStrategy::default();
+        let strategy: SupervisorStrategy = match supervisor_budget {
+            Some((max, within)) => OneForOneStrategy::new()
+                .with_max_retries(max)
+                .with_within(std::time::Duration::from_secs_f64(within))
+                .into(),
+            None => SupervisorStrategy::default(),
+        };
         let factory_for_actor = factory;
         let pool_cl = pool.clone();
+        let strategy_for_props = strategy.clone();
 
         let rust_props = RustProps::<PyActor>::create(move || {
             let factory = Python::with_gil(|py| factory_for_actor.clone_ref(py));
             PyActor::new(factory, pool_cl.clone(), hash_seed, strategy.clone())
-        });
+        })
+        .with_supervisor_strategy(strategy_for_props);
 
         let rt = runtime();
         let system = self.inner.clone();

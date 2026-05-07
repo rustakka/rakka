@@ -26,6 +26,8 @@ use tokio::sync::oneshot;
 use atomr_core::actor::{Actor, Context};
 use atomr_core::supervision::SupervisorStrategy;
 
+use crate::actor_ref::PyActorRef;
+use crate::context::PyContext;
 use crate::interpreter::{InterpreterInstance, PyTask};
 
 /// Erased Python message — we wrap `Py<PyAny>` plus an optional reply
@@ -157,6 +159,43 @@ impl Actor for PyActor {
         }
     }
 
+    async fn post_restart(&mut self, _ctx: &mut Context<Self>, _err: &str) {
+        // The actor cell replaces `self` with a fresh `PyActor` (via the
+        // Props factory) before invoking `post_restart`, so the new
+        // instance has `instance == None`. We must (re-)construct the
+        // Python actor via the user-supplied factory so subsequent
+        // `handle` calls have a live `instance` to dispatch to. Mirrors
+        // `pre_start`.
+        let factory = self.factory.clone_ref_py();
+        let res = self
+            .on_interpreter(move |py, _| {
+                let instance = factory.call0(py)?;
+                Ok::<Py<PyAny>, PyErr>(instance)
+            })
+            .await;
+        match res {
+            Ok(instance) => {
+                self.instance = Some(instance.clone_ref_py());
+                let inst = instance;
+                let _ = self
+                    .on_interpreter(move |py, _| {
+                        if let Ok(hook) = inst.bind(py).getattr("pre_start") {
+                            if !hook.is_none() {
+                                let args = PyTuple::new_bound(py, &[py.None()]);
+                                let res = hook.call1(args)?;
+                                coro_run(py, res)?;
+                            }
+                        }
+                        Ok(())
+                    })
+                    .await;
+            }
+            Err(e) => {
+                panic!("python actor factory raised on restart: {}", e);
+            }
+        }
+    }
+
     async fn post_stop(&mut self, _ctx: &mut Context<Self>) {
         if let Some(instance) = self.instance.take() {
             let _ = self
@@ -175,15 +214,28 @@ impl Actor for PyActor {
         }
     }
 
-    async fn handle(&mut self, _ctx: &mut Context<Self>, msg: Self::Msg) {
+    async fn handle(&mut self, ctx: &mut Context<Self>, msg: Self::Msg) {
         let PyMessage { payload, reply } = msg;
         let Some(instance) = self.instance.as_ref().map(|p| p.clone_ref_py()) else {
             return;
         };
+        // Build a Python-facing `Context` that exposes the system handle so
+        // the user can call `ctx.schedule_once(...)` etc. We construct it
+        // per-message rather than caching, since the underlying
+        // `ActorRef` & path are stable for this cell. The `self_ref`
+        // wrapper is built on the GIL because `Py::new` requires it.
+        let self_ref_rust = ctx.self_ref().clone();
+        let path_string = ctx.path().to_string();
+        let system_handle = ctx.system_handle();
         let result = self
             .on_interpreter(move |py, _| {
+                let py_ref = Py::new(py, PyActorRef::new(self_ref_rust, path_string.clone()))?;
+                let py_ctx = Py::new(
+                    py,
+                    PyContext::from_handle(py_ref, path_string.clone(), system_handle.clone()),
+                )?;
                 let handle = instance.bind(py).getattr("handle")?;
-                let args = PyTuple::new_bound(py, &[py.None().into_any(), payload.into_any()]);
+                let args = PyTuple::new_bound(py, &[py_ctx.into_any(), payload.into_any()]);
                 let res = handle.call1(args)?;
                 coro_run(py, res)
             })

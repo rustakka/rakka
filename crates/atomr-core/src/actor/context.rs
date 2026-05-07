@@ -2,7 +2,7 @@
 //! (partial).
 
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::sync::Weak;
+use std::sync::{Arc, Weak};
 use std::time::Duration;
 
 use std::marker::PhantomData;
@@ -11,8 +11,41 @@ use super::actor_cell::{ChildEntry, SystemMsg};
 use super::actor_ref::{ActorRef, UntypedActorRef};
 use super::path::ActorPath;
 use super::props::Props;
+use super::scheduler::Scheduler;
 use super::sender::Sender;
 use super::traits::Actor;
+
+/// Public, opaque handle to the running [`super::ActorSystem`] that an actor
+/// can use to reach a small, curated subset of the system surface — currently
+/// just [`Self::scheduler`]. The handle holds a `Weak` reference so it does
+/// not keep the system alive; callers must check [`Self::is_alive`] (or
+/// receive `None` from [`Self::scheduler`]) before relying on it.
+///
+/// This type is the canonical way for binding layers (e.g. `pycore`) to
+/// register cancellable timers from inside `Actor::handle` without spawning
+/// detached `tokio::spawn` tasks. The internal `ActorSystemInner` type is
+/// crate-private, so this thin wrapper is the only stable public path.
+#[derive(Clone)]
+pub struct SystemHandle {
+    inner: Weak<super::actor_system::ActorSystemInner>,
+}
+
+impl SystemHandle {
+    pub(crate) fn new(inner: Weak<super::actor_system::ActorSystemInner>) -> Self {
+        Self { inner }
+    }
+
+    /// True if the underlying [`super::ActorSystem`] has not been dropped.
+    pub fn is_alive(&self) -> bool {
+        self.inner.strong_count() > 0
+    }
+
+    /// Borrow the system's [`Scheduler`]. Returns `None` if the system has
+    /// been dropped.
+    pub fn scheduler(&self) -> Option<Arc<dyn Scheduler>> {
+        self.inner.upgrade().map(|s| s.scheduler.clone())
+    }
+}
 
 /// Lifecycle phase exposed via [`Context::phase`]. Phase 1.C of
 /// `docs/full-port-plan.md` — runtime precursor to the phantom-typed
@@ -76,6 +109,14 @@ impl<A: Actor> Context<A> {
 
     pub fn path(&self) -> &ActorPath {
         &self.path
+    }
+
+    /// Opaque handle to the running [`super::ActorSystem`]. Useful in
+    /// binding layers that need to register cancellable timers via the
+    /// system [`Scheduler`] without spawning detached `tokio` tasks.
+    /// Holds a `Weak` reference; see [`SystemHandle`].
+    pub fn system_handle(&self) -> SystemHandle {
+        SystemHandle::new(self.system.clone())
     }
 
     /// Spawn a child actor under this context.

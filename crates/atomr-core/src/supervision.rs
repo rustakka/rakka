@@ -53,6 +53,17 @@ impl SupervisorStrategy {
     pub fn decide(&self, err: &str) -> Directive {
         (self.decider)(err)
     }
+
+    /// Directive applied when [`Self::max_retries`] within
+    /// [`Self::within`] is exceeded.
+    ///
+    /// Defaults to [`Directive::Escalate`] — matching Akka's behaviour:
+    /// the parent supervisor decides the next step, and at the user-guardian
+    /// root that is equivalent to stopping the cell. Override via a future
+    /// builder method when per-strategy on-overflow behaviour is needed.
+    pub fn on_max_retries(&self) -> Directive {
+        Directive::Escalate
+    }
 }
 
 /// Builder for `OneForOne` — the default.

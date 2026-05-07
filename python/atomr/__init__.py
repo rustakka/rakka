@@ -9,6 +9,7 @@ from . import _native  # noqa: F401
 
 from .actor import Actor
 from .system import ActorSystem, Props, ActorRef, Config, Context, props
+from .context import Cancelable
 from .errors import (
     AtomrError,
     ActorSystemError,
@@ -45,6 +46,7 @@ __all__ = [
     "ActorRef",
     "Config",
     "Context",
+    "Cancelable",
     "props",
     "InterpreterQuota",
     "subinterpreters_supported",

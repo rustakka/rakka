@@ -28,7 +28,9 @@ pub use actor_cell::{ActorCell, SystemMsg};
 pub use actor_ref::{ActorRef, AskError, UntypedActorRef};
 pub use actor_system::{ActorSystem, ActorSystemError};
 pub use address::Address;
-pub use context::{Context, LifecyclePhase, PhaseMarker, Running, Starting, Stopping, TypedContext};
+pub use context::{
+    Context, LifecyclePhase, PhaseMarker, Running, Starting, Stopping, SystemHandle, TypedContext,
+};
 pub use coordinated_shutdown::{CoordinatedShutdown, Phase, PhaseConfig};
 pub use deploy::{Deploy, Scope};
 pub use extensions::{Extension, ExtensionId, Extensions};
