@@ -357,70 +357,261 @@ impl PyFlag {
     }
 }
 
-/// Observed-remove map of `String` → `LwwRegister<bytes>`. The value
-/// type is fixed because `CrdtMerge` is a sealed trait — Python users
-/// cannot supply arbitrary CRDT values. For per-key counters use
-/// [`PyPNCounterMap`]; for set-valued maps use [`PyORMultiMap`].
+/// Tagged-enum storage for `PyORMap`. ORMap is type-homogeneous in its
+/// value: a single instance carries one of the variants below. `put`
+/// rejects values whose CRDT class doesn't match the variant; `merge`
+/// rejects across-variant merges with `ValueError`.
+///
+/// Supported value types: `LwwRegister<bytes>`, `PNCounter`, `Flag`,
+/// `GSet<String>`, `LWWMap<String, bytes>`.
+pub(crate) enum OrMapStorage {
+    LwwReg(ORMap<String, LwwRegister<Vec<u8>>>),
+    PnCounter(ORMap<String, PNCounter>),
+    Flag(ORMap<String, Flag>),
+    GSet(ORMap<String, GSet<String>>),
+    LwwMap(ORMap<String, LWWMap<String, Vec<u8>>>),
+}
+
+impl OrMapStorage {
+    fn variant_name(&self) -> &'static str {
+        match self {
+            Self::LwwReg(_) => "LwwRegister",
+            Self::PnCounter(_) => "PNCounter",
+            Self::Flag(_) => "Flag",
+            Self::GSet(_) => "GSet",
+            Self::LwwMap(_) => "LWWMap",
+        }
+    }
+}
+
+/// Observed-remove map of `String` → CRDT value. The value type is
+/// fixed at construction via the `of_*` factory methods (or defaults
+/// to `LwwRegister<bytes>` for the bare constructor — preserved for
+/// backwards compat). Mixing variants in one ORMap raises
+/// `ValueError`. For per-key counters use [`PyPNCounterMap`]; for
+/// set-valued maps use [`PyORMultiMap`].
 #[pyclass(name = "ORMap", module = "atomr._native.ddata")]
 pub struct PyORMap {
-    pub(crate) inner: Mutex<ORMap<String, LwwRegister<Vec<u8>>>>,
+    pub(crate) inner: Mutex<OrMapStorage>,
 }
 
 #[pymethods]
 impl PyORMap {
+    /// Default constructor — values are `LwwRegister<bytes>`. Equivalent
+    /// to `ORMap.of_lww_register()`. Preserved for backwards compat.
     #[new]
     fn new() -> Self {
-        Self { inner: Mutex::new(ORMap::new()) }
+        Self { inner: Mutex::new(OrMapStorage::LwwReg(ORMap::new())) }
     }
 
-    /// Insert / replace a key. `value` must be a `LwwRegister`
-    /// instance. (The sealed `CrdtMerge` trait restricts ORMap values
-    /// to built-in CRDTs; only `LwwRegister<bytes>` is supported here.
-    /// User-defined Python CRDTs cannot be merged server-side without
-    /// the GIL.)
+    /// Construct an ORMap whose values are `LwwRegister<bytes>`.
+    #[staticmethod]
+    fn of_lww_register() -> Self {
+        Self { inner: Mutex::new(OrMapStorage::LwwReg(ORMap::new())) }
+    }
+
+    /// Construct an ORMap whose values are `PNCounter`.
+    #[staticmethod]
+    fn of_pn_counter() -> Self {
+        Self { inner: Mutex::new(OrMapStorage::PnCounter(ORMap::new())) }
+    }
+
+    /// Construct an ORMap whose values are `Flag`.
+    #[staticmethod]
+    fn of_flag() -> Self {
+        Self { inner: Mutex::new(OrMapStorage::Flag(ORMap::new())) }
+    }
+
+    /// Construct an ORMap whose values are `GSet<String>`.
+    #[staticmethod]
+    fn of_g_set() -> Self {
+        Self { inner: Mutex::new(OrMapStorage::GSet(ORMap::new())) }
+    }
+
+    /// Construct an ORMap whose values are `LWWMap<String, bytes>`.
+    #[staticmethod]
+    fn of_lww_map() -> Self {
+        Self { inner: Mutex::new(OrMapStorage::LwwMap(ORMap::new())) }
+    }
+
+    /// Returns the CRDT class name this ORMap holds as values:
+    /// `"LwwRegister"`, `"PNCounter"`, `"Flag"`, `"GSet"`, or
+    /// `"LWWMap"`.
+    fn value_type(&self) -> String {
+        self.inner.lock().variant_name().to_string()
+    }
+
+    /// Insert / replace a key. `value` must be an instance of the CRDT
+    /// type fixed at construction — e.g. an ORMap built with
+    /// `of_pn_counter()` only accepts `PNCounter` values. Mismatch
+    /// raises `ValueError`.
     fn put(&self, key: String, value: Bound<'_, PyAny>) -> PyResult<()> {
-        let cell: PyRef<PyLwwRegister> = value.extract().map_err(|_| {
-            PyErr::new::<PyValueError, _>(
-                "ORMap values must be a `LwwRegister` instance; user-defined \
-                 Python CRDTs are not supported (merge would need to run \
-                 server-side without the GIL).",
-            )
-        })?;
-        let snapshot = { cell.inner.lock().clone() };
-        self.inner.lock().put(key, snapshot);
+        let mut g = self.inner.lock();
+        match &mut *g {
+            OrMapStorage::LwwReg(m) => {
+                let cell: PyRef<PyLwwRegister> = value.extract().map_err(|_| {
+                    PyErr::new::<PyValueError, _>(
+                        "ORMap[LwwRegister]: value must be a `LwwRegister` instance",
+                    )
+                })?;
+                let snapshot = cell.inner.lock().clone();
+                m.put(key, snapshot);
+            }
+            OrMapStorage::PnCounter(m) => {
+                let cell: PyRef<PyPNCounter> = value.extract().map_err(|_| {
+                    PyErr::new::<PyValueError, _>(
+                        "ORMap[PNCounter]: value must be a `PNCounter` instance",
+                    )
+                })?;
+                let snapshot = cell.inner.lock().clone();
+                m.put(key, snapshot);
+            }
+            OrMapStorage::Flag(m) => {
+                let cell: PyRef<PyFlag> = value.extract().map_err(|_| {
+                    PyErr::new::<PyValueError, _>(
+                        "ORMap[Flag]: value must be a `Flag` instance",
+                    )
+                })?;
+                let snapshot = *cell.inner.lock();
+                m.put(key, snapshot);
+            }
+            OrMapStorage::GSet(m) => {
+                let cell: PyRef<PyGSet> = value.extract().map_err(|_| {
+                    PyErr::new::<PyValueError, _>(
+                        "ORMap[GSet]: value must be a `GSet` instance",
+                    )
+                })?;
+                let snapshot = cell.inner.lock().clone();
+                m.put(key, snapshot);
+            }
+            OrMapStorage::LwwMap(m) => {
+                let cell: PyRef<PyLWWMap> = value.extract().map_err(|_| {
+                    PyErr::new::<PyValueError, _>(
+                        "ORMap[LWWMap]: value must be a `LWWMap` instance",
+                    )
+                })?;
+                let snapshot = cell.inner.lock().clone();
+                m.put(key, snapshot);
+            }
+        }
         Ok(())
     }
 
     fn remove(&self, key: String) {
-        self.inner.lock().remove(&key);
+        let mut g = self.inner.lock();
+        match &mut *g {
+            OrMapStorage::LwwReg(m) => m.remove(&key),
+            OrMapStorage::PnCounter(m) => m.remove(&key),
+            OrMapStorage::Flag(m) => m.remove(&key),
+            OrMapStorage::GSet(m) => m.remove(&key),
+            OrMapStorage::LwwMap(m) => m.remove(&key),
+        }
     }
 
     fn get<'py>(&self, py: Python<'py>, key: String) -> PyResult<Option<Py<PyAny>>> {
-        let snapshot = {
-            let g = self.inner.lock();
-            g.get(&key).cloned()
-        };
-        match snapshot {
-            Some(v) => {
-                let py_obj = Py::new(py, PyLwwRegister { inner: Mutex::new(v) })?;
-                Ok(Some(py_obj.into_any()))
-            }
-            None => Ok(None),
+        let g = self.inner.lock();
+        match &*g {
+            OrMapStorage::LwwReg(m) => match m.get(&key).cloned() {
+                Some(v) => {
+                    let py_obj = Py::new(py, PyLwwRegister { inner: Mutex::new(v) })?;
+                    Ok(Some(py_obj.into_any()))
+                }
+                None => Ok(None),
+            },
+            OrMapStorage::PnCounter(m) => match m.get(&key).cloned() {
+                Some(v) => {
+                    let py_obj = Py::new(py, PyPNCounter { inner: Mutex::new(v) })?;
+                    Ok(Some(py_obj.into_any()))
+                }
+                None => Ok(None),
+            },
+            OrMapStorage::Flag(m) => match m.get(&key).copied() {
+                Some(v) => {
+                    let py_obj = Py::new(py, PyFlag { inner: Mutex::new(v) })?;
+                    Ok(Some(py_obj.into_any()))
+                }
+                None => Ok(None),
+            },
+            OrMapStorage::GSet(m) => match m.get(&key).cloned() {
+                Some(v) => {
+                    let py_obj = Py::new(py, PyGSet { inner: Mutex::new(v) })?;
+                    Ok(Some(py_obj.into_any()))
+                }
+                None => Ok(None),
+            },
+            OrMapStorage::LwwMap(m) => match m.get(&key).cloned() {
+                Some(v) => {
+                    let py_obj = Py::new(py, PyLWWMap { inner: Mutex::new(v) })?;
+                    Ok(Some(py_obj.into_any()))
+                }
+                None => Ok(None),
+            },
         }
     }
 
     fn keys(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
         let g = self.inner.lock();
         let list = PyList::empty_bound(py);
-        for (k, _) in g.iter() {
-            list.append(k.clone())?;
+        match &*g {
+            OrMapStorage::LwwReg(m) => {
+                for (k, _) in m.iter() {
+                    list.append(k.clone())?;
+                }
+            }
+            OrMapStorage::PnCounter(m) => {
+                for (k, _) in m.iter() {
+                    list.append(k.clone())?;
+                }
+            }
+            OrMapStorage::Flag(m) => {
+                for (k, _) in m.iter() {
+                    list.append(k.clone())?;
+                }
+            }
+            OrMapStorage::GSet(m) => {
+                for (k, _) in m.iter() {
+                    list.append(k.clone())?;
+                }
+            }
+            OrMapStorage::LwwMap(m) => {
+                for (k, _) in m.iter() {
+                    list.append(k.clone())?;
+                }
+            }
         }
         Ok(list.unbind())
     }
 
-    fn merge(&self, other: &PyORMap) {
-        let o = other.inner.lock().clone();
-        self.inner.lock().merge(&o);
+    fn merge(&self, other: &PyORMap) -> PyResult<()> {
+        // Snapshot the other side first to release its lock before we
+        // grab ours (avoids deadlock on `a.merge(a)` though that's a
+        // user error anyway).
+        let other_clone = {
+            let og = other.inner.lock();
+            match &*og {
+                OrMapStorage::LwwReg(m) => OrMapStorage::LwwReg(m.clone()),
+                OrMapStorage::PnCounter(m) => OrMapStorage::PnCounter(m.clone()),
+                OrMapStorage::Flag(m) => OrMapStorage::Flag(m.clone()),
+                OrMapStorage::GSet(m) => OrMapStorage::GSet(m.clone()),
+                OrMapStorage::LwwMap(m) => OrMapStorage::LwwMap(m.clone()),
+            }
+        };
+        let mut g = self.inner.lock();
+        match (&mut *g, other_clone) {
+            (OrMapStorage::LwwReg(a), OrMapStorage::LwwReg(b)) => a.merge(&b),
+            (OrMapStorage::PnCounter(a), OrMapStorage::PnCounter(b)) => a.merge(&b),
+            (OrMapStorage::Flag(a), OrMapStorage::Flag(b)) => a.merge(&b),
+            (OrMapStorage::GSet(a), OrMapStorage::GSet(b)) => a.merge(&b),
+            (OrMapStorage::LwwMap(a), OrMapStorage::LwwMap(b)) => a.merge(&b),
+            (a, b) => {
+                return Err(PyErr::new::<PyValueError, _>(format!(
+                    "ORMap merge requires matching value types: self={}, other={}",
+                    a.variant_name(),
+                    b.variant_name(),
+                )));
+            }
+        }
+        Ok(())
     }
 }
 
@@ -1030,7 +1221,7 @@ fn fetch_current(py: Python<'_>, state: &ReplicatorState, key: &str, kind: CrdtK
         }
         CrdtKind::ORMap => {
             let v: ORMap<String, LwwRegister<Vec<u8>>> = r.get(key).unwrap_or_default();
-            Py::new(py, PyORMap { inner: Mutex::new(v) })?.into_any()
+            Py::new(py, PyORMap { inner: Mutex::new(OrMapStorage::LwwReg(v)) })?.into_any()
         }
         CrdtKind::LWWMap => {
             let v: LWWMap<String, Vec<u8>> = r.get(key).unwrap_or_default();
@@ -1156,8 +1347,15 @@ async fn submit_update(
             let value = Python::with_gil(|py| -> PyResult<ORMap<String, LwwRegister<Vec<u8>>>> {
                 let r = modified.bind(py);
                 let cell: PyRef<PyORMap> = r.extract()?;
-                let snapshot = cell.inner.lock().clone();
-                Ok(snapshot)
+                let g = cell.inner.lock();
+                match &*g {
+                    OrMapStorage::LwwReg(m) => Ok(m.clone()),
+                    other => Err(PyErr::new::<PyValueError, _>(format!(
+                        "Replicator.update only supports ORMap[LwwRegister]; got ORMap[{}]. \
+                         Use of_lww_register() to construct a Replicator-compatible ORMap.",
+                        other.variant_name(),
+                    ))),
+                }
             })?;
             persist(&state.durable, &key, &value);
             state.actor.update(key, value, wc).await
@@ -1238,7 +1436,11 @@ async fn fetch_value_async(
         }),
         CrdtKind::ORMap => inner.get::<ORMap<String, LwwRegister<Vec<u8>>>>(&key).map(|v| {
             Python::with_gil(|py| {
-                Py::new(py, PyORMap { inner: Mutex::new(v) }).map(|p| p.into_any())
+                Py::new(
+                    py,
+                    PyORMap { inner: Mutex::new(OrMapStorage::LwwReg(v)) },
+                )
+                .map(|p| p.into_any())
             })
         }),
         CrdtKind::LWWMap => inner.get::<LWWMap<String, Vec<u8>>>(&key).map(|v| {

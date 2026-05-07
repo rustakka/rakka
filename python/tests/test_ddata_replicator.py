@@ -69,8 +69,120 @@ def test_ormap_roundtrip():
 
 def test_ormap_rejects_non_lww_value():
     m = d.ORMap()
+    # Default ORMap() is LwwRegister-typed — putting a non-LwwRegister
+    # raises (and so does putting an unsupported type like GCounter).
     with pytest.raises(ValueError):
         m.put("k", d.GCounter())
+
+
+def test_ormap_default_value_type_is_lww_register():
+    m = d.ORMap()
+    assert m.value_type() == "LwwRegister"
+
+
+def test_ormap_of_pn_counter_roundtrip():
+    a = d.ORMap.of_pn_counter()
+    b = d.ORMap.of_pn_counter()
+    assert a.value_type() == "PNCounter"
+
+    pa = d.PNCounter()
+    pa.increment("n1", 3)
+    a.put("alice", pa)
+
+    pb = d.PNCounter()
+    pb.increment("n2", 7)
+    b.put("alice", pb)
+
+    a.merge(b)
+    got = a.get("alice")
+    assert got is not None
+    # PNCounter.merge is per-node so total is 3 + 7 = 10.
+    assert got.value() == 10
+
+
+def test_ormap_of_flag_roundtrip():
+    a = d.ORMap.of_flag()
+    b = d.ORMap.of_flag()
+    assert a.value_type() == "Flag"
+
+    fa = d.Flag()
+    fb = d.Flag()
+    fb.enable()
+    a.put("on", fa)
+    b.put("on", fb)
+
+    a.merge(b)
+    got = a.get("on")
+    assert got is not None
+    # Flag is monotonic — false ⊔ true == true.
+    assert got.is_enabled()
+
+
+def test_ormap_of_g_set_roundtrip():
+    a = d.ORMap.of_g_set()
+    b = d.ORMap.of_g_set()
+
+    ga = d.GSet()
+    ga.add("x")
+    a.put("colors", ga)
+
+    gb = d.GSet()
+    gb.add("y")
+    b.put("colors", gb)
+
+    a.merge(b)
+    got = a.get("colors")
+    assert got is not None
+    assert got.contains("x")
+    assert got.contains("y")
+
+
+def test_ormap_of_lww_map_roundtrip():
+    a = d.ORMap.of_lww_map()
+    b = d.ORMap.of_lww_map()
+
+    la = d.LWWMap()
+    la.put("k", b"alpha", timestamp=100)
+    a.put("inner", la)
+
+    lb = d.LWWMap()
+    lb.put("k", b"beta", timestamp=200)
+    b.put("inner", lb)
+
+    a.merge(b)
+    got = a.get("inner")
+    assert got is not None
+    assert got.get("k") == b"beta"
+
+
+def test_ormap_put_wrong_type_raises():
+    m = d.ORMap.of_pn_counter()
+    with pytest.raises(ValueError):
+        # Not a PNCounter.
+        m.put("k", d.LwwRegister.with_value(b"v"))
+    with pytest.raises(ValueError):
+        m.put("k", d.Flag())
+
+
+def test_ormap_merge_mismatched_types_raises():
+    a = d.ORMap.of_pn_counter()
+    b = d.ORMap.of_flag()
+    with pytest.raises(ValueError):
+        a.merge(b)
+
+
+def test_ormap_remove_works_for_all_variants():
+    for factory_name in [
+        "of_lww_register",
+        "of_pn_counter",
+        "of_flag",
+        "of_g_set",
+        "of_lww_map",
+    ]:
+        m = getattr(d.ORMap, factory_name)()
+        # Removing an absent key is a no-op.
+        m.remove("nope")
+        assert sorted(m.keys()) == []
 
 
 def test_ormap_remove_then_concurrent_put():
