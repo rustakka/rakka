@@ -94,6 +94,16 @@ impl PySupervisorStrategy {
     pub(crate) fn rust(&self) -> &RustStrategy {
         &self.inner
     }
+
+    /// Round-2 Epic B convenience: default `OneForOne` decider
+    /// (restart-on-anything) with the given retry budget. Used by
+    /// `Props.with_supervisor_budget`.
+    pub(crate) fn default_with_budget(max_retries: u32, within_seconds: f64) -> Self {
+        let strat = OneForOneStrategy::new()
+            .with_max_retries(max_retries)
+            .with_within(Duration::from_secs_f64(within_seconds));
+        Self { inner: strat.into() }
+    }
 }
 
 #[pymethods]

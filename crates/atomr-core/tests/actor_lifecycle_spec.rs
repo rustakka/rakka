@@ -16,6 +16,7 @@ use std::time::Duration;
 use async_trait::async_trait;
 use atomr_config::Config;
 use atomr_core::actor::{Actor, ActorPath, ActorSystem, Context, DeadLetterObserver, Props};
+use atomr_core::supervision::{Directive, OneForOneStrategy, SupervisorStrategy};
 use parking_lot::Mutex;
 use tokio::sync::oneshot;
 
@@ -217,6 +218,80 @@ impl DeadLetterObserver for CapturingDeadLetters {
     ) {
         self.seen.lock().push(recipient.clone());
     }
+}
+
+#[tokio::test]
+async fn max_retries_within_window_stops_actor() {
+    // OneForOne, max_retries = 2, within = 5s. The third panic exceeds the
+    // budget and the cell escalates to stop. We assert: pre_restart fired
+    // exactly twice (one per allowed restart), and post_stop fired exactly
+    // once after the escalation.
+    let counters = LifeCounters::new();
+    let sys = ActorSystem::create("LifeBudget", Config::reference()).await.unwrap();
+
+    let strategy: SupervisorStrategy = OneForOneStrategy::new()
+        .with_max_retries(2)
+        .with_within(Duration::from_secs(5))
+        .with_decider(|_| Directive::Restart)
+        .into();
+
+    let counters_for_factory = counters.clone();
+    let props = Props::create(move || LifeActor { counters: counters_for_factory.clone(), state: 0 })
+        .with_supervisor_strategy(strategy);
+    let r = sys.actor_of(props, "a").unwrap();
+    let path = r.path().clone();
+
+    settle().await;
+
+    // Three panics in rapid succession (well within the 5s window).
+    for _ in 0..3 {
+        r.tell(LifeMsg::Boom);
+    }
+    // Give the supervision loop time to process all three panics + finalize.
+    tokio::time::sleep(Duration::from_millis(120)).await;
+
+    let (pre, post, pre_r, post_r, _) = counters.snapshot();
+    assert_eq!(pre, 1, "pre_start fires only on the original start");
+    assert_eq!(pre_r, 2, "two restarts allowed before max_retries trips");
+    assert_eq!(post_r, 2, "post_restart paired with each pre_restart");
+    assert_eq!(post, 1, "post_stop runs once after escalation");
+
+    // After escalation the cell is gone — sends become dead letters.
+    let _ = path; // touched for clarity; not asserted on directly here.
+
+    sys.terminate().await;
+}
+
+#[tokio::test]
+async fn restarts_outside_window_do_not_count() {
+    // max_retries = 1, within = 50ms. Two panics spaced past the window
+    // must each succeed as a Restart, with no escalation.
+    let counters = LifeCounters::new();
+    let sys = ActorSystem::create("LifeWindow", Config::reference()).await.unwrap();
+
+    let strategy: SupervisorStrategy = OneForOneStrategy::new()
+        .with_max_retries(1)
+        .with_within(Duration::from_millis(50))
+        .with_decider(|_| Directive::Restart)
+        .into();
+
+    let counters_for_factory = counters.clone();
+    let props = Props::create(move || LifeActor { counters: counters_for_factory.clone(), state: 0 })
+        .with_supervisor_strategy(strategy);
+    let r = sys.actor_of(props, "a").unwrap();
+    settle().await;
+
+    r.tell(LifeMsg::Boom);
+    tokio::time::sleep(Duration::from_millis(80)).await; // exceed window
+    r.tell(LifeMsg::Boom);
+    tokio::time::sleep(Duration::from_millis(80)).await;
+
+    let (_, post, pre_r, post_r, _) = counters.snapshot();
+    assert_eq!(pre_r, 2, "both restarts succeeded — window pruned the first");
+    assert_eq!(post_r, 2);
+    assert_eq!(post, 0, "actor still alive — no escalation");
+
+    sys.terminate().await;
 }
 
 #[tokio::test]

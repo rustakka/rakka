@@ -9,8 +9,9 @@
 //! * Handle supervision decisions on panic
 //! * Track children, watchers, and receive timeout
 
+use std::collections::VecDeque;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use tokio::sync::mpsc;
 
@@ -84,6 +85,15 @@ async fn run_cell<A: Actor>(
 
     let supervisor_ref = props.supervisor_strategy.clone();
 
+    // Sliding-window restart history. A new entry is appended on every
+    // `Directive::Restart` decision; entries older than the strategy's
+    // `within` are pruned before each check. When `max_retries` is set
+    // and the (post-prune) history length plus the imminent restart
+    // would exceed the cap, supervision escalates (currently: stop the
+    // actor — escalation to the parent will land with the parent-cell
+    // reorg in a follow-up).
+    let mut restart_history: VecDeque<Instant> = VecDeque::new();
+
     loop {
         while let Ok(sys) = sys_rx.try_recv() {
             if handle_system(actor, ctx, sys).await {
@@ -119,6 +129,34 @@ async fn run_cell<A: Actor>(
                     match directive {
                         Directive::Resume => {}
                         Directive::Restart => {
+                            // Sliding-window retry budget. Only enforced when
+                            // the strategy declares one; without `max_retries`
+                            // the cell behaves exactly as before.
+                            let strategy = supervisor_ref.as_ref();
+                            let max_retries = strategy.and_then(|s| s.max_retries);
+                            if let Some(max) = max_retries {
+                                let now = Instant::now();
+                                if let Some(within) = strategy.and_then(|s| s.within) {
+                                    while let Some(front) = restart_history.front() {
+                                        if now.duration_since(*front) > within {
+                                            restart_history.pop_front();
+                                        } else {
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (restart_history.len() as u32) + 1 > max {
+                                    tracing::warn!(
+                                        path = %ctx.path,
+                                        retries = restart_history.len(),
+                                        max,
+                                        "supervisor max_retries exceeded; escalating (stop)"
+                                    );
+                                    finalize(actor, ctx).await;
+                                    return;
+                                }
+                                restart_history.push_back(now);
+                            }
                             actor.pre_restart(ctx, &panic_msg).await;
                             *actor = props.new_actor();
                             actor.post_restart(ctx, &panic_msg).await;

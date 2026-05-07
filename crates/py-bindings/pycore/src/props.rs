@@ -10,6 +10,12 @@
 //! Phase 3 — Props additionally carries a `kind: PropsKind` tag that
 //! selects between standard Python actors, routers, and backoff
 //! supervisors. Router constructors live in [`crate::ext_routing`].
+//!
+//! Round-2 Epic B — atomr-core's actor_cell now enforces
+//! `max_retries`/`within_seconds` on the `SupervisorStrategy`. The
+//! existing `with_supervisor_strategy(...)` builder already plumbs
+//! those fields through `PySupervisorStrategy`; Epic B's enforcement
+//! is transparent at this layer.
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -136,6 +142,19 @@ impl PyProps {
     /// from this Props inherit the strategy through the bound
     /// `PyActor`'s `supervisor_strategy()` impl.
     fn with_supervisor_strategy(&self, strategy: PySupervisorStrategy) -> Self {
+        let mut c = self.clone();
+        c.supervisor_strategy = Some(strategy);
+        c
+    }
+
+    /// Convenience: produce a Props whose supervisor strategy uses the
+    /// given retry budget. Equivalent to
+    /// `with_supervisor_strategy(PySupervisorStrategy::one_for_one(...,
+    /// max_retries=N, within_seconds=W))` but with a default decider
+    /// that restarts on any exception.
+    #[pyo3(signature = (max_retries, within_seconds=60.0))]
+    fn with_supervisor_budget(&self, max_retries: u32, within_seconds: f64) -> Self {
+        let strategy = PySupervisorStrategy::default_with_budget(max_retries, within_seconds);
         let mut c = self.clone();
         c.supervisor_strategy = Some(strategy);
         c
