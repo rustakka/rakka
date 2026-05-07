@@ -88,9 +88,15 @@ A longer argument is in
 | `atomr-telemetry` | Tracing, metrics, exporters |
 | `atomr-dashboard` | Live web UI over the running system |
 
-Plus a Python facade — `pip install atomr` — that exposes the same
-actor model with GIL-isolated interpreter pools for CPU-bound work and
-async-native `tell` / `ask`.
+Plus a Python facade — `pip install atomr` — that exposes the full
+actor model: real `Context` (children, watch, stash, become, timers,
+sender), configurable `SupervisorStrategy` with retry-budget
+enforcement, routers and resilience patterns, multi-node TCP +
+in-process cluster transports with per-system codec registries,
+event-sourced actors, the full distributed-data CRDT suite +
+`Replicator`, real `ShardRegion` with allocation/passivation/remember-
+entities, the streams DSL on arbitrary Python objects, and
+GIL-isolated interpreter pools for CPU-bound work.
 
 ## Test coverage
 
@@ -172,10 +178,29 @@ print(ref.ask_blocking("world", timeout=5.0))   # -> "hello, world"
 system.terminate_blocking()
 ```
 
-See [`docs/python.md`](docs/python.md) for the GIL-strategy guide
-(`python-pinned`, `python-subinterpreter-pool` per PEP 684,
-`python-nogil` per PEP 703, `python-subprocess`) and the C-extension
-compatibility registry.
+`handle(ctx, msg)` receives a real `Context` — `ctx.spawn(props,
+name)`, `ctx.watch(ref)`, `ctx.stash(msg)`, `ctx.become(handler)`,
+`ctx.schedule_once(0.5, "tick")` (returns a `Cancelable`),
+`ctx.sender`, etc. Two systems can join a cluster over TCP or an
+in-process registry, exchange messages via per-system codec
+registries, and run sharded entity actors:
+
+```python
+from atomr.cluster import Cluster, ClusterRegistry
+
+ca = Cluster.with_tcp_transport(sys_a, "127.0.0.1:0")
+cb = Cluster.with_tcp_transport(sys_b, "127.0.0.1:0")
+sys_a.register_codec("json", encode, decode, manifests=["app.MyMsg"])
+sys_a.tell_remote(remote_ref, MyMsg(...))
+```
+
+See [`docs/python.md`](docs/python.md) for the full guide: distributed
+actors, supervision, patterns + routers, sharding, event sourcing,
+distributed data, streams DSL, GIL strategies (`python-pinned`,
+`python-subinterpreter-pool` per PEP 684, `python-nogil` per PEP 703,
+`python-subprocess`), and the C-extension compatibility registry. The
+Python suite ships with 270 tests including TCP and in-process
+multi-node cluster, sharding, and replicator integration tests.
 
 ## Building from source
 

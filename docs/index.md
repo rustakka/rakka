@@ -67,11 +67,17 @@ A longer argument lives in
   reach for when you compose larger systems.
 - **Telemetry + dashboard** — tracing, metrics, exporters, plus a
   live web UI over the running system.
-- **Python bindings** for every subsystem with GIL-isolated
-  interpreter strategies (`python-pinned`,
-  `python-subinterpreter-pool` per PEP 684, `python-nogil` per PEP
-  703, `python-subprocess`) and per-pool `InterpreterQuota` /
-  `InterpreterMetrics`.
+- **Python bindings** for every subsystem: real `Context` (spawn /
+  watch / stash / become / cancellable timers / sender), configurable
+  `SupervisorStrategy` with enforced retry budgets, routers and
+  resilience patterns, multi-node TCP + in-process cluster transports
+  with per-system codec registries, event-sourced actors, the full
+  CRDT suite + `Replicator`, real cluster sharding with allocation /
+  passivation / remember-entities, the streams DSL on arbitrary
+  Python objects, GIL-isolated interpreter strategies (`python-
+  pinned`, `python-subinterpreter-pool` per PEP 684, `python-nogil`
+  per PEP 703, `python-subprocess`) with per-pool `InterpreterQuota`
+  / `InterpreterMetrics`.
 - **Cross-runtime profiler** — same scenarios in Rust and Python,
   shared JSON schema, side-by-side comparison.
 

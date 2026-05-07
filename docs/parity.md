@@ -61,19 +61,19 @@ the typical actor-runtime shape.
 
 | Crate | Python module | Depth |
 |---|---|---|
-| `pycore` | `atomr` (aggregate) | b |
-| `pytestkit` | `atomr.testkit` | c |
-| `pycluster` | `atomr.cluster` | c |
-| `pycluster-tools` | `atomr.cluster_tools` | d |
-| `pycluster-sharding` | `atomr.cluster_sharding` | d |
-| `pyddata` | `atomr.ddata` | c |
-| `pypersistence` | `atomr.persistence` | c |
-| `pystreams` | `atomr.streams` | c |
+| `pycore` | `atomr` (aggregate) | b — real `Context` (spawn / watch / stash / become / timers / sender), `SupervisorStrategy` with enforced retry budget, `Cancelable` scheduler tokens, routers as `Props` factories, `pattern.{CircuitBreaker, RetrySchedule, retry, pipe_to}` |
+| `pytestkit` | `atomr.testkit` | b — full matcher set, `TestScheduler` virtual time, `fish_for_message`, `EventFilter`, `MultiNodeOopController`/`Node` |
+| `pycluster` | `atomr.cluster` | b — `Cluster.{with_tcp_transport, with_test_transport, get, join_seed_nodes, leave, down, subscribe, member_count, membership_snapshot, leader, self_address}`, `MemberDowned` event, SBR config (`keep-majority`/`static-quorum`/`keep-oldest`/`down-all`/`lease-majority`) |
+| `pycluster-tools` | `atomr.cluster_tools` | b — `DistributedPubSub`, `ClusterSingletonManager`, `ClusterReceptionist` |
+| `pycluster-sharding` | `atomr.cluster_sharding` | b — real `ShardRegion.start` wired to `atomr-cluster-sharding`; `LeastShard`/`Pinned` allocation, idle + explicit passivation, remember-entities, multi-node rebalance |
+| `pyddata` | `atomr.ddata` | b — 10 CRDTs (`GCounter`/`PNCounter`/`GSet`/`ORSet`/`LwwRegister`/`Flag`/`ORMap`/`LWWMap`/`PNCounterMap`/`ORMultiMap`), `Replicator` actor, `Read`/`WriteConsistency`, `DurableStore.{noop, file}`, async iterator subscriptions, `ORMap` of any built-in CRDT |
+| `pypersistence` | `atomr.persistence` | b — `EventSourcedActor` base class with `command_handler`/`event_handler`, `Effect.{persist, persist_all, snapshot, reply_message, stop}`, `RecoveryPermitter`, `InMemoryJournal`, `InMemorySnapshotStore` |
+| `pystreams` | `atomr.streams` | b — `Source`/`Flow`/`Sink`/`RunnableGraph` on `Py<PyAny>`, `KillSwitch`, `BroadcastHub`/`MergeHub`, `SourceQueue`/`SinkQueue`, `GraphDsl`, `BidiFlow`, `Framing`, `Tcp`, `FileIO`, `RestartSource`/`RestartSettings`, `Flow.with_supervision` |
 | `pycoordination` | `atomr.coordination` | b |
 | `pydiscovery` | `atomr.discovery` | b |
 | `pydi` | `atomr.di` | b |
 | `pyhosting` | `atomr.hosting` | b |
-| `pyremote` | `atomr.remote` | d (codec plug-in pending) |
+| `pyremote` | (wired into `atomr.ActorSystem`) | b — pluggable codec registry (`register_codec(name, encode, decode, manifests, force, strict)`, `use_json_codec(default=True)`), wire-level `tell_remote` over `TcpClusterTransport` and `InProcessClusterTransport`, manifest validation with opt-in lax mode |
 
 ## Path forward
 
