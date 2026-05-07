@@ -92,9 +92,11 @@ def test_subscribe_member_up_is_received():
                 # Drive the daemon to converge.
                 await cluster.join_seed_nodes([cluster.self_address], timeout=10.0)
                 # MemberUp arrives once the leader-action tick fires.
-                async with asyncio.timeout(10.0):
+                async def _first():
                     async for ev in sub:
                         return ev
+                    return None
+                return await asyncio.wait_for(_first(), timeout=10.0)
             finally:
                 sub.close()
 
@@ -119,11 +121,14 @@ def test_leave_eventually_removes_self():
                 # subscriber against it.
                 leave_task = asyncio.create_task(cluster.leave(timeout=10.0))
                 events = []
-                async with asyncio.timeout(10.0):
+
+                async def _drain_until_removed():
                     async for ev in sub:
                         events.append(ev)
                         if isinstance(ev, MemberRemoved):
-                            break
+                            return
+
+                await asyncio.wait_for(_drain_until_removed(), timeout=10.0)
                 await leave_task
                 return events
             finally:
@@ -214,13 +219,14 @@ def test_down_emits_member_downed_event():
             try:
                 # Down ourselves; assert MemberDowned arrives on the bus.
                 await cluster.down(cluster.self_address)
-                downed_seen = False
-                async with asyncio.timeout(5.0):
+
+                async def _await_downed() -> bool:
                     async for ev in sub:
                         if isinstance(ev, MemberDowned):
-                            downed_seen = True
-                            break
-                return downed_seen
+                            return True
+                    return False
+
+                return await asyncio.wait_for(_await_downed(), timeout=5.0)
             finally:
                 sub.close()
 
