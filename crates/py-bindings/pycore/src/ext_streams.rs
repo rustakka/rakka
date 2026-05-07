@@ -13,18 +13,26 @@
 //!    materializer dispatcher; element drops happen inside `Python::with_gil`
 //!    via the `SendPyAny` newtype.
 
+use std::collections::HashMap;
+use std::net::SocketAddr;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
 use atomr_streams::{
     conflate, expand, initial_delay, keep_alive, merge_prioritized, merge_sorted, prefix_and_tail,
-    recover_with_retries, select_error, split_after, ActorMaterializer, BroadcastHub as RustBroadcastHub,
-    Flow, KillSwitch as RustKillSwitch, MergeHub as RustMergeHub, QueueOfferResult as RustOfferResult, Sink,
-    SinkQueue as RustSinkQueue, Source,
+    recover_with_retries, select_error, split_after, ActorMaterializer,
+    BidiFlow as RustBidiFlow, BroadcastHub as RustBroadcastHub, FileIO as RustFileIO, Flow,
+    Framing as RustFraming, KillSwitch as RustKillSwitch, MergeHub as RustMergeHub,
+    QueueOfferResult as RustOfferResult, RestartSettings as RustRestartSettings,
+    RestartSource as RustRestartSource, Sink, SinkQueue as RustSinkQueue, Source,
+    SupervisionDirective, Tcp as RustTcp,
 };
+use bytes::Bytes;
 use parking_lot::Mutex;
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::PyList;
+use pyo3::types::{PyBytes, PyList};
 use pyo3_async_runtimes::tokio as pyo3_tokio;
 
 use crate::runtime::runtime;
@@ -427,6 +435,151 @@ impl PyFlow {
         let b = other.borrow_mut(py).take_builder()?;
         Py::new(py, PyFlow::from_builder(a.via(b)))
     }
+
+    /// `Flow.try_map(fn)` — like `Flow.from_fn` but propagates Python
+    /// exceptions into the supervised stream. Companion of
+    /// `with_supervision`. Without supervision installed downstream, a
+    /// raised exception substitutes `None` (matching `Flow.from_fn`).
+    ///
+    /// On error, the substituted output is a special "error sentinel"
+    /// pair `(None, py_err_class_path)` that `with_supervision` recognises
+    /// and applies the decider to. Without `with_supervision`, the
+    /// sentinel is observable as a 2-tuple downstream.
+    #[staticmethod]
+    fn try_map(py: Python<'_>, func: Py<PyAny>) -> Self {
+        let _ = py;
+        PyFlow::from_builder(FlowBuilder::new(move || {
+            let func = func;
+            Flow::<SendPyAny, SendPyAny>::from_fn(move |x: SendPyAny| -> SendPyAny {
+                Python::with_gil(|py| {
+                    let inner = x.into_inner();
+                    let arg = inner.bind(py);
+                    match func.call1(py, (arg,)) {
+                        Ok(out) => SendPyAny::new(out),
+                        Err(e) => {
+                            // Build an error sentinel: a 2-tuple
+                            // `("__atomr_stream_error__", class_path)`
+                            // recognisable by `with_supervision` below.
+                            let ty = e.get_type_bound(py);
+                            let module: String = ty
+                                .getattr("__module__")
+                                .and_then(|m| m.extract::<String>())
+                                .unwrap_or_default();
+                            let qual: String = ty
+                                .getattr("__qualname__")
+                                .and_then(|q| q.extract::<String>())
+                                .or_else(|_| {
+                                    ty.getattr("__name__").and_then(|n| n.extract::<String>())
+                                })
+                                .unwrap_or_default();
+                            let class_path = if module.is_empty() || module == "builtins" {
+                                qual
+                            } else {
+                                format!("{module}.{qual}")
+                            };
+                            let tup = pyo3::types::PyTuple::new_bound(
+                                py,
+                                [
+                                    "__atomr_stream_error__".into_py(py),
+                                    class_path.into_py(py),
+                                ],
+                            );
+                            // Clear the error so it doesn't leak; the
+                            // sentinel encodes the type for the supervision
+                            // decider.
+                            e.restore(py);
+                            let _ = PyErr::take(py);
+                            SendPyAny::new(tup.unbind().into_any())
+                        }
+                    }
+                })
+            })
+        }))
+    }
+
+    /// `flow.with_supervision(decider, default="stop")` — wrap a flow so
+    /// any Python exception raised inside an upstream `try_map` callable is
+    /// routed through the decider. Errors mapped to `resume` or `restart`
+    /// drop the failing element; `stop` terminates the stream.
+    ///
+    /// `decider` is a list of `(exception_class_path, "resume" | "restart" |
+    /// "stop")` pairs. `class_path` is matched against
+    /// `<module>.<qualname>` and falls back to the bare class name.
+    #[pyo3(signature = (decider=None, default=None))]
+    fn with_supervision(
+        &self,
+        py: Python<'_>,
+        decider: Option<Vec<(String, String)>>,
+        default: Option<String>,
+    ) -> PyResult<Py<PyFlow>> {
+        let mut rules: HashMap<String, SupervisionDirective> = HashMap::new();
+        if let Some(rs) = decider {
+            for (k, v) in rs {
+                rules.insert(k, parse_stream_directive(&v)?);
+            }
+        }
+        let default_dir = match default.as_deref() {
+            Some(s) => parse_stream_directive(s)?,
+            None => SupervisionDirective::Stop,
+        };
+        let prev = self.take_builder()?;
+        // Use a shared bool to signal "stop" — once set, downstream elements
+        // are dropped. We deliberately keep this simple: we use Source
+        // operations on the materialised Flow so the implementation only
+        // depends on public API.
+        let stopped = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let new_builder = FlowBuilder::new(move || {
+            let inner = prev.build();
+            let stopped = Arc::clone(&stopped);
+            // Compose: inner_flow -> filter_map_flow that interprets the
+            // try_map error sentinel and applies the decider.
+            let supervisor = Flow::<SendPyAny, Vec<SendPyAny>>::from_fn(move |item: SendPyAny| {
+                if stopped.load(std::sync::atomic::Ordering::SeqCst) {
+                    // Drop subsequent elements.
+                    return Vec::new();
+                }
+                Python::with_gil(|py| {
+                    let bound = item.0.bind(py);
+                    // Detect the try_map error sentinel.
+                    let is_err = bound
+                        .extract::<(String, String)>()
+                        .ok()
+                        .map(|(t, _)| t == "__atomr_stream_error__");
+                    if let Some(true) = is_err {
+                        // Extract class_path and apply decider.
+                        let (_, class_path) = bound.extract::<(String, String)>().unwrap();
+                        let directive = rules
+                            .get(&class_path)
+                            .copied()
+                            .or_else(|| {
+                                // Bare classname fallback.
+                                let bare = class_path.rsplit('.').next().unwrap_or(&class_path);
+                                rules.get(bare).copied()
+                            })
+                            .unwrap_or(default_dir);
+                        match directive {
+                            SupervisionDirective::Stop => {
+                                stopped.store(true, std::sync::atomic::Ordering::SeqCst);
+                                Vec::new()
+                            }
+                            // Both Resume and Restart: drop the failing
+                            // element. (Restart for stateless ops behaves
+                            // like Resume.)
+                            _ => Vec::new(),
+                        }
+                    } else {
+                        vec![item]
+                    }
+                })
+            });
+            // Convert Vec<SendPyAny> back to SendPyAny via flat_map_concat.
+            let flatten = Flow::<Vec<SendPyAny>, SendPyAny>::flat_map_concat(
+                |v: Vec<SendPyAny>| -> Vec<SendPyAny> { v },
+            );
+            inner.via(supervisor).via(flatten)
+        });
+        Py::new(py, PyFlow::from_builder(new_builder))
+    }
 }
 
 // =============================================================================
@@ -804,6 +957,660 @@ impl PyMergeHub {
 }
 
 // =============================================================================
+// RestartSource / RestartSettings
+// =============================================================================
+
+/// `RestartSource(min_backoff, max_backoff, random_factor, max_restarts)`.
+///
+/// Wraps `atomr_streams::RestartSource::with_backoff`. The factory callback is
+/// a Python callable returning a fresh `Source` each time it is invoked. The
+/// produced `Source` re-subscribes to the factory until completion or until
+/// the configured `max_restarts` is reached.
+#[pyclass(name = "RestartSource", module = "atomr._native.streams")]
+pub struct PyRestartSource {
+    settings: RustRestartSettings,
+}
+
+#[pymethods]
+impl PyRestartSource {
+    /// Build a `RestartSource` configuration. Times are in seconds (float).
+    /// If `max_restarts` is `None`, the source restarts indefinitely.
+    #[new]
+    #[pyo3(signature = (min_backoff=0.1, max_backoff=30.0, random_factor=0.0, max_restarts=Some(5)))]
+    fn new(min_backoff: f64, max_backoff: f64, random_factor: f64, max_restarts: Option<usize>) -> Self {
+        Self {
+            settings: RustRestartSettings {
+                min_backoff: Duration::from_secs_f64(min_backoff.max(0.0)),
+                max_backoff: Duration::from_secs_f64(max_backoff.max(0.0)),
+                random_factor,
+                max_restarts,
+            },
+        }
+    }
+
+    /// `via_source(source_factory)` — `source_factory` is a Python callable
+    /// returning a fresh `Source`. Returns a `Source` that resubscribes to
+    /// the factory according to the configured backoff policy.
+    fn via_source(&self, py: Python<'_>, source_factory: Py<PyAny>) -> PyResult<Py<PySource>> {
+        let settings = self.settings;
+        let factory_holder = Arc::new(Mutex::new(source_factory));
+        let builder = SourceBuilder::new(move || {
+            let factory_holder = Arc::clone(&factory_holder);
+            // The factory closure may be called multiple times; each call
+            // invokes the Python callable to get a fresh Source.
+            RustRestartSource::with_backoff(settings, move || -> Source<SendPyAny> {
+                let factory = factory_holder.lock();
+                Python::with_gil(|py| -> Source<SendPyAny> {
+                    match factory.call0(py) {
+                        Ok(obj) => match obj.extract::<Py<PySource>>(py) {
+                            Ok(py_src) => match py_src.borrow_mut(py).take_builder() {
+                                Ok(b) => b.build(),
+                                Err(_) => Source::empty(),
+                            },
+                            Err(e) => {
+                                e.restore(py);
+                                Source::empty()
+                            }
+                        },
+                        Err(e) => {
+                            e.restore(py);
+                            Source::empty()
+                        }
+                    }
+                })
+            })
+        });
+        Py::new(py, PySource::from_builder(builder))
+    }
+}
+
+/// `RestartSettings` — read-only view onto the settings struct (mostly for
+/// introspection from Python).
+#[pyclass(name = "RestartSettings", module = "atomr._native.streams")]
+pub struct PyRestartSettings {
+    inner: RustRestartSettings,
+}
+
+#[pymethods]
+impl PyRestartSettings {
+    #[new]
+    #[pyo3(signature = (min_backoff=0.1, max_backoff=30.0, random_factor=0.0, max_restarts=Some(5)))]
+    fn new(min_backoff: f64, max_backoff: f64, random_factor: f64, max_restarts: Option<usize>) -> Self {
+        Self {
+            inner: RustRestartSettings {
+                min_backoff: Duration::from_secs_f64(min_backoff.max(0.0)),
+                max_backoff: Duration::from_secs_f64(max_backoff.max(0.0)),
+                random_factor,
+                max_restarts,
+            },
+        }
+    }
+
+    #[getter]
+    fn min_backoff(&self) -> f64 {
+        self.inner.min_backoff.as_secs_f64()
+    }
+
+    #[getter]
+    fn max_backoff(&self) -> f64 {
+        self.inner.max_backoff.as_secs_f64()
+    }
+
+    #[getter]
+    fn random_factor(&self) -> f64 {
+        self.inner.random_factor
+    }
+
+    #[getter]
+    fn max_restarts(&self) -> Option<usize> {
+        self.inner.max_restarts
+    }
+}
+
+// =============================================================================
+// Stream Decider (supervision)
+// =============================================================================
+
+/// Compile a `[(class_path, "resume" | "restart" | "stop")]` list (plus an
+/// optional default) into a `Decider<PyErr>` that inspects the Python error
+/// type via its `__module__` + `.` + `__qualname__`.
+fn parse_stream_directive(s: &str) -> PyResult<SupervisionDirective> {
+    match s {
+        "resume" => Ok(SupervisionDirective::Resume),
+        "restart" => Ok(SupervisionDirective::Restart),
+        "stop" => Ok(SupervisionDirective::Stop),
+        other => Err(PyValueError::new_err(format!(
+            "unknown stream directive `{other}`; expected one of resume | restart | stop"
+        ))),
+    }
+}
+
+
+// =============================================================================
+// GraphDsl
+// =============================================================================
+
+/// `GraphDsl` — minimal builder for fan-in / fan-out stream graphs.
+///
+/// The Python surface is intentionally linear-plus-junctions: `add()`
+/// returns a port handle; `edge(from, to)` connects two handles; `run()`
+/// materialises the assembled graph. Currently supports the linear pattern:
+/// `Source -> Flow* -> Sink`.
+#[pyclass(name = "GraphDsl", module = "atomr._native.streams")]
+pub struct PyGraphDsl {
+    nodes: Mutex<Vec<GraphNode>>,
+    edges: Mutex<Vec<(usize, usize)>>,
+}
+
+enum GraphNode {
+    Source(SourceBuilder),
+    Flow(FlowBuilder),
+    Sink(SinkBuilder),
+    Consumed,
+}
+
+#[pymethods]
+impl PyGraphDsl {
+    #[new]
+    fn new() -> Self {
+        Self { nodes: Mutex::new(Vec::new()), edges: Mutex::new(Vec::new()) }
+    }
+
+    /// Add a `Source`, `Flow`, or `Sink` node and return its index.
+    fn add(&self, py: Python<'_>, item: Py<PyAny>) -> PyResult<usize> {
+        let bound = item.bind(py);
+        let node = if let Ok(s) = bound.extract::<Py<PySource>>() {
+            let b = s.borrow_mut(py).take_builder()?;
+            GraphNode::Source(b)
+        } else if let Ok(f) = bound.extract::<Py<PyFlow>>() {
+            let b = f.borrow_mut(py).take_builder()?;
+            GraphNode::Flow(b)
+        } else if let Ok(k) = bound.extract::<Py<PySink>>() {
+            let b = k.borrow_mut(py).take_builder()?;
+            GraphNode::Sink(b)
+        } else {
+            return Err(PyValueError::new_err(
+                "GraphDsl.add expects a Source, Flow, or Sink",
+            ));
+        };
+        let mut nodes = self.nodes.lock();
+        let idx = nodes.len();
+        nodes.push(node);
+        Ok(idx)
+    }
+
+    /// Connect node `from` to node `to`.
+    fn edge(&self, from: usize, to: usize) -> PyResult<()> {
+        let nodes = self.nodes.lock();
+        if from >= nodes.len() || to >= nodes.len() {
+            return Err(PyValueError::new_err("edge port index out of range"));
+        }
+        drop(nodes);
+        self.edges.lock().push((from, to));
+        Ok(())
+    }
+
+    /// Materialise and run the graph. Returns a Python awaitable that
+    /// resolves to the materialised value of the (single) sink.
+    fn run<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let (src_b, flow_chain, sink_b) = self.compile()?;
+        pyo3_tokio::future_into_py(py, async move {
+            let mut src = src_b.build();
+            for f in flow_chain {
+                src = src.via(f.build());
+            }
+            (sink_b.run)(src).await
+        })
+    }
+
+    /// Blocking `run()`.
+    fn run_blocking(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let (src_b, flow_chain, sink_b) = self.compile()?;
+        let rt = runtime();
+        py.allow_threads(|| {
+            rt.block_on(async move {
+                let mut src = src_b.build();
+                for f in flow_chain {
+                    src = src.via(f.build());
+                }
+                (sink_b.run)(src).await
+            })
+        })
+    }
+}
+
+impl PyGraphDsl {
+    fn compile(&self) -> PyResult<(SourceBuilder, Vec<FlowBuilder>, SinkBuilder)> {
+        let mut nodes = self.nodes.lock();
+        let edges = self.edges.lock().clone();
+        let n = nodes.len();
+        let mut out_neighbors: Vec<Option<usize>> = vec![None; n];
+        let mut in_neighbors: Vec<Option<usize>> = vec![None; n];
+        for (a, b) in &edges {
+            if out_neighbors[*a].is_some() || in_neighbors[*b].is_some() {
+                return Err(PyValueError::new_err(
+                    "GraphDsl currently supports only linear graphs (single in/out per node)",
+                ));
+            }
+            out_neighbors[*a] = Some(*b);
+            in_neighbors[*b] = Some(*a);
+        }
+        let src_idx = nodes
+            .iter()
+            .enumerate()
+            .find_map(|(i, n)| matches!(n, GraphNode::Source(_)).then_some(i))
+            .ok_or_else(|| PyValueError::new_err("GraphDsl requires at least one Source"))?;
+        let sink_idx = nodes
+            .iter()
+            .enumerate()
+            .find_map(|(i, n)| matches!(n, GraphNode::Sink(_)).then_some(i))
+            .ok_or_else(|| PyValueError::new_err("GraphDsl requires at least one Sink"))?;
+        let mut chain: Vec<usize> = Vec::new();
+        let mut cur = out_neighbors[src_idx];
+        while let Some(idx) = cur {
+            if idx == sink_idx {
+                break;
+            }
+            chain.push(idx);
+            cur = out_neighbors[idx];
+        }
+        if cur != Some(sink_idx) {
+            return Err(PyValueError::new_err("GraphDsl chain does not reach the Sink"));
+        }
+        let src_b = match std::mem::replace(&mut nodes[src_idx], GraphNode::Consumed) {
+            GraphNode::Source(b) => b,
+            _ => unreachable!(),
+        };
+        let mut flows = Vec::with_capacity(chain.len());
+        for idx in chain {
+            let b = match std::mem::replace(&mut nodes[idx], GraphNode::Consumed) {
+                GraphNode::Flow(b) => b,
+                _ => return Err(PyValueError::new_err("expected Flow node in chain")),
+            };
+            flows.push(b);
+        }
+        let sink_b = match std::mem::replace(&mut nodes[sink_idx], GraphNode::Consumed) {
+            GraphNode::Sink(b) => b,
+            _ => unreachable!(),
+        };
+        Ok((src_b, flows, sink_b))
+    }
+}
+
+// =============================================================================
+// BidiFlow
+// =============================================================================
+
+/// `BidiFlow.from_flows(forward, backward)` — wraps `atomr_streams::BidiFlow`
+/// over two `Flow[PyAny -> PyAny]` directions. Both directions are kept as
+/// `Py<PyAny>` to avoid the typing complexity of distinct In/Out types.
+#[pyclass(name = "BidiFlow", module = "atomr._native.streams")]
+pub struct PyBidiFlow {
+    state: Mutex<Option<BidiState>>,
+}
+
+struct BidiState {
+    forward: FlowBuilder,
+    backward: FlowBuilder,
+}
+
+#[pymethods]
+impl PyBidiFlow {
+    #[staticmethod]
+    fn from_flows(py: Python<'_>, forward: Py<PyFlow>, backward: Py<PyFlow>) -> PyResult<Self> {
+        let f = forward.borrow_mut(py).take_builder()?;
+        let b = backward.borrow_mut(py).take_builder()?;
+        Ok(Self { state: Mutex::new(Some(BidiState { forward: f, backward: b })) })
+    }
+
+    /// Project the forward direction as a standalone `Flow`.
+    fn forward(&self, py: Python<'_>) -> PyResult<Py<PyFlow>> {
+        let mut g = self.state.lock();
+        let s = g
+            .as_mut()
+            .ok_or_else(|| PyRuntimeError::new_err("BidiFlow already projected"))?;
+        let forward = std::mem::replace(
+            &mut s.forward,
+            FlowBuilder::new(|| Flow::<SendPyAny, SendPyAny>::from_fn(|x| x)),
+        );
+        Py::new(py, PyFlow::from_builder(forward))
+    }
+
+    /// Project the backward direction as a standalone `Flow`.
+    fn backward(&self, py: Python<'_>) -> PyResult<Py<PyFlow>> {
+        let mut g = self.state.lock();
+        let s = g
+            .as_mut()
+            .ok_or_else(|| PyRuntimeError::new_err("BidiFlow already projected"))?;
+        let backward = std::mem::replace(
+            &mut s.backward,
+            FlowBuilder::new(|| Flow::<SendPyAny, SendPyAny>::from_fn(|x| x)),
+        );
+        Py::new(py, PyFlow::from_builder(backward))
+    }
+
+    /// Materialise the underlying Rust `BidiFlow`. Currently exposed for
+    /// symmetry with the Rust API; consume forward/backward separately
+    /// for ordinary streaming uses.
+    fn join(&self) -> PyResult<()> {
+        let mut g = self.state.lock();
+        let s = g.take().ok_or_else(|| PyRuntimeError::new_err("BidiFlow already consumed"))?;
+        let f = s.forward.build();
+        let b = s.backward.build();
+        let _bidi: RustBidiFlow<SendPyAny, SendPyAny, SendPyAny, SendPyAny> =
+            RustBidiFlow::from_flows(f, b);
+        Ok(())
+    }
+}
+
+// =============================================================================
+// Framing
+// =============================================================================
+
+/// `Framing` — codec-level binary framing utilities. Each `Framing.*`
+/// factory returns a `Flow` over Python `bytes` objects: input chunks are
+/// joined and split into framed messages.
+#[pyclass(name = "Framing", module = "atomr._native.streams")]
+pub struct PyFraming;
+
+fn bytes_flow_from<F>(make: F) -> PyFlow
+where
+    F: FnOnce() -> Flow<Bytes, Result<Bytes, atomr_streams::FramingError>> + Send + 'static,
+{
+    PyFlow::from_builder(FlowBuilder::new(move || {
+        // Decode SendPyAny -> Vec<Bytes> (zero or one item per element); a
+        // non-bytes value is silently dropped.
+        let to_bytes_vec = Flow::<SendPyAny, Vec<Bytes>>::from_fn(move |item: SendPyAny| {
+            Python::with_gil(|py| {
+                let inner = item.into_inner();
+                let bound = inner.bind(py);
+                match bound.extract::<&[u8]>() {
+                    Ok(b) => vec![Bytes::copy_from_slice(b)],
+                    Err(_) => Vec::new(),
+                }
+            })
+        });
+        let flatten_bytes =
+            Flow::<Vec<Bytes>, Bytes>::flat_map_concat(|v: Vec<Bytes>| -> Vec<Bytes> { v });
+        let framing_flow = make();
+        // Drop framing errors; keep only ok'd frames.
+        let drop_errs = Flow::<Result<Bytes, atomr_streams::FramingError>, Vec<Bytes>>::from_fn(
+            |r: Result<Bytes, atomr_streams::FramingError>| -> Vec<Bytes> {
+                r.ok().into_iter().collect()
+            },
+        );
+        let flatten_ok =
+            Flow::<Vec<Bytes>, Bytes>::flat_map_concat(|v: Vec<Bytes>| -> Vec<Bytes> { v });
+        // Encode Bytes -> SendPyAny.
+        let to_pybytes = Flow::<Bytes, SendPyAny>::from_fn(|b: Bytes| {
+            Python::with_gil(|py| {
+                let pb = PyBytes::new_bound(py, &b);
+                SendPyAny::new(pb.unbind().into_any())
+            })
+        });
+        to_bytes_vec
+            .via(flatten_bytes)
+            .via(framing_flow)
+            .via(drop_errs)
+            .via(flatten_ok)
+            .via(to_pybytes)
+    }))
+}
+
+#[pymethods]
+impl PyFraming {
+    /// `Framing.delimiter(delimiter, max_frame_length)` — split a bytes
+    /// stream on a single-byte delimiter. `delimiter` must be a `bytes`
+    /// object of length 1.
+    #[staticmethod]
+    fn delimiter(delimiter: &[u8], max_frame_length: usize) -> PyResult<PyFlow> {
+        if delimiter.len() != 1 {
+            return Err(PyValueError::new_err(
+                "Framing.delimiter requires a single-byte delimiter",
+            ));
+        }
+        let d = delimiter[0];
+        Ok(bytes_flow_from(move || RustFraming::delimiter(d, max_frame_length)))
+    }
+
+    /// `Framing.length_field(max_frame_length, field_length=4)` — split by
+    /// a little-endian u32 length-prefix. `field_length` is documented for
+    /// symmetry with the Akka API and is currently fixed at 4 bytes by the
+    /// underlying framing codec.
+    #[staticmethod]
+    #[pyo3(signature = (max_frame_length, field_length=4))]
+    fn length_field(max_frame_length: usize, field_length: usize) -> PyResult<PyFlow> {
+        if field_length != 4 {
+            return Err(PyValueError::new_err(
+                "Framing.length_field currently supports a 4-byte little-endian length prefix only",
+            ));
+        }
+        Ok(bytes_flow_from(move || RustFraming::length_field(max_frame_length)))
+    }
+}
+
+// =============================================================================
+// Tcp
+// =============================================================================
+
+/// `Tcp` — streaming socket adapters. Element type is `bytes` for both
+/// directions.
+#[pyclass(name = "Tcp", module = "atomr._native.streams")]
+pub struct PyTcp;
+
+#[pymethods]
+impl PyTcp {
+    /// `Tcp.outgoing(host, port)` — connect to `host:port`. Returns a
+    /// `TcpOutgoing` handle exposing the read-side `Source[bytes]` and a
+    /// `send(data)` method for the write side.
+    #[staticmethod]
+    fn outgoing(py: Python<'_>, host: String, port: u16) -> PyResult<Py<PyTcpOutgoing>> {
+        let addr_str = format!("{host}:{port}");
+        let addr: SocketAddr = addr_str.parse().map_err(|e: std::net::AddrParseError| {
+            PyValueError::new_err(format!("invalid host:port `{addr_str}`: {e}"))
+        })?;
+        let rt = runtime();
+        let conn = py
+            .allow_threads(|| rt.block_on(async move { RustTcp::outgoing_connection(addr).await }))
+            .map_err(|e| PyRuntimeError::new_err(format!("connect failed: {e}")))?;
+        let writer = conn.writer.clone();
+        // Bridge reader (Source<io::Result<Bytes>>) → mpsc<Bytes> via a
+        // background tokio task; the channel becomes the source for Python.
+        let (tx_bytes, rx_bytes) = tokio::sync::mpsc::unbounded_channel::<Bytes>();
+        let reader_src = conn.reader.filter_map(|r| r.ok());
+        rt.spawn(async move {
+            // Drain reader_src into tx_bytes via Sink::for_each.
+            Sink::for_each(reader_src, move |b: Bytes| {
+                let _ = tx_bytes.send(b);
+            })
+            .await;
+        });
+        let rx_holder = Arc::new(Mutex::new(Some(rx_bytes)));
+        let rx_for_build = Arc::clone(&rx_holder);
+        let reader_builder = SourceBuilder::new(move || {
+            let rx = rx_for_build.lock().take();
+            match rx {
+                Some(rx) => Source::from_receiver(rx).map(|b: Bytes| {
+                    Python::with_gil(|py| {
+                        let pb = PyBytes::new_bound(py, &b);
+                        SendPyAny::new(pb.unbind().into_any())
+                    })
+                }),
+                None => Source::empty(),
+            }
+        });
+        Py::new(
+            py,
+            PyTcpOutgoing {
+                reader: Mutex::new(Some(reader_builder)),
+                writer: Mutex::new(Some(writer)),
+                remote_addr: conn.remote_addr.to_string(),
+            },
+        )
+    }
+
+    /// `Tcp.incoming(bind_addr)` — bind a listener and return a `Source` of
+    /// `(remote_addr: str, data: bytes)` tuples for every chunk received
+    /// from any client.
+    #[staticmethod]
+    fn incoming(py: Python<'_>, bind_addr: String) -> PyResult<Py<PySource>> {
+        let addr: SocketAddr = bind_addr.parse().map_err(|e: std::net::AddrParseError| {
+            PyValueError::new_err(format!("invalid bind_addr `{bind_addr}`: {e}"))
+        })?;
+        let rt = runtime();
+        let incoming = py
+            .allow_threads(|| rt.block_on(async move { RustTcp::bind(addr).await }))
+            .map_err(|e| PyRuntimeError::new_err(format!("bind failed: {e}")))?;
+        // Spawn a task that accepts connections and forwards
+        // `(remote_addr, bytes)` to a single channel.
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<(String, Bytes)>();
+        let incoming_filtered = incoming.filter_map(|r| r.ok());
+        rt.spawn(async move {
+            // For each accepted connection, spawn a sub-task to drain its
+            // reader; we use Sink::for_each on the outer source so we keep
+            // accepting while sub-tasks are running.
+            Sink::for_each(incoming_filtered, move |conn| {
+                let remote = conn.remote_addr.to_string();
+                let tx = tx.clone();
+                tokio::spawn(async move {
+                    let reader_src = conn.reader.filter_map(|r| r.ok());
+                    Sink::for_each(reader_src, move |b: Bytes| {
+                        let _ = tx.send((remote.clone(), b));
+                    })
+                    .await;
+                });
+            })
+            .await;
+        });
+        let rx_holder = Arc::new(Mutex::new(Some(rx)));
+        let rx_for_build = Arc::clone(&rx_holder);
+        let builder = SourceBuilder::new(move || {
+            let rx = rx_for_build.lock().take();
+            match rx {
+                Some(rx) => Source::from_receiver(rx).map(|(remote, b): (String, Bytes)| {
+                    Python::with_gil(|py| {
+                        let pb = PyBytes::new_bound(py, &b);
+                        let tup = pyo3::types::PyTuple::new_bound(
+                            py,
+                            [remote.into_py(py), pb.unbind().into_any()],
+                        );
+                        SendPyAny::new(tup.unbind().into_any())
+                    })
+                }),
+                None => Source::empty(),
+            }
+        });
+        Py::new(py, PySource::from_builder(builder))
+    }
+}
+
+/// Handle returned by `Tcp.outgoing` — exposes the read-side `Source[bytes]`
+/// and a write-side `send(data)` method.
+#[pyclass(name = "TcpOutgoing", module = "atomr._native.streams")]
+pub struct PyTcpOutgoing {
+    reader: Mutex<Option<SourceBuilder>>,
+    writer: Mutex<Option<tokio::sync::mpsc::UnboundedSender<Bytes>>>,
+    remote_addr: String,
+}
+
+#[pymethods]
+impl PyTcpOutgoing {
+    /// Take the read-side `Source[bytes]`. Can only be called once.
+    fn source(&self, py: Python<'_>) -> PyResult<Py<PySource>> {
+        let b = self
+            .reader
+            .lock()
+            .take()
+            .ok_or_else(|| PyRuntimeError::new_err("TcpOutgoing source already taken"))?;
+        Py::new(py, PySource::from_builder(b))
+    }
+
+    /// `outgoing.send(data)` — push `bytes` to the write side. Returns
+    /// `True` if the bytes were enqueued.
+    fn send(&self, data: &[u8]) -> bool {
+        let g = self.writer.lock();
+        match g.as_ref() {
+            Some(tx) => tx.send(Bytes::copy_from_slice(data)).is_ok(),
+            None => false,
+        }
+    }
+
+    /// Close the write side. The reader side completes once the remote
+    /// peer closes its socket.
+    fn close(&self) {
+        let _ = self.writer.lock().take();
+    }
+
+    #[getter]
+    fn remote_addr(&self) -> &str {
+        &self.remote_addr
+    }
+}
+
+// =============================================================================
+// FileIO
+// =============================================================================
+
+/// `FileIO` — read/write files as `bytes` streams.
+#[pyclass(name = "FileIO", module = "atomr._native.streams")]
+pub struct PyFileIO;
+
+#[pymethods]
+impl PyFileIO {
+    /// `FileIO.from_path(path, chunk_size=8192)` — open `path` and stream
+    /// it as `Source[bytes]`. IO errors terminate the stream.
+    #[staticmethod]
+    #[pyo3(signature = (path, chunk_size=8192))]
+    fn from_path(py: Python<'_>, path: String, chunk_size: usize) -> PyResult<Py<PySource>> {
+        let p = PathBuf::from(path);
+        let cs = chunk_size.max(1);
+        let builder = SourceBuilder::new(move || {
+            // Source<io::Result<Bytes>> -> Source<Bytes> via filter_map.
+            let src = RustFileIO::from_path(p, cs).filter_map(|r| r.ok());
+            // Bytes -> SendPyAny via map.
+            src.map(|b: Bytes| {
+                Python::with_gil(|py| {
+                    let pb = PyBytes::new_bound(py, &b);
+                    SendPyAny::new(pb.unbind().into_any())
+                })
+            })
+        });
+        Py::new(py, PySource::from_builder(builder))
+    }
+
+    /// `FileIO.to_path(path)` — return a `Sink` that writes every `bytes`
+    /// chunk it receives to `path`. The materialised value is the number
+    /// of bytes written (Python `int`).
+    #[staticmethod]
+    fn to_path(py: Python<'_>, path: String) -> PyResult<Py<PySink>> {
+        use futures::FutureExt;
+        let p = PathBuf::from(path);
+        let sink_b = SinkBuilder::new(move |src: Source<SendPyAny>| {
+            // SendPyAny -> Bytes via filter_map; non-bytes entries are silently
+            // dropped.
+            let bytes_src = src.filter_map(|item: SendPyAny| {
+                Python::with_gil(|py| {
+                    let inner = item.into_inner();
+                    let bound = inner.bind(py);
+                    match bound.extract::<&[u8]>() {
+                        Ok(b) => Some(Bytes::copy_from_slice(b)),
+                        Err(_) => None,
+                    }
+                })
+            });
+            async move {
+                match RustFileIO::to_path(bytes_src, &p).await {
+                    Ok(n) => Python::with_gil(|py| -> PyResult<Py<PyAny>> { Ok(n.into_py(py)) }),
+                    Err(e) => Err(PyRuntimeError::new_err(format!("FileIO.to_path: {e}"))),
+                }
+            }
+            .boxed()
+        });
+        Py::new(py, PySink::from_builder(sink_b))
+    }
+}
+
+// =============================================================================
 // Legacy i64 helpers (unchanged)
 // =============================================================================
 
@@ -1101,6 +1908,15 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     sub.add_class::<PySinkQueue>()?;
     sub.add_class::<PyBroadcastHub>()?;
     sub.add_class::<PyMergeHub>()?;
+    // Epic F additions: closing the deferred Phase 8 streams items.
+    sub.add_class::<PyRestartSource>()?;
+    sub.add_class::<PyRestartSettings>()?;
+    sub.add_class::<PyGraphDsl>()?;
+    sub.add_class::<PyBidiFlow>()?;
+    sub.add_class::<PyFraming>()?;
+    sub.add_class::<PyTcp>()?;
+    sub.add_class::<PyTcpOutgoing>()?;
+    sub.add_class::<PyFileIO>()?;
     let _ = pyo3_tokio::get_runtime;
     m.add_submodule(&sub)?;
     Ok(())

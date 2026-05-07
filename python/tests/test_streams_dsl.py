@@ -3,25 +3,39 @@
 Exercises Source/Flow/Sink/RunnableGraph composition, KillSwitch shutdown,
 BroadcastHub fan-out, SourceQueue back-pressure, and the GIL-safety of
 filtered (dropped) elements.
+
+Also covers the Epic F additions: RestartSource, RestartSettings, GraphDsl,
+Flow.with_supervision (stream Decider), BidiFlow, Framing, Tcp, FileIO.
 """
 from __future__ import annotations
 
 import asyncio
 import gc
+import os
+import socket
+import tempfile
+import threading
 import time
 
 import pytest
 
 from atomr import streams
 from atomr.streams import (
+    BidiFlow,
     BroadcastHub,
+    FileIO,
     Flow,
+    Framing,
+    GraphDsl,
     KillSwitch,
     MergeHub,
+    RestartSettings,
+    RestartSource,
     RunnableGraph,
     Sink,
     Source,
     SourceQueue,
+    Tcp,
 )
 
 
@@ -238,3 +252,189 @@ def test_merge_hub_aggregates_two_sources():
     del hub
     out = sorted(merged.to(Sink.collect()).run_blocking())
     assert out == [1, 2, 3, 10, 20, 30]
+
+
+# =============================================================================
+# Epic F: RestartSource, GraphDsl, Decider, BidiFlow, Framing, Tcp, FileIO.
+# =============================================================================
+
+
+def test_restart_settings_round_trip_attributes():
+    s = RestartSettings(
+        min_backoff=0.05, max_backoff=1.0, random_factor=0.1, max_restarts=3
+    )
+    assert s.min_backoff == pytest.approx(0.05)
+    assert s.max_backoff == pytest.approx(1.0)
+    assert s.random_factor == pytest.approx(0.1)
+    assert s.max_restarts == 3
+
+
+def test_restart_source_resubscribes_until_max_restarts():
+    """``RestartSource`` calls the factory up to ``max_restarts`` times."""
+    counter = {"calls": 0}
+
+    def factory():
+        counter["calls"] += 1
+        return Source.from_iter([counter["calls"]])
+
+    rs = RestartSource(
+        min_backoff=0.001, max_backoff=0.005, random_factor=0.0, max_restarts=3
+    )
+    src = rs.via_source(factory)
+    out = src.to(Sink.collect()).run_blocking()
+    assert counter["calls"] == 3
+    # Three subscriptions, each emitting its incrementing call count.
+    assert out == [1, 2, 3]
+
+
+def test_graph_dsl_linear_source_flow_sink():
+    """GraphDsl assembles a linear Source -> Flow -> Sink chain."""
+    g = GraphDsl()
+    a = g.add(Source.from_iter([1, 2, 3]))
+    b = g.add(Flow.map(lambda x: x * 10))
+    c = g.add(Sink.collect())
+    g.edge(a, b)
+    g.edge(b, c)
+    assert g.run_blocking() == [10, 20, 30]
+
+
+def test_flow_with_supervision_resume_drops_failing_element():
+    """A `resume` directive on `ValueError` drops the offending element."""
+    def bad(x):
+        if x == 2:
+            raise ValueError("boom")
+        return x * 2
+
+    flow = Flow.try_map(bad).with_supervision(
+        decider=[("ValueError", "resume")], default="resume"
+    )
+    out = Source.from_iter([1, 2, 3, 4]).via(flow).to(Sink.collect()).run_blocking()
+    # Element 2 raised ValueError, was resumed (dropped).
+    assert out == [2, 6, 8]
+
+
+def test_flow_with_supervision_stop_terminates_stream():
+    """A `stop` directive on `ValueError` terminates the stream."""
+    def bad(x):
+        if x == 3:
+            raise ValueError("boom")
+        return x
+
+    flow = Flow.try_map(bad).with_supervision(
+        decider=[("ValueError", "stop")], default="stop"
+    )
+    out = Source.from_iter([1, 2, 3, 4, 5]).via(flow).to(Sink.collect()).run_blocking()
+    # 1 and 2 pass through, 3 stops the stream, 4/5 are dropped.
+    assert out == [1, 2]
+
+
+def test_bidi_flow_projects_forward_and_backward():
+    """BidiFlow.from_flows + project forward direction as a Flow."""
+    forward = Flow.map(lambda x: x + 1)
+    backward = Flow.map(lambda x: x - 1)
+    bidi = BidiFlow.from_flows(forward, backward)
+
+    # Forward direction must apply +1.
+    f = bidi.forward()
+    out_f = Source.from_iter([1, 2, 3]).via(f).to(Sink.collect()).run_blocking()
+    assert out_f == [2, 3, 4]
+    # Backward direction must apply -1.
+    b = bidi.backward()
+    out_b = Source.from_iter([10, 20, 30]).via(b).to(Sink.collect()).run_blocking()
+    assert out_b == [9, 19, 29]
+
+
+def test_framing_delimiter_splits_bytes_stream():
+    """Framing.delimiter splits a chunked bytes stream on b'\\n'."""
+    chunks = [b"hello\nwo", b"rld\nfoo\n"]
+    out = (
+        Source.from_iter(chunks)
+        .via(Framing.delimiter(b"\n", 1024))
+        .to(Sink.collect())
+        .run_blocking()
+    )
+    assert out == [b"hello", b"world", b"foo"]
+
+
+def test_framing_length_field_splits_bytes_stream():
+    """Framing.length_field splits a u32-le-prefixed bytes stream."""
+    msgs = [b"abc", b"hello"]
+    buf = b""
+    for m in msgs:
+        buf += len(m).to_bytes(4, "little")
+        buf += m
+    chunks = [buf[:5], buf[5:]]
+    out = (
+        Source.from_iter(chunks)
+        .via(Framing.length_field(1024))
+        .to(Sink.collect())
+        .run_blocking()
+    )
+    assert out == [b"abc", b"hello"]
+
+
+def test_file_io_round_trip_chunks_through_disk():
+    """FileIO.from_path → FileIO.to_path round-trip preserves bytes."""
+    data = b"hello world, this is streams"
+    with tempfile.NamedTemporaryFile(delete=False) as src_f:
+        src_f.write(data)
+        src_path = src_f.name
+    dst_path = src_path + ".out"
+    try:
+        # Use FileIO.from_path as the source and FileIO.to_path as the sink.
+        bytes_written = (
+            FileIO.from_path(src_path, chunk_size=8)
+            .to(FileIO.to_path(dst_path))
+            .run_blocking()
+        )
+        assert bytes_written > 0
+        with open(dst_path, "rb") as f:
+            assert f.read() == data
+    finally:
+        for p in (src_path, dst_path):
+            try:
+                os.unlink(p)
+            except OSError:
+                pass
+
+
+def _free_port() -> int:
+    """Allocate a free TCP port on localhost."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+def test_tcp_outgoing_send_and_incoming_receive_round_trip():
+    """Tcp.outgoing → Tcp.incoming round-trips a single payload."""
+    port = _free_port()
+    bind_addr = f"127.0.0.1:{port}"
+
+    # Run the listener consumer on a background thread; it collects up to
+    # one message-sized chunk and returns.
+    received = {}
+
+    def _listener():
+        src = Tcp.incoming(bind_addr)
+        # Collect the first chunk (one tuple of (remote_addr, bytes)).
+        head = src.via(Flow.take(1)).to(Sink.collect()).run_blocking()
+        received["chunks"] = head
+
+    t = threading.Thread(target=_listener)
+    t.start()
+    # Give the listener a moment to bind.
+    time.sleep(0.1)
+
+    # Connect and send.
+    conn = Tcp.outgoing("127.0.0.1", port)
+    assert conn.send(b"ping") is True
+    conn.close()
+
+    t.join(timeout=5.0)
+    assert not t.is_alive(), "listener should have completed"
+    assert "chunks" in received
+    chunks = received["chunks"]
+    assert len(chunks) == 1
+    remote, data = chunks[0]
+    assert isinstance(remote, str)
+    assert data == b"ping"
