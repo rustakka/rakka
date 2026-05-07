@@ -117,10 +117,7 @@ impl MembershipState {
     /// terminal status (`Down`, `Exiting`, `Removed`, `Joining`).
     pub fn down(&mut self, addr: &Address) -> Option<ClusterEvent> {
         let m = self.members.iter_mut().find(|x| &x.address == addr)?;
-        if matches!(
-            m.status,
-            MemberStatus::Up | MemberStatus::WeaklyUp | MemberStatus::Leaving
-        ) {
+        if matches!(m.status, MemberStatus::Up | MemberStatus::WeaklyUp | MemberStatus::Leaving) {
             m.status = MemberStatus::Down;
             return Some(ClusterEvent::MemberDowned(m.clone()));
         }

@@ -54,6 +54,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
       - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Build dashboard SPA (ui/dist for embed-ui)
+        shell: bash
+        working-directory: crates/atomr-dashboard/ui
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
       - name: cargo doc --workspace --no-deps --all-features
         run: cargo doc --workspace --no-deps --all-features
 

@@ -1,5 +1,5 @@
 //! atomr-pyddata — placeholder marker crate. The actual PyO3 wrappers
-//! for [`atomr_distributed_data`] live in `atomr-pycore` (under
+//! for `atomr_distributed_data` live in `atomr-pycore` (under
 //! `ext_ddata.rs`); this crate re-exports a small set of helper aliases
 //! so that downstream code referencing the per-subsystem crate name has
 //! a stable Rust target until we carve out a separate cdylib wheel.
@@ -23,17 +23,11 @@ pub const CRDT_CLASSES: &[&str] = &[
 ];
 
 /// Names of the replicator-related classes exposed under `atomr.ddata`.
-pub const REPLICATOR_CLASSES: &[&str] = &[
-    "Replicator",
-    "ReplicatorSubscription",
-    "ReadConsistency",
-    "WriteConsistency",
-    "DurableStore",
-];
+pub const REPLICATOR_CLASSES: &[&str] =
+    &["Replicator", "ReplicatorSubscription", "ReadConsistency", "WriteConsistency", "DurableStore"];
 
 /// Names of the lower-level helpers exposed under `atomr.ddata`.
-pub const HELPER_CLASSES: &[&str] =
-    &["PruningState", "WriteAggregator", "ReadAggregator"];
+pub const HELPER_CLASSES: &[&str] = &["PruningState", "WriteAggregator", "ReadAggregator"];
 
 /// Total number of Python classes exposed by Phase 7. Used by the
 /// Python smoke test to guard against accidental class drops.

@@ -49,8 +49,7 @@ impl PyActorSystem {
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let inner = RustSystem::create(name, cfg).await.map_err(errors::map)?;
             Python::with_gil(|py| {
-                Py::new(py, PyActorSystem { inner, codecs: PyCodecRegistry::default() })
-                    .map(|p| p.into_any())
+                Py::new(py, PyActorSystem { inner, codecs: PyCodecRegistry::default() }).map(|p| p.into_any())
             })
         })
     }
@@ -93,13 +92,9 @@ impl PyActorSystem {
         let factory = props_ref.factory.clone_ref(py);
         let dispatcher_name = props_ref.dispatcher.clone();
         let role = props_ref.interpreter_role.clone();
-        let strategy: SupervisorStrategy = props_ref
-            .supervisor_strategy
-            .as_ref()
-            .map(|s| s.rust().clone())
-            .unwrap_or_default();
+        let strategy: SupervisorStrategy =
+            props_ref.supervisor_strategy.as_ref().map(|s| s.rust().clone()).unwrap_or_default();
         drop(props_ref);
-
 
         let rt = runtime();
         let system = self.inner.clone();
@@ -225,9 +220,7 @@ impl PyActorSystem {
         for m in &manifests {
             validate_manifest_with_mode(py, m, strict)?;
         }
-        self.codecs
-            .insert(name, encoder, decoder, &manifests, force)
-            .map_err(collision_to_pyerr)
+        self.codecs.insert(name, encoder, decoder, &manifests, force).map_err(collision_to_pyerr)
     }
 
     /// Convenience: install the JSON codec for `manifests` (or none —
@@ -249,9 +242,7 @@ impl PyActorSystem {
             validate_manifest_with_mode(py, m, strict)?;
         }
         if !manifests.is_empty() {
-            self.codecs
-                .install_json(py, &manifests, force)?
-                .map_err(collision_to_pyerr)?;
+            self.codecs.install_json(py, &manifests, force)?.map_err(collision_to_pyerr)?;
         }
         if default {
             let (encoder, decoder) = crate::ext_remote::build_json_pair(py)?;
@@ -273,17 +264,10 @@ impl PyActorSystem {
     /// In both cases the manifest must be registered. Decode failures
     /// at the receiver dead-letter silently — surfacing them would
     /// require synchronous round-trips we don't have here.
-    fn tell_remote(
-        &self,
-        py: Python<'_>,
-        target: Py<PyActorRef>,
-        msg: Py<PyAny>,
-    ) -> PyResult<()> {
+    fn tell_remote(&self, py: Python<'_>, target: Py<PyActorRef>, msg: Py<PyAny>) -> PyResult<()> {
         let manifest = manifest_for(py, &msg)?;
         let (encoder, decoder) = self.codecs.lookup(&manifest).ok_or_else(|| {
-            PyErr::new::<errors::AtomrError, _>(format!(
-                "no codec registered for manifest `{manifest}`"
-            ))
+            PyErr::new::<errors::AtomrError, _>(format!("no codec registered for manifest `{manifest}`"))
         })?;
         let bytes = call_encoder(py, &encoder, &msg)?;
 
@@ -331,16 +315,10 @@ impl PyActorSystem {
     /// Round-trip `obj` through the codec registry without sending.
     /// Useful for tests of the codec wiring and for debugging the
     /// manifest derivation.
-    fn codec_roundtrip<'py>(
-        &self,
-        py: Python<'py>,
-        msg: Py<PyAny>,
-    ) -> PyResult<Bound<'py, PyAny>> {
+    fn codec_roundtrip<'py>(&self, py: Python<'py>, msg: Py<PyAny>) -> PyResult<Bound<'py, PyAny>> {
         let manifest = manifest_for(py, &msg)?;
         let (encoder, decoder) = self.codecs.lookup(&manifest).ok_or_else(|| {
-            PyErr::new::<errors::AtomrError, _>(format!(
-                "no codec registered for manifest `{manifest}`"
-            ))
+            PyErr::new::<errors::AtomrError, _>(format!("no codec registered for manifest `{manifest}`"))
         })?;
         let bytes = call_encoder(py, &encoder, &msg)?;
         let decoded = call_decoder(py, &decoder, &bytes)?;

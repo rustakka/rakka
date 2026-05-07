@@ -250,8 +250,7 @@ impl PyLeaderHandover {
 // ---------------------------------------------------------------------------
 
 use crate::cluster_transport::{
-    self, PyClusterRegistry, PyRemoteMessageSink, PyTransportConfig, TransportChoice,
-    TransportSlotExt,
+    self, PyClusterRegistry, PyRemoteMessageSink, PyTransportConfig, TransportChoice, TransportSlotExt,
 };
 
 /// Per-`ActorSystem` cluster extension. Holds the daemon handle, the
@@ -305,10 +304,7 @@ impl PyCluster {
             Some(s) => Address::parse(s).or_else(|| Some(Address::local(s))),
             None => None,
         };
-        let choice = TransportChoice::Test {
-            registry: registry.inner.clone(),
-            bind_address,
-        };
+        let choice = TransportChoice::Test { registry: registry.inner.clone(), bind_address };
         ensure_cluster(py, system, choice)
     }
 
@@ -376,15 +372,8 @@ impl PyCluster {
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             // Register each seed node + self exactly once if not yet
             // known to the daemon.
-            let known_addresses: std::collections::HashSet<String> = ext
-                .inner
-                .handle
-                .snapshot()
-                .state
-                .members
-                .iter()
-                .map(|m| m.address.to_string())
-                .collect();
+            let known_addresses: std::collections::HashSet<String> =
+                ext.inner.handle.snapshot().state.members.iter().map(|m| m.address.to_string()).collect();
 
             let mut to_join: Vec<Address> = Vec::new();
             for s in &seed_nodes {
@@ -575,8 +564,7 @@ fn ensure_cluster(
             r
         });
     let codecs = system.codecs.clone();
-    let sink: Arc<dyn atomr_cluster::RemoteMessageSink> =
-        Arc::new(PyRemoteMessageSink::new(actors, codecs));
+    let sink: Arc<dyn atomr_cluster::RemoteMessageSink> = Arc::new(PyRemoteMessageSink::new(actors, codecs));
 
     // Build a placeholder gossip-inbox first; we'll connect it to the
     // daemon after spawn.
@@ -584,8 +572,7 @@ fn ensure_cluster(
     let (built, gossip_transport, resolved_addr) =
         cluster_transport::build_transport(choice.clone(), self_addr.clone(), placeholder_tx, sink)
             .map_err(|e| PyErr::new::<errors::AtomrError, _>(format!("transport: {e}")))?;
-    let handle =
-        build_daemon(resolved_addr.clone(), gossip_transport, bus.clone(), dcfg, &cfg)?;
+    let handle = build_daemon(resolved_addr.clone(), gossip_transport, bus.clone(), dcfg, &cfg)?;
 
     // Forward placeholder PDUs into the daemon's actual inbox.
     {
@@ -601,14 +588,9 @@ fn ensure_cluster(
 
     // Stash the transport handle so it isn't dropped (and so
     // `tell_remote` can find it).
-    sys.extensions()
-        .register::<TransportSlotExt>(TransportSlotExt::new(built));
+    sys.extensions().register::<TransportSlotExt>(TransportSlotExt::new(built));
     // Stash the transport choice for diagnostics.
-    let cfg_ext = sys
-        .extensions()
-        .get::<PyTransportConfig>()
-        .map(|a| (*a).clone())
-        .unwrap_or_default();
+    let cfg_ext = sys.extensions().get::<PyTransportConfig>().map(|a| (*a).clone()).unwrap_or_default();
     match &choice {
         TransportChoice::Test { registry, bind_address } => {
             cfg_ext.set_test(registry.clone(), bind_address.clone());
@@ -622,9 +604,7 @@ fn ensure_cluster(
 
     handle.join(Member::new(resolved_addr.clone(), Vec::new()));
 
-    let ext = ClusterExt {
-        inner: Arc::new(ClusterExtInner { handle, bus, self_addr: resolved_addr }),
-    };
+    let ext = ClusterExt { inner: Arc::new(ClusterExtInner { handle, bus, self_addr: resolved_addr }) };
     sys.extensions().register::<ClusterExt>(ext.clone());
     Py::new(py, PyCluster { ext })
 }
@@ -638,9 +618,8 @@ fn build_daemon(
 ) -> PyResult<ClusterDaemonHandle> {
     let strategy_key = "cluster.sbr.strategy";
     let strategy = cfg.get_string(strategy_key).ok();
-    let stable_after = cfg
-        .get_duration("cluster.sbr.stable-after")
-        .unwrap_or_else(|_| Duration::from_secs(20));
+    let stable_after =
+        cfg.get_duration("cluster.sbr.stable-after").unwrap_or_else(|_| Duration::from_secs(20));
     match strategy.as_deref() {
         Some("keep-majority") => {
             let rt = SbrRuntime::new(KeepMajorityStrategy, stable_after);
@@ -668,9 +647,7 @@ fn build_daemon(
             let rt = SbrRuntime::new(LeaseMajorityStrategy { lease_acquired: lease }, stable_after);
             Ok(spawn_daemon_with_sbr(self_addr, transport, bus, dcfg, Some(rt)))
         }
-        Some(other) => Err(PyErr::new::<PyValueError, _>(format!(
-            "unknown cluster.sbr.strategy: {other:?}"
-        ))),
+        Some(other) => Err(PyErr::new::<PyValueError, _>(format!("unknown cluster.sbr.strategy: {other:?}"))),
         None => Ok(spawn_daemon(self_addr, transport, bus, dcfg)),
     }
 }

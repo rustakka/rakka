@@ -65,10 +65,8 @@ impl PyConfig {
     /// dict/list/scalar tree.
     /// then JSON serialize for the cross-language bridge.
     pub fn extract<'py>(&self, py: Python<'py>, key: &str) -> PyResult<Bound<'py, PyAny>> {
-        let value: serde_json::Value = self
-            .inner
-            .extract(key)
-            .map_err(|e| PyErr::new::<crate::errors::AtomrError, _>(e.to_string()))?;
+        let value: serde_json::Value =
+            self.inner.extract(key).map_err(|e| PyErr::new::<crate::errors::AtomrError, _>(e.to_string()))?;
         json_to_py(py, &value)
     }
 

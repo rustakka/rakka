@@ -36,7 +36,10 @@ pub enum ClusterEvent {
     MemberRemoved(Member, MemberStatus),
     UnreachableMember(Member),
     ReachableMember(Member),
-    LeaderChanged { from: Option<Address>, to: Option<Address> },
+    LeaderChanged {
+        from: Option<Address>,
+        to: Option<Address>,
+    },
     ClusterShuttingDown,
     Convergence(bool),
 }

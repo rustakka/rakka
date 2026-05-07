@@ -91,7 +91,7 @@ impl PyClusterMetrics {
     }
 }
 
-/// Exponentially-weighted moving average. 
+/// Exponentially-weighted moving average.
 /// ``.
 #[pyclass(name = "Ewma", module = "atomr._native.cluster_metrics")]
 pub struct PyEwma {
@@ -212,7 +212,11 @@ impl PyAdaptiveLoadBalancer {
 /// `pdu_kind` must be `"push"` or `"push_batch"`; the value is one or
 /// many `NodeMetrics` instances respectively.
 #[pyfunction]
-fn apply_pdu(metrics: &PyClusterMetrics, pdu_kind: String, samples: Vec<PyRef<'_, PyNodeMetrics>>) -> PyResult<()> {
+fn apply_pdu(
+    metrics: &PyClusterMetrics,
+    pdu_kind: String,
+    samples: Vec<PyRef<'_, PyNodeMetrics>>,
+) -> PyResult<()> {
     let owned: Vec<NodeMetrics> = samples.into_iter().map(|m| m.inner.clone()).collect();
     let pdu = match pdu_kind.as_str() {
         "push" => {

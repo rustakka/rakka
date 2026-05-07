@@ -36,10 +36,13 @@ pub const DEFAULT_MAP_ASYNC_PARALLELISM: usize = 1;
 mod tests {
     use super::*;
 
-    #[test]
-    fn defaults_are_reasonable() {
+    const _: () = {
         assert!(DEFAULT_HUB_BUFFER >= 1);
         assert!(DEFAULT_MAP_ASYNC_PARALLELISM >= 1);
+    };
+
+    #[test]
+    fn defaults_are_reasonable() {
         assert_eq!(CallbackErrorPolicy::default(), CallbackErrorPolicy::SubstituteNone);
     }
 }

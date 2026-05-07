@@ -43,7 +43,7 @@ impl<T> BoundedQueue<T> {
     }
 
     /// Remove and return the most-recently-enqueued element, if any.
-    /// Used by [`OverflowStrategy::DropTail`].
+    /// Used by `OverflowStrategy::DropTail` (in `atomr_core::dispatch::mailbox`).
     pub fn pop_back(&mut self) -> Option<T> {
         self.inner.pop_back()
     }

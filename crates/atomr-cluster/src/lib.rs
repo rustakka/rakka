@@ -24,10 +24,6 @@ pub use cluster_daemon::{
     spawn_daemon, spawn_daemon_with_sbr, ClusterDaemonHandle, DaemonCmd, DaemonConfig, DaemonSnapshot,
     GossipTransport, NoSbr,
 };
-pub use transport::{
-    ClusterFrame, InProcessClusterTransport, InProcessRegistry, RecordingSink,
-    RemoteMessageSink, RemoteTellRecord, TcpClusterTransport,
-};
 pub use events::{ClusterEvent, ClusterEventBus, SubscriptionHandle};
 pub use gossip::{Gossip, GossipOverview};
 pub use gossip_pdu::{decide as gossip_decide, pick_gossip_target, GossipDecision, GossipPdu};
@@ -42,8 +38,12 @@ pub use multi_dc::{
 pub use reachability::{Reachability, ReachabilityStatus};
 pub use remote_adapter::ClusterRemoteAdapter;
 pub use sbr::{
-    DownAllStrategy, DowningDecision, DowningStrategy, KeepMajorityStrategy, KeepOldestStrategy,
-    KeepReferee, LeaseMajorityStrategy, SplitBrainResolver, StaticQuorumStrategy,
+    DownAllStrategy, DowningDecision, DowningStrategy, KeepMajorityStrategy, KeepOldestStrategy, KeepReferee,
+    LeaseMajorityStrategy, SplitBrainResolver, StaticQuorumStrategy,
 };
 pub use sbr_runtime::{SbrAction, SbrRuntime};
+pub use transport::{
+    ClusterFrame, InProcessClusterTransport, InProcessRegistry, RecordingSink, RemoteMessageSink,
+    RemoteTellRecord, TcpClusterTransport,
+};
 pub use vector_clock::{VectorClock, VectorRelation};

@@ -69,10 +69,7 @@ impl PyMessage {
     }
 
     /// `ask` variant carrying a consistent-hash key.
-    pub fn ask_with_hash(
-        payload: Py<PyAny>,
-        hash: u64,
-    ) -> (Self, oneshot::Receiver<PyResult<Py<PyAny>>>) {
+    pub fn ask_with_hash(payload: Py<PyAny>, hash: u64) -> (Self, oneshot::Receiver<PyResult<Py<PyAny>>>) {
         let (tx, rx) = oneshot::channel();
         (Self { payload, reply: Some(tx), sender_ref: None, hash: Some(hash) }, rx)
     }
@@ -286,12 +283,8 @@ impl Actor for PyActor {
         // Snapshot context fields for the Python side.
         let path_str = ctx.path().to_string();
         let self_ref_arc = Arc::new(ctx.self_ref().clone());
-        let self_ref_py = Python::with_gil(|py| {
-            Py::new(
-                py,
-                PyActorRef::from_arc(self_ref_arc.clone(), path_str.clone()),
-            )
-        });
+        let self_ref_py =
+            Python::with_gil(|py| Py::new(py, PyActorRef::from_arc(self_ref_arc.clone(), path_str.clone())));
         let self_ref_py = match self_ref_py {
             Ok(p) => p,
             Err(e) => {
@@ -303,9 +296,7 @@ impl Actor for PyActor {
         // Surface sender as a usable PyActorRef when available.
         let sender_py = if let Some(sender_arc) = sender_ref {
             let sender_path = sender_arc.path().to_string();
-            Python::with_gil(|py| {
-                Py::new(py, PyActorRef::from_arc(sender_arc, sender_path)).ok()
-            })
+            Python::with_gil(|py| Py::new(py, PyActorRef::from_arc(sender_arc, sender_path)).ok())
         } else {
             None
         };
@@ -347,13 +338,11 @@ impl Actor for PyActor {
         let worker = self.worker();
         let pool = self.pool.clone();
         let instance_for_call = Some(instance.clone_ref_py());
-        let result_fut = run_on_interpreter::<_, Py<PyAny>>(
-            worker,
-            pool,
-            instance_for_call,
-            move |py, inst_opt| {
+        let result_fut =
+            run_on_interpreter::<_, Py<PyAny>>(worker, pool, instance_for_call, move |py, inst_opt| {
                 let ctx_arg = py_ctx_for_call.into_any();
-                let args = PyTuple::new_bound(py, &[ctx_arg.bind(py).clone(), payload_for_call.bind(py).clone()]);
+                let args =
+                    PyTuple::new_bound(py, &[ctx_arg.bind(py).clone(), payload_for_call.bind(py).clone()]);
                 let res = if let Some(handler) = handler {
                     handler.call1(py, args)?
                 } else {
@@ -362,8 +351,7 @@ impl Actor for PyActor {
                     h.call1(args)?.unbind()
                 };
                 coro_run(py, res.bind(py).clone())
-            },
-        );
+            });
 
         tokio::pin!(result_fut);
 
@@ -504,12 +492,7 @@ async fn apply_op_eager(actor: &mut PyActor, ctx: &mut Context<PyActor>, op: Ctx
 
             let rust_props = RustProps::<PyActor>::create(move || {
                 let factory = Python::with_gil(|py| factory_for_actor.clone_ref(py));
-                PyActor::new(
-                    factory,
-                    pool_cl.clone(),
-                    hash_seed,
-                    strategy_for_actor.clone(),
-                )
+                PyActor::new(factory, pool_cl.clone(), hash_seed, strategy_for_actor.clone())
             })
             .with_supervisor_strategy(strategy);
 

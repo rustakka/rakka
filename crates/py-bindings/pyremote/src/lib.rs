@@ -154,9 +154,8 @@ fn install_codec(target: &SerializerRegistry, codec: Arc<dyn PyCodec>, manifest:
         manifest: manifest.clone(),
         type_id: TypeId::of::<PyBytes>(),
         encode: Arc::new(move |v| {
-            let bytes = v
-                .downcast_ref::<PyBytes>()
-                .ok_or_else(|| SerializeError::Downcast("PyBytes".into()))?;
+            let bytes =
+                v.downcast_ref::<PyBytes>().ok_or_else(|| SerializeError::Downcast("PyBytes".into()))?;
             codec_for_encode
                 .encode(&manifest_for_encode, &bytes.0)
                 .map_err(|e| SerializeError::Encode(e.to_string()))
@@ -273,8 +272,7 @@ mod tests {
         let serializer = as_remote_serializer(&reg);
         let codec_cmd = serializer.codec_for_manifest("my.module.Cmd").unwrap();
         let blob = (codec_cmd.encode)(&PyBytes(b"hi".to_vec()) as &dyn std::any::Any).unwrap();
-        let (any, _) =
-            serializer.decode_dyn("my.module.Cmd", BINCODE_SERIALIZER_ID, &blob).unwrap();
+        let (any, _) = serializer.decode_dyn("my.module.Cmd", BINCODE_SERIALIZER_ID, &blob).unwrap();
         let pb = any.downcast::<PyBytes>().unwrap();
         assert_eq!(pb.0, b"hi");
     }

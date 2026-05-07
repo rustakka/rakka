@@ -59,11 +59,7 @@ pub(crate) fn validate_manifest(py: Python<'_>, manifest: &str) -> PyResult<()> 
 
 /// Strict (default) and lax (`strict=False`) variants of
 /// [`validate_manifest`]. See the public function's docstring.
-pub(crate) fn validate_manifest_with_mode(
-    py: Python<'_>,
-    manifest: &str,
-    strict: bool,
-) -> PyResult<()> {
+pub(crate) fn validate_manifest_with_mode(py: Python<'_>, manifest: &str, strict: bool) -> PyResult<()> {
     let (module_path, qualname) = manifest.rsplit_once('.').ok_or_else(|| {
         PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
             "manifest `{manifest}` must be `module.qualname` (no dot found)"
@@ -74,9 +70,8 @@ pub(crate) fn validate_manifest_with_mode(
         // WARNING so production users notice if they accidentally
         // rely on it.
         let warnings = py.import_bound("warnings")?;
-        let msg = format!(
-            "manifest `{manifest}` not strictly validated; relying on receiver to recognize it"
-        );
+        let msg =
+            format!("manifest `{manifest}` not strictly validated; relying on receiver to recognize it");
         warnings.call_method1("warn", (msg,))?;
         return Ok(());
     }
@@ -205,14 +200,10 @@ pub(crate) fn build_json_pair(py: Python<'_>) -> PyResult<(Py<PyAny>, Py<PyAny>)
     let loads = json.getattr("loads")?.unbind();
     let dumps_dict = pyo3::types::PyDict::new_bound(py);
     dumps_dict.set_item("__d", dumps)?;
-    let encoder = py
-        .eval_bound("lambda o, _d=__d: _d(o).encode('utf-8')", Some(&dumps_dict), None)?
-        .unbind();
+    let encoder = py.eval_bound("lambda o, _d=__d: _d(o).encode('utf-8')", Some(&dumps_dict), None)?.unbind();
     let loads_dict = pyo3::types::PyDict::new_bound(py);
     loads_dict.set_item("__l", loads)?;
-    let decoder = py
-        .eval_bound("lambda b, _l=__l: _l(b.decode('utf-8'))", Some(&loads_dict), None)?
-        .unbind();
+    let decoder = py.eval_bound("lambda b, _l=__l: _l(b.decode('utf-8'))", Some(&loads_dict), None)?.unbind();
     Ok((encoder, decoder))
 }
 
@@ -246,26 +237,19 @@ impl PyCodecRegistry {
                 "register: manifests must not be empty",
             ));
         }
-        self.insert(name, encoder, decoder, &manifests, force)
-            .map_err(collision_to_pyerr)
+        self.insert(name, encoder, decoder, &manifests, force).map_err(collision_to_pyerr)
     }
 
     /// Convenience: register the built-in JSON codec for the given
     /// manifests. Honors the same `force` flag as `register`.
     #[pyo3(name = "register_json", signature = (manifests, force=false))]
-    fn py_register_json(
-        &self,
-        py: Python<'_>,
-        manifests: Vec<String>,
-        force: bool,
-    ) -> PyResult<()> {
+    fn py_register_json(&self, py: Python<'_>, manifests: Vec<String>, force: bool) -> PyResult<()> {
         if manifests.is_empty() {
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
                 "register_json: manifests must not be empty",
             ));
         }
-        self.install_json(py, &manifests, force)?
-            .map_err(collision_to_pyerr)
+        self.install_json(py, &manifests, force)?.map_err(collision_to_pyerr)
     }
 
     /// Mark the JSON codec (or any user-supplied codec) as the
@@ -287,25 +271,16 @@ impl PyCodecRegistry {
         obj: Py<PyAny>,
     ) -> PyResult<Bound<'py, PyBytes>> {
         let (encoder, _decoder) = self.lookup(&manifest).ok_or_else(|| {
-            PyErr::new::<errors::AtomrError, _>(format!(
-                "no codec registered for manifest `{manifest}`"
-            ))
+            PyErr::new::<errors::AtomrError, _>(format!("no codec registered for manifest `{manifest}`"))
         })?;
         let bytes = call_encoder(py, &encoder, &obj)?;
         Ok(PyBytes::new_bound(py, &bytes))
     }
 
     /// Decode bytes under `manifest` back into a Python object.
-    fn decode<'py>(
-        &self,
-        py: Python<'py>,
-        manifest: String,
-        blob: Vec<u8>,
-    ) -> PyResult<Bound<'py, PyAny>> {
+    fn decode<'py>(&self, py: Python<'py>, manifest: String, blob: Vec<u8>) -> PyResult<Bound<'py, PyAny>> {
         let (_encoder, decoder) = self.lookup(&manifest).ok_or_else(|| {
-            PyErr::new::<errors::AtomrError, _>(format!(
-                "no codec registered for manifest `{manifest}`"
-            ))
+            PyErr::new::<errors::AtomrError, _>(format!("no codec registered for manifest `{manifest}`"))
         })?;
         let res = call_decoder(py, &decoder, &blob)?;
         Ok(res.into_bound(py))
@@ -322,16 +297,12 @@ impl PyCodecRegistry {
     ) -> PyResult<Bound<'py, PyAny>> {
         let bytes = {
             let (encoder, _) = self.lookup(&manifest).ok_or_else(|| {
-                PyErr::new::<errors::AtomrError, _>(format!(
-                    "no codec registered for manifest `{manifest}`"
-                ))
+                PyErr::new::<errors::AtomrError, _>(format!("no codec registered for manifest `{manifest}`"))
             })?;
             call_encoder(py, &encoder, &obj)?
         };
         let (_, decoder) = self.lookup(&manifest).ok_or_else(|| {
-            PyErr::new::<errors::AtomrError, _>(format!(
-                "no codec registered for manifest `{manifest}`"
-            ))
+            PyErr::new::<errors::AtomrError, _>(format!("no codec registered for manifest `{manifest}`"))
         })?;
         let res = call_decoder(py, &decoder, &bytes)?;
         Ok(res.into_bound(py))
@@ -356,28 +327,18 @@ impl PyCodecRegistry {
 }
 
 /// Encode an object via the user-supplied callable.
-pub(crate) fn call_encoder(
-    py: Python<'_>,
-    encoder: &Py<PyAny>,
-    obj: &Py<PyAny>,
-) -> PyResult<Vec<u8>> {
+pub(crate) fn call_encoder(py: Python<'_>, encoder: &Py<PyAny>, obj: &Py<PyAny>) -> PyResult<Vec<u8>> {
     let res = encoder.call1(py, PyTuple::new_bound(py, &[obj.clone_ref(py)]))?;
     let bound = res.bind(py);
     if let Ok(b) = bound.downcast::<PyBytes>() {
         Ok(b.as_bytes().to_vec())
     } else {
-        Err(PyErr::new::<errors::AtomrError, _>(
-            "codec encoder must return bytes",
-        ))
+        Err(PyErr::new::<errors::AtomrError, _>("codec encoder must return bytes"))
     }
 }
 
 /// Decode bytes via the user-supplied callable.
-pub(crate) fn call_decoder(
-    py: Python<'_>,
-    decoder: &Py<PyAny>,
-    bytes: &[u8],
-) -> PyResult<Py<PyAny>> {
+pub(crate) fn call_decoder(py: Python<'_>, decoder: &Py<PyAny>, bytes: &[u8]) -> PyResult<Py<PyAny>> {
     let arg = PyBytes::new_bound(py, bytes);
     let res = decoder.call1(py, (arg,))?;
     Ok(res)
@@ -443,19 +404,11 @@ impl PyBuiltinJsonCodec {
         manifest: String,
         payload: Vec<u8>,
     ) -> PyResult<Bound<'py, PyBytes>> {
-        let out = self
-            .inner
-            .encode(&manifest, &payload)
-            .map_err(map_codec_err)?;
+        let out = self.inner.encode(&manifest, &payload).map_err(map_codec_err)?;
         Ok(PyBytes::new_bound(py, &out))
     }
 
-    fn decode<'py>(
-        &self,
-        py: Python<'py>,
-        manifest: String,
-        blob: Vec<u8>,
-    ) -> PyResult<Bound<'py, PyBytes>> {
+    fn decode<'py>(&self, py: Python<'py>, manifest: String, blob: Vec<u8>) -> PyResult<Bound<'py, PyBytes>> {
         let out = self.inner.decode(&manifest, &blob).map_err(map_codec_err)?;
         Ok(PyBytes::new_bound(py, &out))
     }

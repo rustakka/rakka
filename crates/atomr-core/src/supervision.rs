@@ -19,11 +19,7 @@ pub struct PanicPayload {
 
 impl PanicPayload {
     pub fn new(module: impl Into<String>, qualname: impl Into<String>, repr: impl Into<String>) -> Self {
-        Self {
-            module: module.into(),
-            qualname: qualname.into(),
-            repr: repr.into(),
-        }
+        Self { module: module.into(), qualname: qualname.into(), repr: repr.into() }
     }
 
     /// Fully-qualified class path, e.g. `"builtins.ValueError"`.

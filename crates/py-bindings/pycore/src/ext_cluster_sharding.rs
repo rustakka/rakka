@@ -392,19 +392,12 @@ impl PyShardRegion {
 
         let (entity_factory, entity_dispatcher, entity_role) = {
             let p = entity_props.borrow(py);
-            (
-                SendPyAny::new(p.factory.clone_ref(py)),
-                p.dispatcher.clone(),
-                p.interpreter_role.clone(),
-            )
+            (SendPyAny::new(p.factory.clone_ref(py)), p.dispatcher.clone(), p.interpreter_role.clone())
         };
 
         let remember = if settings.remember_entities {
             let store = remember_store_for(&sys, &type_name);
-            Some(RememberCtx {
-                store,
-                seen_shards: RwLock::new(HashSet::new()),
-            })
+            Some(RememberCtx { store, seen_shards: RwLock::new(HashSet::new()) })
         } else {
             None
         };
@@ -458,13 +451,7 @@ impl PyShardRegion {
             warm_remembered(inner.clone(), rem.store.clone());
         }
 
-        Py::new(
-            py,
-            PyShardRegion {
-                inner,
-                rust_region,
-            },
-        )
+        Py::new(py, PyShardRegion { inner, rust_region })
     }
 
     #[getter]
@@ -518,10 +505,7 @@ impl PyShardRegion {
         let handle = ensure_entity(&self.inner, &entity_id)
             .ok_or_else(|| PyRuntimeError::new_err("entity spawn failed"))?;
         let path = format!("akka://{}/user/{}", self.inner.system.name(), handle.name);
-        Py::new(
-            py,
-            PyActorRef::from_arc(handle.actor_ref.clone(), path),
-        )
+        Py::new(py, PyActorRef::from_arc(handle.actor_ref.clone(), path))
     }
 
     /// Stop an entity actor and remove it from the active map.
@@ -568,12 +552,7 @@ fn build_extractor(
     number_of_shards: Option<u64>,
 ) -> PyResult<PyExtractor> {
     if let Some(shard_fn) = shard_id_extractor {
-        Ok(PyExtractor::new(
-            message_extractor,
-            shard_fn,
-            unwrap_extractor,
-            number_of_shards,
-        ))
+        Ok(PyExtractor::new(message_extractor, shard_fn, unwrap_extractor, number_of_shards))
     } else {
         // Single-callable mode: the extractor returns
         // (entity_id, shard_id, payload). Synthesise three selector
@@ -586,14 +565,8 @@ fn build_extractor(
         )?;
         let make_selectors = module.getattr("make_selectors")?;
         let tup = make_selectors.call1((message_extractor,))?;
-        let (entity_id_fn, shard_id_fn, unwrap_fn): (Py<PyAny>, Py<PyAny>, Py<PyAny>) =
-            tup.extract()?;
-        Ok(PyExtractor::new(
-            entity_id_fn,
-            shard_id_fn,
-            Some(unwrap_fn),
-            number_of_shards,
-        ))
+        let (entity_id_fn, shard_id_fn, unwrap_fn): (Py<PyAny>, Py<PyAny>, Py<PyAny>) = tup.extract()?;
+        Ok(PyExtractor::new(entity_id_fn, shard_id_fn, Some(unwrap_fn), number_of_shards))
     }
 }
 
@@ -621,19 +594,11 @@ def make_selectors(extractor):
     return (entity_id, shard_id, unwrap)
 "#;
 
-fn build_envelope(
-    py: Python<'_>,
-    extractor: &PyExtractor,
-    msg: Py<PyAny>,
-) -> PyResult<ShardEnvelope> {
+fn build_envelope(py: Python<'_>, extractor: &PyExtractor, msg: Py<PyAny>) -> PyResult<ShardEnvelope> {
     let entity_id = extractor.extract_entity_id(py, &msg)?;
     let shard_id = extractor.extract_shard_id(py, &msg)?;
     let payload = extractor.extract_payload(py, msg)?;
-    Ok(ShardEnvelope {
-        payload: SendPyAny::new(payload),
-        entity_id,
-        shard_id,
-    })
+    Ok(ShardEnvelope { payload: SendPyAny::new(payload), entity_id, shard_id })
 }
 
 /// Synchronous dispatch from the cluster_sharding handler back into
@@ -700,10 +665,7 @@ fn ensure_entity(inner: &Arc<RegionInner>, entity_id: &str) -> Option<EntityHand
     };
     let pool = registry().get_or_create(&role, kind, InterpreterQuota::default());
     if pool.register_actor().is_err() {
-        tracing::error!(
-            entity = entity_id,
-            "interpreter pool refused entity registration"
-        );
+        tracing::error!(entity = entity_id, "interpreter pool refused entity registration");
         return None;
     }
 
@@ -727,10 +689,7 @@ fn ensure_entity(inner: &Arc<RegionInner>, entity_id: &str) -> Option<EntityHand
         }
     };
 
-    g.insert(
-        entity_id.to_string(),
-        EntityHandle { actor_ref: actor_ref.clone(), name: name.clone() },
-    );
+    g.insert(entity_id.to_string(), EntityHandle { actor_ref: actor_ref.clone(), name: name.clone() });
     Some(EntityHandle { actor_ref, name })
 }
 
@@ -827,10 +786,7 @@ fn store_registry(sys: &RustSystem) -> Arc<StoreRegistry> {
     ext.get::<StoreRegistry>().expect("just registered")
 }
 
-fn remember_store_for(
-    sys: &RustSystem,
-    type_name: &str,
-) -> Arc<dyn RememberEntitiesStore> {
+fn remember_store_for(sys: &RustSystem, type_name: &str) -> Arc<dyn RememberEntitiesStore> {
     let reg = store_registry(sys);
     let mut g = reg.stores.lock();
     if let Some(existing) = g.get(type_name) {
@@ -852,9 +808,7 @@ fn next_region_instance(sys: &RustSystem, type_name: &str) -> u32 {
 }
 
 fn sanitize(s: &str) -> String {
-    s.chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
-        .collect()
+    s.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' }).collect()
 }
 
 fn stable_hash(s: &str) -> u64 {

@@ -43,12 +43,7 @@ pub enum ClusterFrame {
     Gossip(GossipPdu),
     /// Type-erased Python actor-message envelope. The receiving side
     /// looks up `manifest` in the codec registry to decode `payload`.
-    RemoteTell {
-        target_path: String,
-        manifest: String,
-        payload: Vec<u8>,
-        sender_path: Option<String>,
-    },
+    RemoteTell { target_path: String, manifest: String, payload: Vec<u8>, sender_path: Option<String> },
 }
 
 /// Sink for inbound `RemoteTell` frames. The pycore binding implements
@@ -58,13 +53,7 @@ pub trait RemoteMessageSink: Send + Sync + 'static {
     /// Deliver a `RemoteTell` frame. Errors must not crash the
     /// transport — the implementor is responsible for logging or
     /// dead-lettering.
-    fn deliver(
-        &self,
-        target_path: &str,
-        manifest: &str,
-        payload: &[u8],
-        sender_path: Option<&str>,
-    );
+    fn deliver(&self, target_path: &str, manifest: &str, payload: &[u8], sender_path: Option<&str>);
 }
 
 // ---------------------------------------------------------------------------
@@ -116,12 +105,7 @@ impl InProcessClusterTransport {
     pub fn new(self_addr: Address, registry: Arc<InProcessRegistry>) -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
         registry.register(&self_addr, tx.clone());
-        Self {
-            self_addr,
-            registry,
-            inbound_tx: tx,
-            inbound_rx: Mutex::new(Some(rx)),
-        }
+        Self { self_addr, registry, inbound_tx: tx, inbound_rx: Mutex::new(Some(rx)) }
     }
 
     pub fn self_address(&self) -> &Address {
@@ -139,10 +123,7 @@ impl InProcessClusterTransport {
         payload: Vec<u8>,
         sender_path: Option<String>,
     ) {
-        self.registry.send(
-            target,
-            ClusterFrame::RemoteTell { target_path, manifest, payload, sender_path },
-        );
+        self.registry.send(target, ClusterFrame::RemoteTell { target_path, manifest, payload, sender_path });
     }
 
     /// Spawn the inbound demultiplex task. `gossip_inbox` is the
@@ -213,11 +194,7 @@ impl TcpClusterTransport {
         Self::with_advertised(self_addr, bind, None)
     }
 
-    pub fn with_advertised(
-        self_addr: Address,
-        bind: SocketAddr,
-        advertised_host: Option<String>,
-    ) -> Self {
+    pub fn with_advertised(self_addr: Address, bind: SocketAddr, advertised_host: Option<String>) -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
         Self {
             self_addr,
@@ -241,12 +218,7 @@ impl TcpClusterTransport {
         let bound = listener.local_addr()?;
         *self.listen_addr.lock() = Some(bound);
         let host = self.advertised_host.clone().unwrap_or_else(|| bound.ip().to_string());
-        let resolved = Address::remote(
-            "akka.tcp",
-            self.self_addr.system.clone(),
-            host,
-            bound.port(),
-        );
+        let resolved = Address::remote("akka.tcp", self.self_addr.system.clone(), host, bound.port());
 
         let inbound = self.inbound_tx.clone();
         let shutdown = self.shutdown.clone();
@@ -278,11 +250,7 @@ impl TcpClusterTransport {
 
     /// Spawn the inbound demultiplex task. Mirrors
     /// [`InProcessClusterTransport::start`].
-    pub fn start(
-        &self,
-        gossip_inbox: mpsc::UnboundedSender<GossipPdu>,
-        sink: Arc<dyn RemoteMessageSink>,
-    ) {
+    pub fn start(&self, gossip_inbox: mpsc::UnboundedSender<GossipPdu>, sink: Arc<dyn RemoteMessageSink>) {
         let mut rx = self.take_inbound();
         tokio::spawn(async move {
             while let Some(frame) = rx.recv().await {
@@ -392,10 +360,7 @@ async fn send_via_tcp(
     let _ = tx.send(frame);
 }
 
-async fn handle_inbound_socket(
-    sock: TcpStream,
-    inbound: mpsc::UnboundedSender<ClusterFrame>,
-) {
+async fn handle_inbound_socket(sock: TcpStream, inbound: mpsc::UnboundedSender<ClusterFrame>) {
     let (mut reader, mut _writer) = sock.into_split();
     let mut buf = Vec::new();
     loop {
@@ -414,10 +379,7 @@ async fn handle_inbound_socket(
     }
 }
 
-async fn write_frame<W: AsyncWriteExt + Unpin>(
-    writer: &mut W,
-    frame: &ClusterFrame,
-) -> std::io::Result<()> {
+async fn write_frame<W: AsyncWriteExt + Unpin>(writer: &mut W, frame: &ClusterFrame) -> std::io::Result<()> {
     let bytes = bincode::serde::encode_to_vec(frame, bincode_cfg())
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))?;
     let len = (bytes.len() as u32).to_be_bytes();
@@ -427,10 +389,7 @@ async fn write_frame<W: AsyncWriteExt + Unpin>(
     Ok(())
 }
 
-async fn read_frame_into<R: AsyncReadExt + Unpin>(
-    reader: &mut R,
-    buf: &mut Vec<u8>,
-) -> std::io::Result<()> {
+async fn read_frame_into<R: AsyncReadExt + Unpin>(reader: &mut R, buf: &mut Vec<u8>) -> std::io::Result<()> {
     let mut len_buf = [0u8; 4];
     reader.read_exact(&mut len_buf).await?;
     let len = u32::from_be_bytes(len_buf) as usize;
@@ -462,13 +421,7 @@ pub struct RemoteTellRecord {
 }
 
 impl RemoteMessageSink for RecordingSink {
-    fn deliver(
-        &self,
-        target_path: &str,
-        manifest: &str,
-        payload: &[u8],
-        sender_path: Option<&str>,
-    ) {
+    fn deliver(&self, target_path: &str, manifest: &str, payload: &[u8], sender_path: Option<&str>) {
         self.records.lock().push(RemoteTellRecord {
             target_path: target_path.to_string(),
             manifest: manifest.to_string(),
@@ -502,14 +455,9 @@ mod tests {
         let sink: Arc<dyn RemoteMessageSink> = Arc::new(RecordingSink::default());
         b.start(gossip_tx_b, sink);
 
-        a.send(
-            &local("B"),
-            GossipPdu::Status { from: "A".into(), version: VectorClock::new() },
-        );
-        let pdu = tokio::time::timeout(Duration::from_millis(200), gossip_rx_b.recv())
-            .await
-            .unwrap()
-            .unwrap();
+        a.send(&local("B"), GossipPdu::Status { from: "A".into(), version: VectorClock::new() });
+        let pdu =
+            tokio::time::timeout(Duration::from_millis(200), gossip_rx_b.recv()).await.unwrap().unwrap();
         assert!(matches!(pdu, GossipPdu::Status { .. }));
     }
 

@@ -1,4 +1,4 @@
-//! redb-backed durable distributed-data store. 
+//! redb-backed durable distributed-data store.
 //! ``.
 //!
 //! Implementation note: the spec requested a separate `pyddata-lmdb`

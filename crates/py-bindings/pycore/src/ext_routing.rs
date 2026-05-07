@@ -23,7 +23,7 @@
 //! `Props.backoff(child_props, min, max, random_factor)` is co-located here
 //! because it produces the same `PyProps` shape (kind = Backoff).
 
-use std::sync::atomic::{AtomicU32, AtomicUsize, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU32, AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -43,10 +43,7 @@ use crate::py_actor::{PyActor, PyMessage};
 /// Build a `Props<PyActor>` from a Python-side `PyProps`. Replicates
 /// the `actor_of` logic used for top-level actors so router children
 /// behave identically to manually-spawned actors.
-pub(crate) fn make_pyactor_rust_props(
-    py_props: &PyProps,
-    name_hint: &str,
-) -> RustProps<PyActor> {
+pub(crate) fn make_pyactor_rust_props(py_props: &PyProps, name_hint: &str) -> RustProps<PyActor> {
     let factory = Python::with_gil(|py| py_props.factory.clone_ref(py));
     let role = py_props.interpreter_role.clone();
     let dispatcher_name = py_props.dispatcher.clone();
@@ -89,13 +86,11 @@ impl RouterActor {
             RoutingLogic::Random => RouterLogicState::Random(AtomicU64::new(0xDEADBEEF)),
             RoutingLogic::ConsistentHash => RouterLogicState::ConsistentHash,
             RoutingLogic::SmallestMailbox => RouterLogicState::SmallestMailbox(Vec::new()),
-            RoutingLogic::TailChopping { interval_secs, within_secs } => {
-                RouterLogicState::TailChopping {
-                    cursor: AtomicUsize::new(0),
-                    interval: Duration::from_secs_f64(interval_secs),
-                    within: Duration::from_secs_f64(within_secs),
-                }
-            }
+            RoutingLogic::TailChopping { interval_secs, within_secs } => RouterLogicState::TailChopping {
+                cursor: AtomicUsize::new(0),
+                interval: Duration::from_secs_f64(interval_secs),
+                within: Duration::from_secs_f64(within_secs),
+            },
             RoutingLogic::ScatterGather { within_secs } => {
                 RouterLogicState::ScatterGather { within: Duration::from_secs_f64(within_secs) }
             }
@@ -180,9 +175,7 @@ impl Actor for RouterActor {
                                 "consistent-hash router requires tell_with_key / ask_with_key",
                             )));
                         } else {
-                            tracing::warn!(
-                                "consistent-hash router received message without hash; dropping"
-                            );
+                            tracing::warn!("consistent-hash router received message without hash; dropping");
                         }
                         return;
                     }
@@ -383,12 +376,7 @@ fn _tail_chopping(
     interval_secs: f64,
     within_secs: f64,
 ) -> PyResult<Py<PyProps>> {
-    build_router(
-        py,
-        child_props,
-        n,
-        RoutingLogic::TailChopping { interval_secs, within_secs },
-    )
+    build_router(py, child_props, n, RoutingLogic::TailChopping { interval_secs, within_secs })
 }
 
 #[pyfunction]
@@ -469,9 +457,7 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
         Ok(())
     };
     let staticmethod = py.import_bound("builtins")?.getattr("staticmethod")?;
-    let mk = |fn_obj: Bound<'_, PyAny>| -> PyResult<Bound<'_, PyAny>> {
-        staticmethod.call1((fn_obj,))
-    };
+    let mk = |fn_obj: Bound<'_, PyAny>| -> PyResult<Bound<'_, PyAny>> { staticmethod.call1((fn_obj,)) };
     bind("broadcast", mk(sub.getattr("_broadcast")?)?)?;
     bind("round_robin", mk(sub.getattr("_round_robin")?)?)?;
     bind("random", mk(sub.getattr("_random")?)?)?;

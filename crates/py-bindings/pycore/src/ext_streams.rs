@@ -21,12 +21,11 @@ use std::time::Duration;
 
 use atomr_streams::{
     conflate, expand, initial_delay, keep_alive, merge_prioritized, merge_sorted, prefix_and_tail,
-    recover_with_retries, select_error, split_after, ActorMaterializer,
-    BidiFlow as RustBidiFlow, BroadcastHub as RustBroadcastHub, FileIO as RustFileIO, Flow,
-    Framing as RustFraming, KillSwitch as RustKillSwitch, MergeHub as RustMergeHub,
-    QueueOfferResult as RustOfferResult, RestartSettings as RustRestartSettings,
-    RestartSource as RustRestartSource, Sink, SinkQueue as RustSinkQueue, Source,
-    SupervisionDirective, Tcp as RustTcp,
+    recover_with_retries, select_error, split_after, ActorMaterializer, BidiFlow as RustBidiFlow,
+    BroadcastHub as RustBroadcastHub, FileIO as RustFileIO, Flow, Framing as RustFraming,
+    KillSwitch as RustKillSwitch, MergeHub as RustMergeHub, QueueOfferResult as RustOfferResult,
+    RestartSettings as RustRestartSettings, RestartSource as RustRestartSource, Sink,
+    SinkQueue as RustSinkQueue, Source, SupervisionDirective, Tcp as RustTcp,
 };
 use bytes::Bytes;
 use parking_lot::Mutex;
@@ -168,9 +167,7 @@ impl FlowBuilder {
 /// A Sink builder reduces a built `Source<SendPyAny>` into a future that
 /// returns a Python materialized value.
 type SinkRunner = Box<
-    dyn FnOnce(
-            Source<SendPyAny>,
-        ) -> futures::future::BoxFuture<'static, PyResult<Py<PyAny>>>
+    dyn FnOnce(Source<SendPyAny>) -> futures::future::BoxFuture<'static, PyResult<Py<PyAny>>>
         + Send
         + 'static,
 >;
@@ -468,9 +465,7 @@ impl PyFlow {
                             let qual: String = ty
                                 .getattr("__qualname__")
                                 .and_then(|q| q.extract::<String>())
-                                .or_else(|_| {
-                                    ty.getattr("__name__").and_then(|n| n.extract::<String>())
-                                })
+                                .or_else(|_| ty.getattr("__name__").and_then(|n| n.extract::<String>()))
                                 .unwrap_or_default();
                             let class_path = if module.is_empty() || module == "builtins" {
                                 qual
@@ -479,10 +474,7 @@ impl PyFlow {
                             };
                             let tup = pyo3::types::PyTuple::new_bound(
                                 py,
-                                [
-                                    "__atomr_stream_error__".into_py(py),
-                                    class_path.into_py(py),
-                                ],
+                                ["__atomr_stream_error__".into_py(py), class_path.into_py(py)],
                             );
                             // Clear the error so it doesn't leak; the
                             // sentinel encodes the type for the supervision
@@ -541,10 +533,8 @@ impl PyFlow {
                 Python::with_gil(|py| {
                     let bound = item.0.bind(py);
                     // Detect the try_map error sentinel.
-                    let is_err = bound
-                        .extract::<(String, String)>()
-                        .ok()
-                        .map(|(t, _)| t == "__atomr_stream_error__");
+                    let is_err =
+                        bound.extract::<(String, String)>().ok().map(|(t, _)| t == "__atomr_stream_error__");
                     if let Some(true) = is_err {
                         // Extract class_path and apply decider.
                         let (_, class_path) = bound.extract::<(String, String)>().unwrap();
@@ -573,9 +563,10 @@ impl PyFlow {
                 })
             });
             // Convert Vec<SendPyAny> back to SendPyAny via flat_map_concat.
-            let flatten = Flow::<Vec<SendPyAny>, SendPyAny>::flat_map_concat(
-                |v: Vec<SendPyAny>| -> Vec<SendPyAny> { v },
-            );
+            let flatten =
+                Flow::<Vec<SendPyAny>, SendPyAny>::flat_map_concat(|v: Vec<SendPyAny>| -> Vec<SendPyAny> {
+                    v
+                });
             inner.via(supervisor).via(flatten)
         });
         Py::new(py, PyFlow::from_builder(new_builder))
@@ -912,9 +903,8 @@ impl PyBroadcastHub {
         // `src` is a Source<SendPyAny>; we wrap it directly.
         let src_holder = Arc::new(Mutex::new(Some(src)));
         let src_holder_for_build = Arc::clone(&src_holder);
-        let builder = SourceBuilder::new(move || {
-            src_holder_for_build.lock().take().unwrap_or_else(Source::empty)
-        });
+        let builder =
+            SourceBuilder::new(move || src_holder_for_build.lock().take().unwrap_or_else(Source::empty));
         Py::new(py, PySource::from_builder(builder))
     }
 
@@ -949,9 +939,7 @@ impl PyMergeHub {
         let s = self.inner.source();
         let holder = Arc::new(Mutex::new(Some(s)));
         let holder_b = Arc::clone(&holder);
-        let builder = SourceBuilder::new(move || {
-            holder_b.lock().take().unwrap_or_else(Source::empty)
-        });
+        let builder = SourceBuilder::new(move || holder_b.lock().take().unwrap_or_else(Source::empty));
         Py::new(py, PySource::from_builder(builder))
     }
 }
@@ -1085,7 +1073,6 @@ fn parse_stream_directive(s: &str) -> PyResult<SupervisionDirective> {
     }
 }
 
-
 // =============================================================================
 // GraphDsl
 // =============================================================================
@@ -1129,9 +1116,7 @@ impl PyGraphDsl {
             let b = k.borrow_mut(py).take_builder()?;
             GraphNode::Sink(b)
         } else {
-            return Err(PyValueError::new_err(
-                "GraphDsl.add expects a Source, Flow, or Sink",
-            ));
+            return Err(PyValueError::new_err("GraphDsl.add expects a Source, Flow, or Sink"));
         };
         let mut nodes = self.nodes.lock();
         let idx = nodes.len();
@@ -1266,9 +1251,7 @@ impl PyBidiFlow {
     /// Project the forward direction as a standalone `Flow`.
     fn forward(&self, py: Python<'_>) -> PyResult<Py<PyFlow>> {
         let mut g = self.state.lock();
-        let s = g
-            .as_mut()
-            .ok_or_else(|| PyRuntimeError::new_err("BidiFlow already projected"))?;
+        let s = g.as_mut().ok_or_else(|| PyRuntimeError::new_err("BidiFlow already projected"))?;
         let forward = std::mem::replace(
             &mut s.forward,
             FlowBuilder::new(|| Flow::<SendPyAny, SendPyAny>::from_fn(|x| x)),
@@ -1279,9 +1262,7 @@ impl PyBidiFlow {
     /// Project the backward direction as a standalone `Flow`.
     fn backward(&self, py: Python<'_>) -> PyResult<Py<PyFlow>> {
         let mut g = self.state.lock();
-        let s = g
-            .as_mut()
-            .ok_or_else(|| PyRuntimeError::new_err("BidiFlow already projected"))?;
+        let s = g.as_mut().ok_or_else(|| PyRuntimeError::new_err("BidiFlow already projected"))?;
         let backward = std::mem::replace(
             &mut s.backward,
             FlowBuilder::new(|| Flow::<SendPyAny, SendPyAny>::from_fn(|x| x)),
@@ -1297,8 +1278,7 @@ impl PyBidiFlow {
         let s = g.take().ok_or_else(|| PyRuntimeError::new_err("BidiFlow already consumed"))?;
         let f = s.forward.build();
         let b = s.backward.build();
-        let _bidi: RustBidiFlow<SendPyAny, SendPyAny, SendPyAny, SendPyAny> =
-            RustBidiFlow::from_flows(f, b);
+        let _bidi: RustBidiFlow<SendPyAny, SendPyAny, SendPyAny, SendPyAny> = RustBidiFlow::from_flows(f, b);
         Ok(())
     }
 }
@@ -1330,17 +1310,13 @@ where
                 }
             })
         });
-        let flatten_bytes =
-            Flow::<Vec<Bytes>, Bytes>::flat_map_concat(|v: Vec<Bytes>| -> Vec<Bytes> { v });
+        let flatten_bytes = Flow::<Vec<Bytes>, Bytes>::flat_map_concat(|v: Vec<Bytes>| -> Vec<Bytes> { v });
         let framing_flow = make();
         // Drop framing errors; keep only ok'd frames.
         let drop_errs = Flow::<Result<Bytes, atomr_streams::FramingError>, Vec<Bytes>>::from_fn(
-            |r: Result<Bytes, atomr_streams::FramingError>| -> Vec<Bytes> {
-                r.ok().into_iter().collect()
-            },
+            |r: Result<Bytes, atomr_streams::FramingError>| -> Vec<Bytes> { r.ok().into_iter().collect() },
         );
-        let flatten_ok =
-            Flow::<Vec<Bytes>, Bytes>::flat_map_concat(|v: Vec<Bytes>| -> Vec<Bytes> { v });
+        let flatten_ok = Flow::<Vec<Bytes>, Bytes>::flat_map_concat(|v: Vec<Bytes>| -> Vec<Bytes> { v });
         // Encode Bytes -> SendPyAny.
         let to_pybytes = Flow::<Bytes, SendPyAny>::from_fn(|b: Bytes| {
             Python::with_gil(|py| {
@@ -1348,12 +1324,7 @@ where
                 SendPyAny::new(pb.unbind().into_any())
             })
         });
-        to_bytes_vec
-            .via(flatten_bytes)
-            .via(framing_flow)
-            .via(drop_errs)
-            .via(flatten_ok)
-            .via(to_pybytes)
+        to_bytes_vec.via(flatten_bytes).via(framing_flow).via(drop_errs).via(flatten_ok).via(to_pybytes)
     }))
 }
 
@@ -1365,9 +1336,7 @@ impl PyFraming {
     #[staticmethod]
     fn delimiter(delimiter: &[u8], max_frame_length: usize) -> PyResult<PyFlow> {
         if delimiter.len() != 1 {
-            return Err(PyValueError::new_err(
-                "Framing.delimiter requires a single-byte delimiter",
-            ));
+            return Err(PyValueError::new_err("Framing.delimiter requires a single-byte delimiter"));
         }
         let d = delimiter[0];
         Ok(bytes_flow_from(move || RustFraming::delimiter(d, max_frame_length)))
@@ -1490,10 +1459,8 @@ impl PyTcp {
                 Some(rx) => Source::from_receiver(rx).map(|(remote, b): (String, Bytes)| {
                     Python::with_gil(|py| {
                         let pb = PyBytes::new_bound(py, &b);
-                        let tup = pyo3::types::PyTuple::new_bound(
-                            py,
-                            [remote.into_py(py), pb.unbind().into_any()],
-                        );
+                        let tup =
+                            pyo3::types::PyTuple::new_bound(py, [remote.into_py(py), pb.unbind().into_any()]);
                         SendPyAny::new(tup.unbind().into_any())
                     })
                 }),
@@ -1735,13 +1702,17 @@ fn via_conflate(py: Python<'_>, items: Vec<i64>, fold: Py<PyAny>) -> Vec<i64> {
     py.allow_threads(|| {
         let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().expect("rt");
         rt.block_on(async move {
-            let s = conflate(Source::from_iter(items), |x: i64| x, move |acc, v| {
-                Python::with_gil(|gil| -> PyResult<i64> {
-                    let r = fold_ref.call1(gil, (acc, v))?;
-                    r.extract::<i64>(gil)
-                })
-                .unwrap_or(acc)
-            });
+            let s = conflate(
+                Source::from_iter(items),
+                |x: i64| x,
+                move |acc, v| {
+                    Python::with_gil(|gil| -> PyResult<i64> {
+                        let r = fold_ref.call1(gil, (acc, v))?;
+                        r.extract::<i64>(gil)
+                    })
+                    .unwrap_or(acc)
+                },
+            );
             ActorMaterializer::new().run_collect(s).await
         })
     })
@@ -1798,9 +1769,7 @@ fn via_split_after_count(py: Python<'_>, items: Vec<i64>, pred: Py<PyAny>) -> us
         rt.block_on(async move {
             let s = split_after(Source::from_iter(items), move |x: &i64| {
                 Python::with_gil(|gil| {
-                    cb.call1(gil, (*x,))
-                        .and_then(|r| r.extract::<bool>(gil))
-                        .unwrap_or(false)
+                    cb.call1(gil, (*x,)).and_then(|r| r.extract::<bool>(gil)).unwrap_or(false)
                 })
             });
             ActorMaterializer::new().run_collect(s).await.len()
@@ -1867,9 +1836,7 @@ fn via_select_error(
             let src = Source::from_iter(mapped);
             let mapped_src = select_error(src, move |label: String| -> String {
                 Python::with_gil(|gil| {
-                    cb.call1(gil, (label.clone(),))
-                        .and_then(|r| r.extract::<String>(gil))
-                        .unwrap_or(label)
+                    cb.call1(gil, (label.clone(),)).and_then(|r| r.extract::<String>(gil)).unwrap_or(label)
                 })
             });
             let s: Source<i64> = mapped_src.filter_map(|r| r.ok());

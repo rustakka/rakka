@@ -20,8 +20,8 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
 
-use pyo3::prelude::*;
 use pyo3::exceptions::PyRuntimeError;
+use pyo3::prelude::*;
 use tokio::sync::{mpsc, oneshot};
 
 use crate::actor_ref::PyActorRef;
@@ -99,14 +99,7 @@ impl PyContext {
         dispatcher: String,
         ops: mpsc::UnboundedSender<CtxOp>,
     ) -> Self {
-        Self {
-            self_ref,
-            path,
-            sender,
-            interpreter_role,
-            dispatcher,
-            ops: Mutex::new(Some(ops)),
-        }
+        Self { self_ref, path, sender, interpreter_role, dispatcher, ops: Mutex::new(Some(ops)) }
     }
 
     /// After the handler returns, invalidate the op channel so any
@@ -119,12 +112,8 @@ impl PyContext {
     fn send_op(&self, op: CtxOp) -> PyResult<()> {
         let g = self.ops.lock().unwrap();
         match g.as_ref() {
-            Some(tx) => tx.send(op).map_err(|_| {
-                PyRuntimeError::new_err("actor context channel closed")
-            }),
-            None => Err(PyRuntimeError::new_err(
-                "Context used outside of its handler scope",
-            )),
+            Some(tx) => tx.send(op).map_err(|_| PyRuntimeError::new_err("actor context channel closed")),
+            None => Err(PyRuntimeError::new_err("Context used outside of its handler scope")),
         }
     }
 }
@@ -167,27 +156,15 @@ impl PyContext {
         let role = pp_ref.interpreter_role.clone();
         // If the user constructed Props with the default role, inherit
         // the parent's role for cache locality. Otherwise honor override.
-        let interpreter_role = if role == "default" {
-            self.interpreter_role.clone()
-        } else {
-            role
-        };
+        let interpreter_role = if role == "default" { self.interpreter_role.clone() } else { role };
         drop(pp_ref);
 
         let (tx, rx) = oneshot::channel();
-        self.send_op(CtxOp::Spawn {
-            factory,
-            name,
-            interpreter_role,
-            dispatcher,
-            reply: tx,
-        })?;
+        self.send_op(CtxOp::Spawn { factory, name, interpreter_role, dispatcher, reply: tx })?;
 
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             match rx.await {
-                Ok(Ok(actor_ref)) => Python::with_gil(|py| {
-                    Py::new(py, actor_ref).map(|p| p.into_any())
-                }),
+                Ok(Ok(actor_ref)) => Python::with_gil(|py| Py::new(py, actor_ref).map(|p| p.into_any())),
                 Ok(Err(e)) => Err(PyRuntimeError::new_err(e)),
                 Err(_) => Err(PyRuntimeError::new_err("spawn reply channel dropped")),
             }

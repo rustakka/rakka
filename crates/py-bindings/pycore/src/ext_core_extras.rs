@@ -26,7 +26,7 @@ use atomr_core::dispatch::message_queues::{ControlAware, ControlAwareQueue};
 use atomr_core::event::{DeadLetterFilter, DeadLetterReason};
 use atomr_core::routing::ResizerConfig;
 
-/// Throughput / deadline knobs for any dispatcher. 
+/// Throughput / deadline knobs for any dispatcher.
 /// `Dispatcher` config keys.
 #[pyclass(name = "DispatcherConfig", module = "atomr._native.core")]
 #[derive(Clone)]
@@ -58,7 +58,7 @@ impl PyDispatcherConfig {
     }
 }
 
-/// Bounded mailbox overflow strategy. 
+/// Bounded mailbox overflow strategy.
 /// `BoundedMessageQueueSettings` policy.
 #[pyclass(name = "OverflowStrategy", module = "atomr._native.core")]
 #[derive(Clone, Copy)]
@@ -186,7 +186,7 @@ impl PyBoundedStash {
     }
 }
 
-/// Control-aware mailbox. 
+/// Control-aware mailbox.
 /// `UnboundedControlAwareMessageQueue`.
 #[pyclass(name = "ControlAwareQueue", module = "atomr._native.core")]
 pub struct PyControlAwareQueue {

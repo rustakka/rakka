@@ -22,8 +22,8 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
 use atomr_core::supervision::{
-    AllForOneStrategy, Decider, Directive, OneForOneStrategy,
-    StrategyKind, SupervisorStrategy as RustStrategy,
+    AllForOneStrategy, Decider, Directive, OneForOneStrategy, StrategyKind,
+    SupervisorStrategy as RustStrategy,
 };
 
 /// Python-facing directive enum. Mirrors
@@ -49,10 +49,7 @@ fn parse_directive(s: &str) -> PyResult<Directive> {
 /// `"<module>.<qualname>: <repr>"`). For non-`PanicPayload` panics
 /// (which carry just the panic-msg string), we still match against
 /// the prefix in case an upstream caller named the class explicitly.
-fn compile_decider(
-    rules: HashMap<String, Directive>,
-    default: Directive,
-) -> Decider {
+fn compile_decider(rules: HashMap<String, Directive>, default: Directive) -> Decider {
     Arc::new(move |panic_msg: &str| -> Directive {
         // Wire format from `PanicPayload::to_wire`:
         //     "<module>.<qualname>: <repr>"
@@ -177,11 +174,7 @@ impl PySupervisorStrategy {
     #[staticmethod]
     pub fn stopping() -> Self {
         let dec: Decider = Arc::new(|_| Directive::Stop);
-        let strat = OneForOneStrategy {
-            max_retries: None,
-            within: None,
-            decider: dec,
-        };
+        let strat = OneForOneStrategy { max_retries: None, within: None, decider: dec };
         Self { inner: strat.into() }
     }
 
@@ -189,11 +182,7 @@ impl PySupervisorStrategy {
     #[staticmethod]
     pub fn escalating() -> Self {
         let dec: Decider = Arc::new(|_| Directive::Escalate);
-        let strat = OneForOneStrategy {
-            max_retries: None,
-            within: None,
-            decider: dec,
-        };
+        let strat = OneForOneStrategy { max_retries: None, within: None, decider: dec };
         Self { inner: strat.into() }
     }
 

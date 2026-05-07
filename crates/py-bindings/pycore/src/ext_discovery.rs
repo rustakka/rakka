@@ -40,7 +40,7 @@ impl PyStaticDiscovery {
 }
 
 /// Chain-of-responsibility discovery — walks providers in order and
-/// returns the first non-empty resolution. 
+/// returns the first non-empty resolution.
 /// ``.
 #[pyclass(name = "AggregateDiscovery", module = "atomr._native.discovery")]
 pub struct PyAggregateDiscovery {
@@ -52,10 +52,7 @@ impl PyAggregateDiscovery {
     #[new]
     fn new(providers: Vec<PyRef<'_, PyStaticDiscovery>>) -> Self {
         let inner = AggregateDiscovery::new(
-            providers
-                .into_iter()
-                .map(|p| p.inner.clone() as Arc<dyn ServiceDiscovery>)
-                .collect(),
+            providers.into_iter().map(|p| p.inner.clone() as Arc<dyn ServiceDiscovery>).collect(),
         );
         Self { inner }
     }

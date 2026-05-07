@@ -33,8 +33,8 @@ use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyList};
 
 use atomr_persistence::{
-    InMemoryJournal, InMemorySnapshotStore, Journal, PersistentRepr, RecoveryPermitter,
-    SnapshotMetadata, SnapshotStore,
+    InMemoryJournal, InMemorySnapshotStore, Journal, PersistentRepr, RecoveryPermitter, SnapshotMetadata,
+    SnapshotStore,
 };
 
 use crate::errors;
@@ -152,13 +152,8 @@ impl PyInMemoryJournal {
         })?;
         let list = PyList::empty_bound(py);
         for r in reprs {
-            let tup: Py<PyAny> = (
-                r.sequence_nr,
-                PyBytes::new_bound(py, &r.payload).unbind(),
-                r.manifest,
-                r.tags,
-            )
-                .into_py(py);
+            let tup: Py<PyAny> =
+                (r.sequence_nr, PyBytes::new_bound(py, &r.payload).unbind(), r.manifest, r.tags).into_py(py);
             list.append(tup)?;
         }
         Ok(list)
@@ -186,19 +181,13 @@ impl PyInMemoryJournal {
         let inner = self.inner.clone();
         let rt = runtime();
         let reprs = py.allow_threads(|| {
-            rt.block_on(async move {
-                inner.events_by_tag(&tag, from_offset, max).await.map_err(errors::map)
-            })
+            rt.block_on(async move { inner.events_by_tag(&tag, from_offset, max).await.map_err(errors::map) })
         })?;
         let list = PyList::empty_bound(py);
         for r in reprs {
-            let tup: Py<PyAny> = (
-                r.persistence_id,
-                r.sequence_nr,
-                PyBytes::new_bound(py, &r.payload).unbind(),
-                r.tags,
-            )
-                .into_py(py);
+            let tup: Py<PyAny> =
+                (r.persistence_id, r.sequence_nr, PyBytes::new_bound(py, &r.payload).unbind(), r.tags)
+                    .into_py(py);
             list.append(tup)?;
         }
         Ok(list)
@@ -237,13 +226,7 @@ impl PyInMemorySnapshotStore {
 
     /// Save `payload` as the snapshot for `(pid, seq)`. Synchronous —
     /// drives the underlying async store on the shared runtime.
-    fn save(
-        &self,
-        py: Python<'_>,
-        pid: String,
-        seq: u64,
-        payload: Bound<'_, PyBytes>,
-    ) -> PyResult<()> {
+    fn save(&self, py: Python<'_>, pid: String, seq: u64, payload: Bound<'_, PyBytes>) -> PyResult<()> {
         let inner = self.inner.clone();
         let bytes = payload.as_bytes().to_vec();
         let rt = runtime();
@@ -251,11 +234,7 @@ impl PyInMemorySnapshotStore {
             rt.block_on(async move {
                 inner
                     .save(
-                        SnapshotMetadata {
-                            persistence_id: pid,
-                            sequence_nr: seq,
-                            timestamp: now_ms(),
-                        },
+                        SnapshotMetadata { persistence_id: pid, sequence_nr: seq, timestamp: now_ms() },
                         bytes,
                     )
                     .await;
@@ -267,11 +246,7 @@ impl PyInMemorySnapshotStore {
     /// Load the latest snapshot for `pid`. Returns
     /// `(sequence_nr, payload_bytes)` or `None` if no snapshot is
     /// stored.
-    fn load<'py>(
-        &self,
-        py: Python<'py>,
-        pid: String,
-    ) -> PyResult<Option<(u64, Py<PyBytes>)>> {
+    fn load<'py>(&self, py: Python<'py>, pid: String) -> PyResult<Option<(u64, Py<PyBytes>)>> {
         let inner = self.inner.clone();
         let rt = runtime();
         let res = py.allow_threads(|| rt.block_on(async move { inner.load(&pid).await }));
@@ -309,9 +284,7 @@ impl PyRecoveryPermitter {
     #[pyo3(signature = (max_concurrent=50))]
     fn new(max_concurrent: usize) -> PyResult<Self> {
         if max_concurrent == 0 {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "max_concurrent must be >= 1",
-            ));
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>("max_concurrent must be >= 1"));
         }
         Ok(Self { inner: RecoveryPermitter::new(max_concurrent) })
     }
@@ -340,9 +313,7 @@ impl PyRecoveryPermitter {
         if ok {
             Ok(())
         } else {
-            Err(PyErr::new::<errors::AtomrError, _>(
-                "recovery permitter closed",
-            ))
+            Err(PyErr::new::<errors::AtomrError, _>("recovery permitter closed"))
         }
     }
 
@@ -425,12 +396,7 @@ impl PyEffect {
     #[staticmethod]
     #[pyo3(signature = (every=None))]
     fn snapshot(every: Option<u64>) -> Self {
-        Self {
-            kind: "snapshot".into(),
-            events: None,
-            every,
-            reply_payload: None,
-        }
+        Self { kind: "snapshot".into(), events: None, every, reply_payload: None }
     }
 
     /// Reply to the sender of the current command.
@@ -441,35 +407,20 @@ impl PyEffect {
     /// and the payload is read as `effect.value`.
     #[staticmethod]
     fn reply_message(value: Py<PyAny>) -> Self {
-        Self {
-            kind: "reply".into(),
-            events: None,
-            every: None,
-            reply_payload: Some(value),
-        }
+        Self { kind: "reply".into(), events: None, every: None, reply_payload: Some(value) }
     }
 
     /// Stop the actor after the current command finishes.
     #[staticmethod]
     fn stop() -> Self {
-        Self {
-            kind: "stop".into(),
-            events: None,
-            every: None,
-            reply_payload: None,
-        }
+        Self { kind: "stop".into(), events: None, every: None, reply_payload: None }
     }
 
     /// No-op effect — used as a sentinel by helpers that want to
     /// always return *something*.
     #[staticmethod]
     fn none() -> Self {
-        Self {
-            kind: "none".into(),
-            events: None,
-            every: None,
-            reply_payload: None,
-        }
+        Self { kind: "none".into(), events: None, every: None, reply_payload: None }
     }
 
     fn __repr__(&self) -> String {
@@ -496,4 +447,3 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_submodule(&sub)?;
     Ok(())
 }
-

@@ -563,8 +563,8 @@
     "py-bindings/pycore": {
       "files": 29,
       "loc": 4142,
-      "unwrap_used": 1,
-      "expect_used": 8,
+      "unwrap_used": 5,
+      "expect_used": 11,
       "panic_macro": 2,
       "todo_macro": 0,
       "unimplemented_macro": 0,

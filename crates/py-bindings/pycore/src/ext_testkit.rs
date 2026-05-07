@@ -203,7 +203,7 @@ async fn pop_or_wait(
     }
 }
 
-/// Run an async callable with a deadline. 
+/// Run an async callable with a deadline.
 /// `Within(timeout, action)`. The callable is invoked with the timeout
 /// in seconds so it can pass that to nested `expect_*` calls.
 #[pyfunction]
@@ -224,7 +224,7 @@ fn within<'py>(py: Python<'py>, timeout: f64, body: Py<PyAny>) -> PyResult<Bound
     })
 }
 
-/// Out-of-process barrier controller. 
+/// Out-of-process barrier controller.
 /// `` controller side.
 #[pyclass(name = "MultiNodeOopController", module = "atomr._native.testkit")]
 pub struct PyMultiNodeOopController {
@@ -279,7 +279,7 @@ impl PyMultiNodeOopController {
     }
 }
 
-/// Out-of-process barrier child node. 
+/// Out-of-process barrier child node.
 /// `` node side.
 #[pyclass(name = "MultiNodeOopNode", module = "atomr._native.testkit")]
 pub struct PyMultiNodeOopNode {
@@ -421,11 +421,7 @@ impl PyTestScheduler {
     /// Schedule `callback` to fire after `delay` seconds of virtual
     /// time. Returns an opaque token whose only useful method is
     /// `cancel()`.
-    fn schedule_after(
-        &self,
-        delay: f64,
-        callback: Py<PyAny>,
-    ) -> PyResult<PyScheduledToken> {
+    fn schedule_after(&self, delay: f64, callback: Py<PyAny>) -> PyResult<PyScheduledToken> {
         let token = self.inner.schedule_after(Duration::from_secs_f64(delay), move || {
             Python::with_gil(|py| {
                 if let Err(e) = callback.call0(py) {
@@ -433,10 +429,7 @@ impl PyTestScheduler {
                 }
             });
         });
-        Ok(PyScheduledToken {
-            inner: self.inner.clone(),
-            token,
-        })
+        Ok(PyScheduledToken { inner: self.inner.clone(), token })
     }
 
     /// Advance virtual time by `seconds` and synchronously fire any
@@ -453,7 +446,9 @@ impl PyTestScheduler {
     fn advance_blocking(&self, py: Python<'_>, seconds: f64) {
         let rt = runtime();
         let inner = self.inner.clone();
-        py.allow_threads(|| rt.block_on(async move { inner.advance_by(Duration::from_secs_f64(seconds)).await }));
+        py.allow_threads(|| {
+            rt.block_on(async move { inner.advance_by(Duration::from_secs_f64(seconds)).await })
+        });
     }
 
     /// How many scheduled callbacks remain pending (not fired and not

@@ -21,10 +21,9 @@ use pyo3::types::{PyBytes, PyList};
 use tokio::sync::mpsc;
 
 use atomr_distributed_data::{
-    CrdtMerge, DurableStore, FileDurableStore, Flag, GCounter, GSet, LWWMap, LwwRegister,
-    NoopDurableStore, ORMap, ORMultiMap, OrSet, PNCounter, PNCounterMap, PruningPhase,
-    PruningState, ReadAggregator, ReadConsistency, ReplicatorAck, ReplicatorActor,
-    SubscriptionToken, WriteAggregator, WriteConsistency,
+    CrdtMerge, DurableStore, FileDurableStore, Flag, GCounter, GSet, LWWMap, LwwRegister, NoopDurableStore,
+    ORMap, ORMultiMap, OrSet, PNCounter, PNCounterMap, PruningPhase, PruningState, ReadAggregator,
+    ReadConsistency, ReplicatorAck, ReplicatorActor, SubscriptionToken, WriteAggregator, WriteConsistency,
 };
 
 use crate::actor_system::PyActorSystem;
@@ -459,36 +458,28 @@ impl PyORMap {
             }
             OrMapStorage::PnCounter(m) => {
                 let cell: PyRef<PyPNCounter> = value.extract().map_err(|_| {
-                    PyErr::new::<PyValueError, _>(
-                        "ORMap[PNCounter]: value must be a `PNCounter` instance",
-                    )
+                    PyErr::new::<PyValueError, _>("ORMap[PNCounter]: value must be a `PNCounter` instance")
                 })?;
                 let snapshot = cell.inner.lock().clone();
                 m.put(key, snapshot);
             }
             OrMapStorage::Flag(m) => {
                 let cell: PyRef<PyFlag> = value.extract().map_err(|_| {
-                    PyErr::new::<PyValueError, _>(
-                        "ORMap[Flag]: value must be a `Flag` instance",
-                    )
+                    PyErr::new::<PyValueError, _>("ORMap[Flag]: value must be a `Flag` instance")
                 })?;
                 let snapshot = *cell.inner.lock();
                 m.put(key, snapshot);
             }
             OrMapStorage::GSet(m) => {
                 let cell: PyRef<PyGSet> = value.extract().map_err(|_| {
-                    PyErr::new::<PyValueError, _>(
-                        "ORMap[GSet]: value must be a `GSet` instance",
-                    )
+                    PyErr::new::<PyValueError, _>("ORMap[GSet]: value must be a `GSet` instance")
                 })?;
                 let snapshot = cell.inner.lock().clone();
                 m.put(key, snapshot);
             }
             OrMapStorage::LwwMap(m) => {
                 let cell: PyRef<PyLWWMap> = value.extract().map_err(|_| {
-                    PyErr::new::<PyValueError, _>(
-                        "ORMap[LWWMap]: value must be a `LWWMap` instance",
-                    )
+                    PyErr::new::<PyValueError, _>("ORMap[LWWMap]: value must be a `LWWMap` instance")
                 })?;
                 let snapshot = cell.inner.lock().clone();
                 m.put(key, snapshot);
@@ -1054,9 +1045,7 @@ impl PyReplicator {
         write_consistency: Option<Py<PyWriteConsistency>>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let kind = resolve_kind(py, &initial)?;
-        let wc = write_consistency
-            .map(|w| w.borrow(py).inner)
-            .unwrap_or(WriteConsistency::Local);
+        let wc = write_consistency.map(|w| w.borrow(py).inner).unwrap_or(WriteConsistency::Local);
         let state = self.state.clone();
         let key_for_async = key.clone();
 
@@ -1099,9 +1088,7 @@ impl PyReplicator {
         read_consistency: Option<Py<PyReadConsistency>>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let crdt_kind = resolve_kind(py, &kind)?;
-        let _rc = read_consistency
-            .map(|r| r.borrow(py).inner)
-            .unwrap_or(ReadConsistency::Local);
+        let _rc = read_consistency.map(|r| r.borrow(py).inner).unwrap_or(ReadConsistency::Local);
         let state = self.state.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let result = fetch_value_async(state.clone(), key, crdt_kind).await?;
@@ -1409,54 +1396,36 @@ async fn fetch_value_async(
     let inner = state.actor.inner().clone();
     match kind {
         CrdtKind::GCounter => inner.get::<GCounter>(&key).map(|v| {
-            Python::with_gil(|py| {
-                Py::new(py, PyGCounter { inner: Mutex::new(v) }).map(|p| p.into_any())
-            })
+            Python::with_gil(|py| Py::new(py, PyGCounter { inner: Mutex::new(v) }).map(|p| p.into_any()))
         }),
         CrdtKind::PNCounter => inner.get::<PNCounter>(&key).map(|v| {
-            Python::with_gil(|py| {
-                Py::new(py, PyPNCounter { inner: Mutex::new(v) }).map(|p| p.into_any())
-            })
+            Python::with_gil(|py| Py::new(py, PyPNCounter { inner: Mutex::new(v) }).map(|p| p.into_any()))
         }),
         CrdtKind::GSet => inner.get::<GSet<String>>(&key).map(|v| {
             Python::with_gil(|py| Py::new(py, PyGSet { inner: Mutex::new(v) }).map(|p| p.into_any()))
         }),
         CrdtKind::ORSet => inner.get::<OrSet<String>>(&key).map(|v| {
-            Python::with_gil(|py| {
-                Py::new(py, PyORSet { inner: Mutex::new(v) }).map(|p| p.into_any())
-            })
+            Python::with_gil(|py| Py::new(py, PyORSet { inner: Mutex::new(v) }).map(|p| p.into_any()))
         }),
         CrdtKind::LwwRegister => inner.get::<LwwRegister<Vec<u8>>>(&key).map(|v| {
-            Python::with_gil(|py| {
-                Py::new(py, PyLwwRegister { inner: Mutex::new(v) }).map(|p| p.into_any())
-            })
+            Python::with_gil(|py| Py::new(py, PyLwwRegister { inner: Mutex::new(v) }).map(|p| p.into_any()))
         }),
         CrdtKind::Flag => inner.get::<Flag>(&key).map(|v| {
             Python::with_gil(|py| Py::new(py, PyFlag { inner: Mutex::new(v) }).map(|p| p.into_any()))
         }),
         CrdtKind::ORMap => inner.get::<ORMap<String, LwwRegister<Vec<u8>>>>(&key).map(|v| {
             Python::with_gil(|py| {
-                Py::new(
-                    py,
-                    PyORMap { inner: Mutex::new(OrMapStorage::LwwReg(v)) },
-                )
-                .map(|p| p.into_any())
+                Py::new(py, PyORMap { inner: Mutex::new(OrMapStorage::LwwReg(v)) }).map(|p| p.into_any())
             })
         }),
         CrdtKind::LWWMap => inner.get::<LWWMap<String, Vec<u8>>>(&key).map(|v| {
-            Python::with_gil(|py| {
-                Py::new(py, PyLWWMap { inner: Mutex::new(v) }).map(|p| p.into_any())
-            })
+            Python::with_gil(|py| Py::new(py, PyLWWMap { inner: Mutex::new(v) }).map(|p| p.into_any()))
         }),
         CrdtKind::PNCounterMap => inner.get::<PNCounterMap<String>>(&key).map(|v| {
-            Python::with_gil(|py| {
-                Py::new(py, PyPNCounterMap { inner: Mutex::new(v) }).map(|p| p.into_any())
-            })
+            Python::with_gil(|py| Py::new(py, PyPNCounterMap { inner: Mutex::new(v) }).map(|p| p.into_any()))
         }),
         CrdtKind::ORMultiMap => inner.get::<ORMultiMap<String, String>>(&key).map(|v| {
-            Python::with_gil(|py| {
-                Py::new(py, PyORMultiMap { inner: Mutex::new(v) }).map(|p| p.into_any())
-            })
+            Python::with_gil(|py| Py::new(py, PyORMultiMap { inner: Mutex::new(v) }).map(|p| p.into_any()))
         }),
     }
     .transpose()

@@ -18,9 +18,7 @@ use parking_lot::Mutex;
 use pyo3::prelude::*;
 use tokio::sync::mpsc;
 
-use atomr_cluster::{
-    InProcessClusterTransport, InProcessRegistry, RemoteMessageSink, TcpClusterTransport,
-};
+use atomr_cluster::{InProcessClusterTransport, InProcessRegistry, RemoteMessageSink, TcpClusterTransport};
 use atomr_core::actor::{ActorRef as RustRef, ActorSystem as RustSystem, Address};
 
 use crate::ext_remote::PyCodecRegistry;
@@ -96,14 +94,12 @@ impl PyTransportConfig {
     pub fn snapshot(&self) -> TransportChoice {
         match &*self.inner.lock() {
             TransportSlot::Noop => TransportChoice::Noop,
-            TransportSlot::Test { registry, bind_address } => TransportChoice::Test {
-                registry: registry.clone(),
-                bind_address: bind_address.clone(),
-            },
-            TransportSlot::Tcp { bind, advertised_host } => TransportChoice::Tcp {
-                bind: *bind,
-                advertised_host: advertised_host.clone(),
-            },
+            TransportSlot::Test { registry, bind_address } => {
+                TransportChoice::Test { registry: registry.clone(), bind_address: bind_address.clone() }
+            }
+            TransportSlot::Tcp { bind, advertised_host } => {
+                TransportChoice::Tcp { bind: *bind, advertised_host: advertised_host.clone() }
+            }
         }
     }
 }
@@ -111,14 +107,8 @@ impl PyTransportConfig {
 #[derive(Clone)]
 pub enum TransportChoice {
     Noop,
-    Test {
-        registry: Arc<InProcessRegistry>,
-        bind_address: Option<Address>,
-    },
-    Tcp {
-        bind: std::net::SocketAddr,
-        advertised_host: Option<String>,
-    },
+    Test { registry: Arc<InProcessRegistry>, bind_address: Option<Address> },
+    Tcp { bind: std::net::SocketAddr, advertised_host: Option<String> },
 }
 
 /// Built transport — handed back to the Cluster code so it can keep a
@@ -156,13 +146,7 @@ impl PyRemoteMessageSink {
 }
 
 impl RemoteMessageSink for PyRemoteMessageSink {
-    fn deliver(
-        &self,
-        target_path: &str,
-        manifest: &str,
-        payload: &[u8],
-        _sender_path: Option<&str>,
-    ) {
+    fn deliver(&self, target_path: &str, manifest: &str, payload: &[u8], _sender_path: Option<&str>) {
         // 1. Find the local typed actor ref. Fall back to user-name
         //    matching if the sender stamped a foreign address prefix.
         let actor = if let Some(a) = self.actors.lookup(target_path) {
@@ -223,11 +207,8 @@ pub fn build_transport(
             Ok((BuiltTransport::Test(inner), t, resolved))
         }
         TransportChoice::Tcp { bind, advertised_host } => {
-            let inner = Arc::new(TcpClusterTransport::with_advertised(
-                self_addr.clone(),
-                bind,
-                advertised_host,
-            ));
+            let inner =
+                Arc::new(TcpClusterTransport::with_advertised(self_addr.clone(), bind, advertised_host));
             // Listen synchronously — the call must complete before we
             // return so the resolved address is final.
             let rt = runtime();
@@ -251,15 +232,11 @@ impl atomr_cluster::GossipTransport for NoopGossipTransport {
 /// Hook called from `actor_of` to mirror the spawned ref into the
 /// per-system registry.
 pub fn record_actor(system: &RustSystem, path: &str, actor_ref: Arc<RustRef<PyMessage>>) {
-    let registry = system
-        .extensions()
-        .get::<PyActorRegistry>()
-        .map(|a| (*a).clone())
-        .unwrap_or_else(|| {
-            let r = PyActorRegistry::default();
-            system.extensions().register::<PyActorRegistry>(r.clone());
-            r
-        });
+    let registry = system.extensions().get::<PyActorRegistry>().map(|a| (*a).clone()).unwrap_or_else(|| {
+        let r = PyActorRegistry::default();
+        system.extensions().register::<PyActorRegistry>(r.clone());
+        r
+    });
     registry.register(path, actor_ref);
 }
 
@@ -284,23 +261,11 @@ pub fn try_send_remote(
     let result = match &*lock_guard {
         BuiltTransport::Noop => false,
         BuiltTransport::Test(t) => {
-            t.send_remote(
-                target,
-                target_path.to_string(),
-                manifest.to_string(),
-                payload,
-                sender_path,
-            );
+            t.send_remote(target, target_path.to_string(), manifest.to_string(), payload, sender_path);
             true
         }
         BuiltTransport::Tcp(t) => {
-            t.send_remote(
-                target,
-                target_path.to_string(),
-                manifest.to_string(),
-                payload,
-                sender_path,
-            );
+            t.send_remote(target, target_path.to_string(), manifest.to_string(), payload, sender_path);
             true
         }
     };

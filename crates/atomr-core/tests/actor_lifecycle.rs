@@ -126,8 +126,7 @@ async fn test_actor_of_after_stop() {
             Ok(r2) => {
                 r2.tell(CounterMsg::Inc);
                 r2.tell(CounterMsg::Inc);
-                let v2 =
-                    r2.ask_with(CounterMsg::Get, Duration::from_millis(200)).await.unwrap();
+                let v2 = r2.ask_with(CounterMsg::Get, Duration::from_millis(200)).await.unwrap();
                 assert_eq!(v2, 2, "fresh actor should start with state == 0");
                 break;
             }

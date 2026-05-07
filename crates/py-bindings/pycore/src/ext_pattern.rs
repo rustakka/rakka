@@ -65,11 +65,8 @@ impl PyCircuitBreaker {
         let breaker = self.inner.clone();
         let coro = coro;
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let fut = Python::with_gil(|py| {
-                pyo3_async_runtimes::tokio::into_future(coro.bind(py).clone())
-            })?;
-            let res: Result<Py<PyAny>, CircuitBreakerError<PyErr>> =
-                breaker.call(move || fut).await;
+            let fut = Python::with_gil(|py| pyo3_async_runtimes::tokio::into_future(coro.bind(py).clone()))?;
+            let res: Result<Py<PyAny>, CircuitBreakerError<PyErr>> = breaker.call(move || fut).await;
             match res {
                 Ok(v) => Ok(v),
                 Err(CircuitBreakerError::Open) => {
@@ -173,9 +170,8 @@ fn retry<'py>(
                     continue;
                 }
             };
-            let fut_res = Python::with_gil(|py| {
-                pyo3_async_runtimes::tokio::into_future(coro.bind(py).clone())
-            });
+            let fut_res =
+                Python::with_gil(|py| pyo3_async_runtimes::tokio::into_future(coro.bind(py).clone()));
             let fut = match fut_res {
                 Ok(f) => f,
                 Err(e) => {
@@ -218,9 +214,7 @@ fn pipe_to<'py>(
 ) -> PyResult<Bound<'py, PyAny>> {
     let target_ref = target.borrow(py).inner.clone();
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
-        let fut = Python::with_gil(|py| {
-            pyo3_async_runtimes::tokio::into_future(awaitable.bind(py).clone())
-        })?;
+        let fut = Python::with_gil(|py| pyo3_async_runtimes::tokio::into_future(awaitable.bind(py).clone()))?;
         match fut.await {
             Ok(v) => {
                 target_ref.tell(PyMessage::new(v));
