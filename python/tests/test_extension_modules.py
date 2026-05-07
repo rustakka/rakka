@@ -105,26 +105,44 @@ def test_streams_map_reduce():
 
 
 def test_sharding_routes_to_entity():
-    def factory(entity_id):
-        class Entity:
-            def __init__(self):
-                self.id = entity_id
-                self.n = 0
+    """Phase 6 ShardRegion: messages route by entity_id to a real
+    PyActor child. The legacy in-memory dict ShardRegion was replaced;
+    this test now exercises the live atomr-cluster-sharding wiring."""
+    import time
 
-            def handle(self, msg):
-                self.n += 1
-                return (self.id, self.n)
+    from atomr import Actor, ActorSystem, props
+    from atomr.cluster_sharding import ShardRegion, ShardingSettings
 
-        return Entity()
+    seen = {}
+
+    class Entity(Actor):
+        def __init__(self):
+            self.n = 0
+
+        async def handle(self, ctx, msg):
+            self.n += 1
+            seen.setdefault(ctx.path, []).append((msg, self.n))
 
     def extractor(msg):
-        return (str(msg["id"]), msg["payload"])
+        eid = str(msg["id"])
+        return (eid, str(hash(eid) % 16), msg["payload"])
 
-    region = atomr.cluster_sharding.ShardRegion(factory, extractor)
-    a = region.deliver({"id": 1, "payload": "x"})
-    b = region.deliver({"id": 1, "payload": "y"})
-    c = region.deliver({"id": 2, "payload": "z"})
-    assert a == ("1", 1)
-    assert b == ("1", 2)
-    assert c == ("2", 1)
-    assert region.entity_count() == 2
+    sys = ActorSystem.create_blocking("sharding-ext-test")
+    try:
+        region = ShardRegion.start(
+            sys,
+            type_name="ext",
+            entity_props=props(Entity),
+            message_extractor=extractor,
+            settings=ShardingSettings(),
+        )
+        region.tell({"id": 1, "payload": "x"})
+        region.tell({"id": 1, "payload": "y"})
+        region.tell({"id": 2, "payload": "z"})
+
+        deadline = time.time() + 2.0
+        while region.entity_count() < 2 and time.time() < deadline:
+            time.sleep(0.02)
+        assert region.entity_count() == 2
+    finally:
+        sys.terminate_blocking()
