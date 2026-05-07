@@ -279,10 +279,17 @@ struct RegionInner {
     /// Per-entity-id incarnation counter. Bumped each time we
     /// respawn a previously-stopped entity so the underlying
     /// `system.actor_of` name doesn't collide with the lingering
-    /// guardian entry. Format: `<type_name>-<sanitized-id>` for the
-    /// first incarnation, `<type_name>-<sanitized-id>#<n>` for later
-    /// ones.
+    /// guardian entry. Names look like `<type_name>-<sanitized-id>`
+    /// for the first incarnation in the first region instance, and
+    /// `<type_name>-<sanitized-id>__r<region_inst>__inc<n>` for
+    /// later ones.
     incarnations: RwLock<HashMap<String, u32>>,
+    /// Per-system-and-type counter that lets multiple `ShardRegion`
+    /// instances share an `ActorSystem` without clashing on
+    /// `system.actor_of` names. The lingering user-guardian entry from
+    /// a previous region's stopped actors keeps the bare name in use,
+    /// so the second region must use a distinct suffix.
+    region_instance: u32,
 }
 
 #[derive(Clone)]
@@ -404,6 +411,8 @@ impl PyShardRegion {
 
         let idle_timeout = settings.passivation_idle_timeout.map(Duration::from_secs_f64);
 
+        let region_instance = next_region_instance(&sys, &type_name);
+
         let inner = Arc::new(RegionInner {
             type_name: type_name.clone(),
             system: sys,
@@ -420,6 +429,7 @@ impl PyShardRegion {
             entity_role,
             closed: AtomicBool::new(false),
             incarnations: RwLock::new(HashMap::new()),
+            region_instance,
         });
 
         let inner_for_handler = inner.clone();
@@ -672,10 +682,14 @@ fn ensure_entity(inner: &Arc<RegionInner>, entity_id: &str) -> Option<EntityHand
         *n
     };
     let base = format!("{}-{}", inner.type_name, sanitize(entity_id));
-    let name = if incarnation == 1 {
+    // For the first region instance and the first incarnation we use
+    // the bare name; later instances append `__rN__incM` to dodge the
+    // `system.user_guardian` name collision left over from previous
+    // stopped actors.
+    let name = if inner.region_instance == 1 && incarnation == 1 {
         base
     } else {
-        format!("{}__inc{}", base, incarnation)
+        format!("{}__r{}__inc{}", base, inner.region_instance, incarnation)
     };
 
     let kind = dispatcher::parse(&inner.entity_dispatcher, 1);
@@ -792,28 +806,32 @@ fn attach_cluster_subscription(_py: Python<'_>, _system: &Py<PyActorSystem>) {
     // Today the no-op transport produces no events to react to.
 }
 
-/// Per-system, per-type registry of remember-entities stores. Reusing
-/// the same store across region restarts is what makes
-/// remember-entities recover.
+/// Per-system, per-type registry of remember-entities stores plus a
+/// per-type instance counter so successive regions can pick a unique
+/// child name. Reusing the same store across region restarts is what
+/// makes remember-entities recover.
 struct StoreRegistry {
     stores: parking_lot::Mutex<HashMap<String, Arc<dyn RememberEntitiesStore>>>,
+    instance_counters: parking_lot::Mutex<HashMap<String, u32>>,
+}
+
+fn store_registry(sys: &RustSystem) -> Arc<StoreRegistry> {
+    let ext = sys.extensions();
+    if let Some(r) = ext.get::<StoreRegistry>() {
+        return r;
+    }
+    ext.register::<StoreRegistry>(StoreRegistry {
+        stores: parking_lot::Mutex::new(HashMap::new()),
+        instance_counters: parking_lot::Mutex::new(HashMap::new()),
+    });
+    ext.get::<StoreRegistry>().expect("just registered")
 }
 
 fn remember_store_for(
     sys: &RustSystem,
     type_name: &str,
 ) -> Arc<dyn RememberEntitiesStore> {
-    let ext = sys.extensions();
-    let reg = match ext.get::<StoreRegistry>() {
-        Some(r) => r,
-        None => {
-            ext.register::<StoreRegistry>(StoreRegistry {
-                stores: parking_lot::Mutex::new(HashMap::new()),
-            });
-            ext.get::<StoreRegistry>().expect("just registered")
-        }
-    };
-
+    let reg = store_registry(sys);
     let mut g = reg.stores.lock();
     if let Some(existing) = g.get(type_name) {
         return existing.clone();
@@ -821,6 +839,16 @@ fn remember_store_for(
     let store: Arc<dyn RememberEntitiesStore> = Arc::new(InMemoryRememberStore::new());
     g.insert(type_name.to_string(), store.clone());
     store
+}
+
+/// Bump and return the next region-instance counter for `(system,
+/// type_name)`. The first region instance for a given type is `1`.
+fn next_region_instance(sys: &RustSystem, type_name: &str) -> u32 {
+    let reg = store_registry(sys);
+    let mut g = reg.instance_counters.lock();
+    let n = g.entry(type_name.to_string()).or_insert(0);
+    *n += 1;
+    *n
 }
 
 fn sanitize(s: &str) -> String {

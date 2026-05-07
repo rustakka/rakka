@@ -53,10 +53,14 @@ class CounterEntity(Actor):
     async def handle(self, ctx, msg):
         if self._key is None:
             # Path looks like
-            # akka://sys/user/<type_name>-<entity_id>[__incN].
+            # akka://sys/user/<type_name>-<entity_id>[__rN__incM].
             suffix = ctx.path.rsplit("/", 1)[-1]
             without_type = suffix.split("-", 1)[1] if "-" in suffix else suffix
-            self._key = without_type.split("__inc", 1)[0]
+            # Strip both `__r` (region instance) and `__inc` suffixes.
+            for sentinel in ("__r", "__inc"):
+                if sentinel in without_type:
+                    without_type = without_type.split(sentinel, 1)[0]
+            self._key = without_type
             INSTANCE_INSTANCES[self._key] = (
                 INSTANCE_INSTANCES.get(self._key, 0) + 1
             )
@@ -151,23 +155,16 @@ def test_request_passivation_drops_entity():
             message_extractor=_extractor,
         )
         region.tell({"entity": "alice", "op": "incr"})
-        assert _wait_for(lambda: region.entity_count() == 1)
+        # Wait for the actor to actually process the message (not just
+        # register in the active-entities map).
+        assert _wait_for(lambda: INSTANCE_INSTANCES.get("alice", 0) == 1)
         region.request_passivation("alice")
         assert _wait_for(lambda: region.entity_count() == 0)
 
         # Sending again should respawn alice; two distinct actor
         # instances should now have handled alice's messages.
         region.tell({"entity": "alice", "op": "incr"})
-        assert _wait_for(lambda: region.entity_count() == 1)
-        ok = _wait_for(
-            lambda: INSTANCE_INSTANCES.get("alice", 0) >= 2,
-            timeout=3.0,
-        )
-        assert ok, (
-            f"INSTANCE_INSTANCES={INSTANCE_INSTANCES!r} "
-            f"INSTANCE_COUNTS={INSTANCE_COUNTS!r} "
-            f"entity_ids={region.entity_ids()!r}"
-        )
+        assert _wait_for(lambda: INSTANCE_INSTANCES.get("alice", 0) >= 2)
     finally:
         sys.terminate_blocking()
 
@@ -209,6 +206,12 @@ def test_remember_entities_recovers_on_region_restart():
         r1.tell({"entity": "alice", "op": "incr"})
         r1.tell({"entity": "bob", "op": "incr"})
         assert _wait_for(lambda: r1.entity_count() == 2)
+        # Wait for both entities to actually handle their first message,
+        # which is what triggers remember-entities persistence.
+        assert _wait_for(
+            lambda: INSTANCE_COUNTS.get("alice", 0) >= 1
+            and INSTANCE_COUNTS.get("bob", 0) >= 1
+        )
         # Shut down the region but keep the actor system alive — the
         # remember-store is per-system-and-type, so the second region
         # will pick up the same store.
