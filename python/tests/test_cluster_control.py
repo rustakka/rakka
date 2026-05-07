@@ -23,6 +23,7 @@ from atomr.cluster import (
     SBR_STRATEGIES,
     Cluster,
     LeaderChanged,
+    MemberDowned,
     MemberRemoved,
     MemberUp,
 )
@@ -194,6 +195,68 @@ def test_cluster_starts_with_sbr_strategy_set():
         # call must succeed and the snapshot must reflect a healthy
         # local node.
         assert cluster.self_address.startswith("akka://phase5-sbr")
+    finally:
+        sys.terminate_blocking()
+
+
+def test_down_emits_member_downed_event():
+    """Calling ``Cluster.down(addr)`` must transition the member directly
+    to ``Down`` and publish a :class:`MemberDowned` event (rather than
+    going through the ``Leaving`` path used by :meth:`Cluster.leave`).
+    """
+    sys = ActorSystem.create_blocking("epicc-down")
+    try:
+        cluster = Cluster.get(sys)
+
+        async def go():
+            await cluster.join_seed_nodes([cluster.self_address], timeout=10.0)
+            sub = cluster.subscribe(["MemberDowned", "MemberRemoved"], capacity=64)
+            try:
+                # Down ourselves; assert MemberDowned arrives on the bus.
+                await cluster.down(cluster.self_address)
+                downed_seen = False
+                async with asyncio.timeout(5.0):
+                    async for ev in sub:
+                        if isinstance(ev, MemberDowned):
+                            downed_seen = True
+                            break
+                return downed_seen
+            finally:
+                sub.close()
+
+        assert asyncio.run(go()), "MemberDowned event was not observed"
+    finally:
+        sys.terminate_blocking()
+
+
+def test_sbr_down_all_strategy_builds_cluster():
+    """``cluster.sbr.strategy = down-all`` must build a cluster
+    successfully (now backed by :class:`atomr_cluster::DownAllStrategy`
+    rather than the previous KeepMajority alias). Round-trip the
+    underlying :class:`Config` to verify the value persists.
+    """
+    cfg = Config.from_dict(
+        {"cluster": {"sbr": {"strategy": "down-all", "stable-after": "1s"}}}
+    )
+    # Config-level round-trip (independent of the running daemon).
+    assert cfg.get_string("cluster.sbr.strategy") == "down-all"
+    assert cfg.get_string("cluster.sbr.stable-after") == "1s"
+
+    sys = ActorSystem.create_blocking("epicc-down-all", cfg)
+    try:
+        cluster = Cluster.get(sys)
+        # Spawning succeeded — the daemon was wired through DownAllStrategy
+        # (rather than the previous KeepMajority alias).
+        assert cluster.self_address.startswith("akka://epicc-down-all")
+        # The daemon's join is asynchronous; poll briefly for the
+        # snapshot to reflect self.
+        import time
+
+        for _ in range(50):
+            if cluster.member_count() >= 1:
+                break
+            time.sleep(0.02)
+        assert cluster.member_count() >= 1
     finally:
         sys.terminate_blocking()
 

@@ -51,6 +51,11 @@ pub enum DaemonCmd {
     Join(Member),
     /// Mark `addr` as Leaving.
     Leave(Address),
+    /// Mark `addr` as `Down` directly. Operator-initiated terminal
+    /// down — does not require the member to be `Up` first. Accepts
+    /// `Up | WeaklyUp | Leaving`. Subsequent leader-action ticks then
+    /// promote `Down → Removed`.
+    Down(Address),
     /// Inject a peer's gossip PDU (called by the transport on receive).
     ApplyGossip(GossipPdu),
     /// Force a single tick (mostly for tests).
@@ -95,6 +100,13 @@ impl ClusterDaemonHandle {
     }
     pub fn leave(&self, addr: Address) {
         let _ = self.cmd.send(DaemonCmd::Leave(addr));
+    }
+    /// Operator-initiated terminal-down for `addr`. Transitions the
+    /// member to `MemberStatus::Down` (publishes `MemberDowned`); the
+    /// daemon's regular convergence flow then promotes `Down → Removed`
+    /// on the next leader tick.
+    pub fn down(&self, addr: Address) {
+        let _ = self.cmd.send(DaemonCmd::Down(addr));
     }
     pub fn apply_gossip(&self, pdu: GossipPdu) {
         let _ = self.cmd.send(DaemonCmd::ApplyGossip(pdu));
@@ -215,6 +227,12 @@ async fn run_daemon<S>(
                 }
                 Some(DaemonCmd::Leave(addr)) => {
                     if let Some(evt) = state.leave(&addr) {
+                        version.tick(self_addr.to_string().as_str());
+                        bus.publish(evt);
+                    }
+                }
+                Some(DaemonCmd::Down(addr)) => {
+                    if let Some(evt) = state.down(&addr) {
                         version.tick(self_addr.to_string().as_str());
                         bus.publish(evt);
                     }

@@ -89,8 +89,11 @@ class MemberExited(_MemberEvent):
 
 @dataclass(frozen=True)
 class MemberDowned(_MemberEvent):
-    """Emitted when a member is forcibly downed (alias of UnreachableMember
-    + Down transition).
+    """Emitted when a member transitions to ``Down`` via the
+    operator-initiated downing path (``Cluster.down(addr)`` or
+    ``DaemonCmd::Down`` on the Rust side). The member is still present
+    in :class:`MembershipState` until the next leader-action tick
+    promotes it to ``Removed`` and emits :class:`MemberRemoved`.
     """
 
 
@@ -157,6 +160,8 @@ def event_from_dict(d: Mapping[str, Any]) -> Any:
         return MemberLeft(member=_member_from_dict(d["member"]))
     if kind == "MemberExited":
         return MemberExited(member=_member_from_dict(d["member"]))
+    if kind == "MemberDowned":
+        return MemberDowned(member=_member_from_dict(d["member"]))
     if kind == "MemberRemoved":
         return MemberRemoved(
             member=_member_from_dict(d["member"]),

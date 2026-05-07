@@ -22,9 +22,9 @@ use tokio::sync::mpsc;
 
 use atomr_cluster::{
     spawn_daemon, spawn_daemon_with_sbr, ClusterDaemonHandle, ClusterEvent, ClusterEventBus, DaemonConfig,
-    GossipTransport, KeepMajorityStrategy, KeepOldestStrategy, LeaderHandover, LeaderHandoverEvent,
-    LeaseMajorityStrategy, Member, MemberStatus, MembershipState, SbrRuntime, StaticQuorumStrategy,
-    SubscriptionHandle, VectorClock, VectorRelation,
+    DownAllStrategy, GossipTransport, KeepMajorityStrategy, KeepOldestStrategy, LeaderHandover,
+    LeaderHandoverEvent, LeaseMajorityStrategy, Member, MemberStatus, MembershipState, SbrRuntime,
+    StaticQuorumStrategy, SubscriptionHandle, VectorClock, VectorRelation,
 };
 use atomr_core::actor::Address;
 
@@ -469,14 +469,15 @@ impl PyCluster {
         })
     }
 
-    /// Async: mark `address` as Down. Resolves once the daemon has
-    /// applied the transition (best effort — completes on next tick).
+    /// Async: mark `address` as Down via the daemon's explicit
+    /// `DaemonCmd::Down`. Accepts members in `Up | WeaklyUp | Leaving`
+    /// and emits `MemberDowned` synchronously on the bus. The next
+    /// leader-action tick promotes `Down → Removed`.
     fn down<'py>(&self, py: Python<'py>, address: String) -> PyResult<Bound<'py, PyAny>> {
         let ext = self.ext.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let parsed = Address::parse(&address).unwrap_or_else(|| Address::local(address));
-            // Down is modelled as a Leave today (transitions Up -> Leaving).
-            ext.inner.handle.leave(parsed);
+            ext.inner.handle.down(parsed);
             ext.inner.handle.tick();
             tokio::time::sleep(Duration::from_millis(10)).await;
             Ok(())
@@ -656,10 +657,10 @@ fn build_daemon(
             Ok(spawn_daemon_with_sbr(self_addr, transport, bus, dcfg, Some(rt)))
         }
         Some("down-all") | Some("down-all-when-unstable") => {
-            // Simulate "down-all" by feeding KeepMajority a config that
-            // always loses; for now reuse keep-majority since the
-            // underlying daemon already chooses DownAll on a tie.
-            let rt = SbrRuntime::new(KeepMajorityStrategy, stable_after);
+            // DownAllStrategy: any unreachable member triggers a full
+            // cluster down (operator chose "shoot the whole cluster"
+            // over any chance of split-brain).
+            let rt = SbrRuntime::new(DownAllStrategy, stable_after);
             Ok(spawn_daemon_with_sbr(self_addr, transport, bus, dcfg, Some(rt)))
         }
         Some("lease-majority") => {
@@ -686,6 +687,7 @@ fn event_kind(e: &ClusterEvent) -> &'static str {
         ClusterEvent::MemberUp(_) => "MemberUp",
         ClusterEvent::MemberLeft(_) => "MemberLeft",
         ClusterEvent::MemberExited(_) => "MemberExited",
+        ClusterEvent::MemberDowned(_) => "MemberDowned",
         ClusterEvent::MemberRemoved(_, _) => "MemberRemoved",
         ClusterEvent::UnreachableMember(_) => "UnreachableMember",
         ClusterEvent::ReachableMember(_) => "ReachableMember",
@@ -705,6 +707,7 @@ fn event_to_py<'py>(py: Python<'py>, e: &ClusterEvent) -> PyResult<Bound<'py, Py
         | ClusterEvent::MemberUp(m)
         | ClusterEvent::MemberLeft(m)
         | ClusterEvent::MemberExited(m)
+        | ClusterEvent::MemberDowned(m)
         | ClusterEvent::UnreachableMember(m)
         | ClusterEvent::ReachableMember(m) => {
             dict.set_item("member", member_to_py(py, m)?)?;

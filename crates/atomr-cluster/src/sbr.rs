@@ -111,6 +111,28 @@ impl DowningStrategy for KeepReferee {
     }
 }
 
+/// DownAll: unconditionally downs every member on both sides of the
+/// partition. Used when the operator prefers cluster-wide restart over
+/// any chance of split-brain (matches "down-all-when-unstable" in
+/// related industry SBR catalogs).
+///
+/// Returns [`DowningDecision::DownAll`] whenever there is any
+/// unreachable member; [`DowningDecision::Stay`] when the partition is
+/// healthy. The reachable/unreachable inputs are inspected only to
+/// distinguish those two cases.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct DownAllStrategy;
+
+impl DowningStrategy for DownAllStrategy {
+    fn decide(&self, _r: &[&Member], u: &[&Member]) -> DowningDecision {
+        if u.is_empty() {
+            DowningDecision::Stay
+        } else {
+            DowningDecision::DownAll
+        }
+    }
+}
+
 /// LeaseMajority: majority decision gated by an external lease. In-memory
 /// simulation of whether a lease was acquired.
 #[derive(Debug, Clone, Copy, Default)]
@@ -179,5 +201,34 @@ mod tests {
         let r_ref: Vec<&Member> = r.iter().collect();
         let u_ref: Vec<&Member> = u.iter().collect();
         assert_eq!(KeepOldestStrategy::default().decide(&r_ref, &u_ref), DowningDecision::DownUnreachable);
+    }
+
+    #[test]
+    fn down_all_strategy_downs_every_member_when_partitioned() {
+        let r = [up(1), up(2)];
+        let u = [up(3)];
+        let r_ref: Vec<&Member> = r.iter().collect();
+        let u_ref: Vec<&Member> = u.iter().collect();
+        assert_eq!(DownAllStrategy.decide(&r_ref, &u_ref), DowningDecision::DownAll);
+    }
+
+    #[test]
+    fn down_all_strategy_stays_when_no_unreachable() {
+        let r = [up(1), up(2), up(3)];
+        let u: [Member; 0] = [];
+        let r_ref: Vec<&Member> = r.iter().collect();
+        let u_ref: Vec<&Member> = u.iter().collect();
+        assert_eq!(DownAllStrategy.decide(&r_ref, &u_ref), DowningDecision::Stay);
+    }
+
+    #[test]
+    fn down_all_strategy_downs_even_with_majority_reachable() {
+        // Unlike KeepMajority, DownAll doesn't care about side sizes —
+        // any unreachable member triggers a full down.
+        let r = [up(1), up(2), up(3), up(4)];
+        let u = [up(5)];
+        let r_ref: Vec<&Member> = r.iter().collect();
+        let u_ref: Vec<&Member> = u.iter().collect();
+        assert_eq!(DownAllStrategy.decide(&r_ref, &u_ref), DowningDecision::DownAll);
     }
 }

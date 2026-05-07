@@ -42,8 +42,8 @@ pub use multi_dc::{
 pub use reachability::{Reachability, ReachabilityStatus};
 pub use remote_adapter::ClusterRemoteAdapter;
 pub use sbr::{
-    DowningDecision, DowningStrategy, KeepMajorityStrategy, KeepOldestStrategy, KeepReferee,
-    LeaseMajorityStrategy, SplitBrainResolver, StaticQuorumStrategy,
+    DownAllStrategy, DowningDecision, DowningStrategy, KeepMajorityStrategy, KeepOldestStrategy,
+    KeepReferee, LeaseMajorityStrategy, SplitBrainResolver, StaticQuorumStrategy,
 };
 pub use sbr_runtime::{SbrAction, SbrRuntime};
 pub use vector_clock::{VectorClock, VectorRelation};

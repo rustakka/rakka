@@ -106,6 +106,26 @@ impl MembershipState {
         }
         None
     }
+
+    /// Force `addr` to `Down`. Unlike [`Self::leave`], this is the
+    /// operator-initiated terminal-down path: it accepts members in
+    /// `Up`, `WeaklyUp`, or `Leaving` status. The next leader-action
+    /// tick promotes `Down → Removed`.
+    ///
+    /// Returns the [`ClusterEvent::MemberDowned`] if a transition
+    /// occurred, or `None` if the member is unknown or already in a
+    /// terminal status (`Down`, `Exiting`, `Removed`, `Joining`).
+    pub fn down(&mut self, addr: &Address) -> Option<ClusterEvent> {
+        let m = self.members.iter_mut().find(|x| &x.address == addr)?;
+        if matches!(
+            m.status,
+            MemberStatus::Up | MemberStatus::WeaklyUp | MemberStatus::Leaving
+        ) {
+            m.status = MemberStatus::Down;
+            return Some(ClusterEvent::MemberDowned(m.clone()));
+        }
+        None
+    }
 }
 
 #[cfg(test)]
@@ -170,6 +190,55 @@ mod tests {
     fn leave_is_noop_for_unknown_member() {
         let mut s = MembershipState::new();
         let evt = s.leave(&Address::local("nope"));
+        assert!(evt.is_none());
+    }
+
+    #[test]
+    fn down_marks_up_member_as_down() {
+        let mut s = MembershipState::new();
+        let mut m = Member::new(Address::local("a"), vec![]);
+        m.status = MemberStatus::Up;
+        s.add_or_update(m);
+        let evt = s.down(&Address::local("a"));
+        assert!(matches!(evt, Some(ClusterEvent::MemberDowned(_))));
+        let m = s.members.first().unwrap();
+        assert_eq!(m.status, MemberStatus::Down);
+    }
+
+    #[test]
+    fn down_accepts_leaving_member() {
+        let mut s = MembershipState::new();
+        let mut m = Member::new(Address::local("a"), vec![]);
+        m.status = MemberStatus::Leaving;
+        s.add_or_update(m);
+        let evt = s.down(&Address::local("a"));
+        assert!(matches!(evt, Some(ClusterEvent::MemberDowned(_))));
+    }
+
+    #[test]
+    fn down_accepts_weakly_up_member() {
+        let mut s = MembershipState::new();
+        let mut m = Member::new(Address::local("a"), vec![]);
+        m.status = MemberStatus::WeaklyUp;
+        s.add_or_update(m);
+        let evt = s.down(&Address::local("a"));
+        assert!(matches!(evt, Some(ClusterEvent::MemberDowned(_))));
+    }
+
+    #[test]
+    fn down_is_noop_for_unknown_member() {
+        let mut s = MembershipState::new();
+        let evt = s.down(&Address::local("nope"));
+        assert!(evt.is_none());
+    }
+
+    #[test]
+    fn down_is_noop_for_already_down_member() {
+        let mut s = MembershipState::new();
+        let mut m = Member::new(Address::local("a"), vec![]);
+        m.status = MemberStatus::Down;
+        s.add_or_update(m);
+        let evt = s.down(&Address::local("a"));
         assert!(evt.is_none());
     }
 }

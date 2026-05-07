@@ -28,6 +28,11 @@ pub enum ClusterEvent {
     MemberUp(Member),
     MemberLeft(Member),
     MemberExited(Member),
+    /// Emitted when a member transitions to `Down` via an explicit
+    /// `DaemonCmd::Down` (the operator-initiated downing path). The
+    /// member is still present in `MembershipState`; the next leader
+    /// tick promotes it to `Removed` and emits `MemberRemoved`.
+    MemberDowned(Member),
     MemberRemoved(Member, MemberStatus),
     UnreachableMember(Member),
     ReachableMember(Member),
@@ -52,7 +57,7 @@ impl ClusterEvent {
             MemberStatus::Up => ClusterEvent::MemberUp(member),
             MemberStatus::Leaving => ClusterEvent::MemberLeft(member),
             MemberStatus::Exiting => ClusterEvent::MemberExited(member),
-            MemberStatus::Down => ClusterEvent::UnreachableMember(member),
+            MemberStatus::Down => ClusterEvent::MemberDowned(member),
             MemberStatus::Removed => ClusterEvent::MemberRemoved(member, old),
         })
     }
