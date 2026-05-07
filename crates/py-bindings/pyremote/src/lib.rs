@@ -19,13 +19,14 @@
 //! a [`PyCodec`]. We deliberately keep the dependency on `pyo3` out of
 //! this crate so Rust-side tests can run without a Python interpreter.
 
+use std::any::TypeId;
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use parking_lot::RwLock;
 use thiserror::Error;
 
-use atomr_remote::SerializerRegistry;
+use atomr_remote::{SerializeError, SerializerRegistry, TypeCodec, BINCODE_SERIALIZER_ID};
 
 /// Error variants from the codec layer.
 #[derive(Debug, Error)]
@@ -99,20 +100,74 @@ impl PyCodecRegistry {
         keys.sort();
         keys
     }
+
+    /// Snapshot the `(manifest, codec)` pairs currently registered.
+    /// Used by [`as_remote_serializer`] to mirror entries into the
+    /// upstream [`atomr_remote::SerializerRegistry`].
+    pub fn snapshot(&self) -> Vec<(String, Arc<dyn PyCodec>)> {
+        self.inner.read().iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+    }
+
+    /// Look up the codec for `manifest` without holding any locks
+    /// across the call.
+    pub fn get(&self, manifest: &str) -> Option<Arc<dyn PyCodec>> {
+        self.inner.read().get(manifest).cloned()
+    }
 }
+
+/// Type-tag for the type-erased Python payload. Every Python message
+/// shows up as `PyBytes` on the wire; the `manifest` discriminates
+/// classes within that one Rust type.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PyBytes(pub Vec<u8>);
 
 /// Convert a [`PyCodecRegistry`] into a [`atomr_remote::SerializerRegistry`].
 ///
 /// The actual `SerializerRegistry` API in `atomr-remote` registers
 /// typed serializers via `register_bincode::<T>()` / `register_json::<T>()`
 /// — both of which require a typed `T`. The Python side is type-erased
-/// (everything is `Vec<u8>`), so the integration point is a thin
-/// adapter type-erased to `Vec<u8>` payloads. We surface that adapter
-/// as part of pycore's pyo3 layer (it needs `Py<PyAny>` to call back
-/// into Python). Here we hand back a fresh `SerializerRegistry`; the
-/// `pycore` adapter installs the typed wrapper at boot.
-pub fn as_remote_serializer(_registry: &PyCodecRegistry) -> SerializerRegistry {
-    SerializerRegistry::new()
+/// (everything ends up as raw bytes), so we register one `TypeCodec`
+/// per Python manifest. All of them share `TypeId::of::<PyBytes>()`
+/// for the by-type lookup; senders should encode by manifest, not by
+/// `T`.
+///
+/// Python ↔ Python only — the manifest namespace is the Python class
+/// path (`module.qualname`). Cross-language interop is out of scope for
+/// this adapter; bridging would require a wire-level translation
+/// outside the codec layer.
+pub fn as_remote_serializer(registry: &PyCodecRegistry) -> SerializerRegistry {
+    let out = SerializerRegistry::new();
+    let snapshot = registry.snapshot();
+    for (manifest, codec) in snapshot {
+        install_codec(&out, codec, manifest);
+    }
+    out
+}
+
+fn install_codec(target: &SerializerRegistry, codec: Arc<dyn PyCodec>, manifest: String) {
+    let manifest_for_encode = manifest.clone();
+    let manifest_for_decode = manifest.clone();
+    let codec_for_encode = codec.clone();
+    let codec_for_decode = codec;
+    target.register_codec(TypeCodec {
+        serializer_id: BINCODE_SERIALIZER_ID,
+        manifest: manifest.clone(),
+        type_id: TypeId::of::<PyBytes>(),
+        encode: Arc::new(move |v| {
+            let bytes = v
+                .downcast_ref::<PyBytes>()
+                .ok_or_else(|| SerializeError::Downcast("PyBytes".into()))?;
+            codec_for_encode
+                .encode(&manifest_for_encode, &bytes.0)
+                .map_err(|e| SerializeError::Encode(e.to_string()))
+        }),
+        decode: Arc::new(move |b| {
+            let payload = codec_for_decode
+                .decode(&manifest_for_decode, b)
+                .map_err(|e| SerializeError::Decode(e.to_string()))?;
+            Ok(Box::new(PyBytes(payload)) as Box<dyn std::any::Any + Send>)
+        }),
+    });
 }
 
 // -- Built-in JSON codec ---------------------------------------------
@@ -206,5 +261,28 @@ mod tests {
         let mut ms = reg.manifests();
         ms.sort();
         assert_eq!(ms, vec!["Bar", "Foo"]);
+    }
+
+    #[test]
+    fn as_remote_serializer_round_trip_via_manifest() {
+        // Two different Python "classes" — both encode through the same
+        // `FixedCodec`. The mirror should hand back distinct entries
+        // keyed by manifest, all pointing at `TypeId::of::<PyBytes>()`.
+        let reg = PyCodecRegistry::new();
+        reg.register(Arc::new(FixedCodec("a")), ["my.module.Cmd", "my.module.Reply"]);
+        let serializer = as_remote_serializer(&reg);
+        let codec_cmd = serializer.codec_for_manifest("my.module.Cmd").unwrap();
+        let blob = (codec_cmd.encode)(&PyBytes(b"hi".to_vec()) as &dyn std::any::Any).unwrap();
+        let (any, _) =
+            serializer.decode_dyn("my.module.Cmd", BINCODE_SERIALIZER_ID, &blob).unwrap();
+        let pb = any.downcast::<PyBytes>().unwrap();
+        assert_eq!(pb.0, b"hi");
+    }
+
+    #[test]
+    fn as_remote_serializer_unknown_manifest_returns_none() {
+        let reg = PyCodecRegistry::new();
+        let serializer = as_remote_serializer(&reg);
+        assert!(serializer.codec_for_manifest("nope").is_none());
     }
 }
