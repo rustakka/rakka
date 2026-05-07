@@ -8,7 +8,8 @@ base class that Python users subclass.
 from . import _native  # noqa: F401
 
 from .actor import Actor
-from .system import ActorSystem, Props, ActorRef, Config, Context, props
+from .system import ActorSystem, Props, ActorRef, Config, props
+from .context import Context
 from .errors import (
     AtomrError,
     ActorSystemError,

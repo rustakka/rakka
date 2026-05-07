@@ -22,6 +22,14 @@ impl PyActorRef {
     pub fn new(inner: RustRef<PyMessage>, path: String) -> Self {
         Self { inner: Arc::new(inner), path }
     }
+
+    /// Construct from a pre-shared Arc — avoids cloning the underlying
+    /// `RustRef` when we already have it `Arc`-wrapped (used by the
+    /// Phase 1 context plumbing where the same ref is exposed to
+    /// Python multiple times per dispatch).
+    pub fn from_arc(inner: Arc<RustRef<PyMessage>>, path: String) -> Self {
+        Self { inner, path }
+    }
 }
 
 #[pymethods]
@@ -35,6 +43,15 @@ impl PyActorRef {
     fn tell(&self, msg: Bound<'_, PyAny>) -> PyResult<()> {
         let payload = msg.unbind();
         self.inner.tell(PyMessage::new(payload));
+        Ok(())
+    }
+
+    /// Fire-and-forget send with explicit `sender`. The receiver's
+    /// `ctx.sender` will resolve to `sender`.
+    fn tell_with_sender(&self, msg: Bound<'_, PyAny>, sender: Py<PyActorRef>) -> PyResult<()> {
+        let payload = msg.unbind();
+        let sender_inner = Python::with_gil(|py| sender.borrow(py).inner.clone());
+        self.inner.tell(PyMessage::with_sender(payload, sender_inner));
         Ok(())
     }
 
