@@ -40,25 +40,49 @@ use crate::interpreter::{InterpreterInstance, InterpreterQuota, PyTask};
 /// Erased Python message — we wrap `Py<PyAny>` plus an optional reply
 /// channel. The reply channel is used by `ask`. `sender_ref` carries
 /// the typed `ActorRef<PyMessage>` of the sender so `ctx.sender` can
-/// surface a usable handle (Phase 1).
+/// surface a usable handle (Phase 1). `hash` is an optional consistent-hash
+/// key used by the Phase-3 consistent-hash router.
 pub struct PyMessage {
     pub payload: Py<PyAny>,
     pub reply: Option<oneshot::Sender<PyResult<Py<PyAny>>>>,
     pub sender_ref: Option<Arc<RustRef<PyMessage>>>,
+    pub hash: Option<u64>,
 }
 
 impl PyMessage {
     pub fn new(payload: Py<PyAny>) -> Self {
-        Self { payload, reply: None, sender_ref: None }
+        Self { payload, reply: None, sender_ref: None, hash: None }
     }
 
     pub fn with_sender(payload: Py<PyAny>, sender: Arc<RustRef<PyMessage>>) -> Self {
-        Self { payload, reply: None, sender_ref: Some(sender) }
+        Self { payload, reply: None, sender_ref: Some(sender), hash: None }
+    }
+
+    /// New message envelope carrying an explicit consistent-hash key.
+    pub fn with_hash(payload: Py<PyAny>, hash: u64) -> Self {
+        Self { payload, reply: None, sender_ref: None, hash: Some(hash) }
     }
 
     pub fn ask(payload: Py<PyAny>) -> (Self, oneshot::Receiver<PyResult<Py<PyAny>>>) {
         let (tx, rx) = oneshot::channel();
-        (Self { payload, reply: Some(tx), sender_ref: None }, rx)
+        (Self { payload, reply: Some(tx), sender_ref: None, hash: None }, rx)
+    }
+
+    /// `ask` variant carrying a consistent-hash key.
+    pub fn ask_with_hash(
+        payload: Py<PyAny>,
+        hash: u64,
+    ) -> (Self, oneshot::Receiver<PyResult<Py<PyAny>>>) {
+        let (tx, rx) = oneshot::channel();
+        (Self { payload, reply: Some(tx), sender_ref: None, hash: Some(hash) }, rx)
+    }
+
+    /// Best-effort clone of the payload using the GIL. Reply channels
+    /// are *not* duplicated — the clone is reply-less. Used by
+    /// broadcast routing.
+    pub fn clone_payload_gil(&self) -> Self {
+        let payload = Python::with_gil(|py| self.payload.clone_ref(py));
+        Self { payload, reply: None, sender_ref: self.sender_ref.clone(), hash: self.hash }
     }
 }
 
@@ -254,7 +278,7 @@ impl Actor for PyActor {
     }
 
     async fn handle(&mut self, ctx: &mut Context<Self>, msg: Self::Msg) {
-        let PyMessage { payload, reply, sender_ref } = msg;
+        let PyMessage { payload, reply, sender_ref, hash: _ } = msg;
         let Some(instance) = self.instance.as_ref().map(|p| p.clone_ref_py()) else {
             return;
         };

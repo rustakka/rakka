@@ -85,7 +85,9 @@ impl PyActorSystem {
 
     /// Spawn a Python actor under `/user`.
     fn actor_of(&self, py: Python<'_>, props: Py<PyProps>, name: String) -> PyResult<Py<PyActorRef>> {
+        use crate::props::PropsKind;
         let props_ref = props.borrow(py);
+        let kind_clone = props_ref.kind.clone();
         let factory = props_ref.factory.clone_ref(py);
         let dispatcher_name = props_ref.dispatcher.clone();
         let role = props_ref.interpreter_role.clone();
@@ -96,30 +98,62 @@ impl PyActorSystem {
             .unwrap_or_default();
         drop(props_ref);
 
-        let kind = dispatcher::parse(&dispatcher_name, 1);
-        let pool = REGISTRY.get_or_create(&role, kind, InterpreterQuota::default());
-        pool.register_actor()?;
-
-        let hash_seed = stable_hash(&format!("{}/{}", self.inner.name(), name));
-        let factory_for_actor = factory;
-        let pool_cl = pool.clone();
-        let strategy_for_actor = strategy.clone();
-
-        let rust_props = RustProps::<PyActor>::create(move || {
-            let factory = Python::with_gil(|py| factory_for_actor.clone_ref(py));
-            PyActor::new(factory, pool_cl.clone(), hash_seed, strategy_for_actor.clone())
-        })
-        .with_supervisor_strategy(strategy);
-
         let rt = runtime();
         let system = self.inner.clone();
         let name_cl = name.clone();
-        let actor_ref = py
-            .allow_threads(|| {
-                let _guard = rt.enter();
-                system.actor_of(rust_props, &name_cl)
-            })
-            .map_err(errors::map)?;
+
+        let actor_ref = match kind_clone {
+            PropsKind::Python => {
+                let kind = dispatcher::parse(&dispatcher_name, 1);
+                let pool = REGISTRY.get_or_create(&role, kind, InterpreterQuota::default());
+                pool.register_actor()?;
+
+                let hash_seed = stable_hash(&format!("{}/{}", self.inner.name(), name));
+                let factory_for_actor = factory;
+                let pool_cl = pool.clone();
+                let strategy_for_actor = strategy.clone();
+
+                let rust_props = RustProps::<PyActor>::create(move || {
+                    let factory = Python::with_gil(|py| factory_for_actor.clone_ref(py));
+                    PyActor::new(factory, pool_cl.clone(), hash_seed, strategy_for_actor.clone())
+                })
+                .with_supervisor_strategy(strategy.clone());
+
+                py.allow_threads(|| {
+                    let _guard = rt.enter();
+                    system.actor_of(rust_props, &name_cl)
+                })
+                .map_err(errors::map)?
+            }
+            PropsKind::Router { logic, n, child_props } => {
+                let cp = child_props.clone();
+                let rust_props = RustProps::<crate::ext_routing::RouterActor>::create(move || {
+                    crate::ext_routing::RouterActor::new(cp.clone(), n, logic)
+                });
+                py.allow_threads(|| {
+                    let _guard = rt.enter();
+                    system.actor_of(rust_props, &name_cl)
+                })
+                .map_err(errors::map)?
+            }
+            PropsKind::Backoff { child_props, min, max, random_factor } => {
+                let opts = atomr_core::pattern::BackoffOptions {
+                    min_backoff: min,
+                    max_backoff: max,
+                    random_factor,
+                    max_restarts: None,
+                };
+                let cp = child_props.clone();
+                let rust_props = RustProps::<crate::ext_routing::BackoffActor>::create(move || {
+                    crate::ext_routing::BackoffActor::new(cp.clone(), opts.clone())
+                });
+                py.allow_threads(|| {
+                    let _guard = rt.enter();
+                    system.actor_of(rust_props, &name_cl)
+                })
+                .map_err(errors::map)?
+            }
+        };
         let path = format!("akka://{}/user/{}", self.inner.name(), name);
         Py::new(py, PyActorRef::new(actor_ref, path))
     }
