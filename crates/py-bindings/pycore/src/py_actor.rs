@@ -20,6 +20,7 @@
 //!     coroutine's await window via `tokio::select!` so that
 //!     `ctx.spawn(...)` can resolve before the handler returns.
 
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -28,8 +29,8 @@ use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use tokio::sync::{mpsc, oneshot};
 
-use atomr_core::actor::{Actor, ActorRef as RustRef, Context};
-use atomr_core::supervision::SupervisorStrategy;
+use atomr_core::actor::{Actor, ActorPath, ActorRef as RustRef, Context};
+use atomr_core::supervision::{PanicPayload, SupervisorStrategy};
 
 use crate::actor_ref::PyActorRef;
 use crate::context::{CtxOp, PyContext};
@@ -70,6 +71,11 @@ pub struct PyActor {
     /// If set, dispatch to this callable instead of `instance.handle`.
     /// Toggled by `ctx.become(new_handler)` / `ctx.unbecome()`.
     pub(crate) current_handler: Option<Py<PyAny>>,
+    /// Set of paths this actor is watching. Populated from `CtxOp::Watch`
+    /// and consulted in `on_terminated` to translate the framework
+    /// `Terminated(path)` system message into a Python-visible
+    /// `atomr.Terminated(path)` user message tell-ed to self.
+    pub(crate) watching: HashSet<String>,
 }
 
 impl PyActor {
@@ -86,6 +92,7 @@ impl PyActor {
             hash_seed,
             strategy,
             current_handler: None,
+            watching: HashSet::new(),
         }
     }
 
@@ -103,6 +110,40 @@ impl PyActor {
 
     fn worker(&self) -> Arc<crate::interpreter::Worker> {
         self.pool.worker_for(self.hash_seed)
+    }
+
+    /// Run the factory closure and store the fresh Python instance,
+    /// then call its optional `pre_start` hook. Used by both
+    /// `Actor::pre_start` and `Actor::post_restart`.
+    async fn build_instance(&mut self) {
+        let factory = self.factory.clone_ref_py();
+        let res = self
+            .on_interpreter(move |py, _| {
+                let instance = factory.call0(py)?;
+                Ok::<Py<PyAny>, PyErr>(instance)
+            })
+            .await;
+        match res {
+            Ok(instance) => {
+                self.instance = Some(instance.clone_ref_py());
+                let inst = instance;
+                let _ = self
+                    .on_interpreter(move |py, _| {
+                        if let Ok(hook) = inst.bind(py).getattr("pre_start") {
+                            if !hook.is_none() {
+                                let args = PyTuple::new_bound(py, &[py.None()]);
+                                let res = hook.call1(args)?;
+                                coro_run(py, res)?;
+                            }
+                        }
+                        Ok(())
+                    })
+                    .await;
+            }
+            Err(e) => {
+                panic!("python actor factory raised: {}", e);
+            }
+        }
     }
 
     /// Execute `f` on the actor's assigned interpreter and wait for the
@@ -183,35 +224,15 @@ impl Actor for PyActor {
     type Msg = PyMessage;
 
     async fn pre_start(&mut self, _ctx: &mut Context<Self>) {
-        let factory = self.factory.clone_ref_py();
-        let res = self
-            .on_interpreter(move |py, _| {
-                let instance = factory.call0(py)?;
-                Ok::<Py<PyAny>, PyErr>(instance)
-            })
-            .await;
-        match res {
-            Ok(instance) => {
-                self.instance = Some(instance.clone_ref_py());
-                // Optional pre_start hook.
-                let inst = instance;
-                let _ = self
-                    .on_interpreter(move |py, _| {
-                        if let Ok(hook) = inst.bind(py).getattr("pre_start") {
-                            if !hook.is_none() {
-                                let args = PyTuple::new_bound(py, &[py.None()]);
-                                let res = hook.call1(args)?;
-                                coro_run(py, res)?;
-                            }
-                        }
-                        Ok(())
-                    })
-                    .await;
-            }
-            Err(e) => {
-                panic!("python actor factory raised: {}", e);
-            }
-        }
+        self.build_instance().await;
+    }
+
+    async fn post_restart(&mut self, _ctx: &mut Context<Self>, _err: &str) {
+        // After a supervisor-driven restart, the cell has just swapped
+        // `*actor = props.new_actor()` so our `instance` slot is empty.
+        // Rebuild the Python instance and re-run its `pre_start` hook
+        // so user code observes a clean lifecycle each time.
+        self.build_instance().await;
     }
 
     async fn post_stop(&mut self, _ctx: &mut Context<Self>) {
@@ -356,17 +377,80 @@ impl Actor for PyActor {
             let _ = tx.send(result);
         } else if let Err(e) = result {
             self.pool.metrics.handler_panics.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-            // Surface the error through supervision.
-            panic!(
-                "python actor handler raised: {}",
-                Python::with_gil(|py| format!("{}", e.value_bound(py)))
-            );
+            // Surface the error through supervision via a structured
+            // payload so deciders can match on the Python class.
+            let payload = Python::with_gil(|py| extract_panic_payload(py, &e));
+            std::panic::panic_any(payload);
         }
     }
 
     fn supervisor_strategy(&self) -> SupervisorStrategy {
         self.strategy.clone()
     }
+
+    async fn on_terminated(&mut self, ctx: &mut Context<Self>, path: &ActorPath) {
+        let path_str = path.to_string();
+        if !self.watching.remove(&path_str) {
+            // We weren't tracking this path through Python — nothing
+            // to deliver. (E.g., the user installed a watch via some
+            // future Rust-only path.)
+            return;
+        }
+        // Build a Python `atomr.Terminated(path=...)` instance and
+        // tell it to self as a regular user message so `handle` sees
+        // it through the normal dispatch flow.
+        let payload = Python::with_gil(|py| build_terminated_message(py, &path_str));
+        let payload = match payload {
+            Ok(p) => p,
+            Err(e) => {
+                tracing::error!(
+                    path = %path_str,
+                    "failed to build Terminated payload: {}",
+                    Python::with_gil(|py| format!("{}", e.value_bound(py)))
+                );
+                return;
+            }
+        };
+        ctx.self_ref().tell(PyMessage::new(payload));
+    }
+}
+
+/// Materialize a structured panic payload from a Python exception so
+/// that the supervisor decider can classify failures by class.
+fn extract_panic_payload(py: Python<'_>, e: &PyErr) -> PanicPayload {
+    let value = e.value_bound(py);
+    let cls = match value.get_type().getattr("__module__") {
+        Ok(m) => m.extract::<String>().unwrap_or_else(|_| "builtins".into()),
+        Err(_) => "builtins".into(),
+    };
+    let qualname = match value.get_type().getattr("__qualname__") {
+        Ok(q) => q.extract::<String>().ok(),
+        Err(_) => None,
+    }
+    .or_else(|| value.get_type().name().ok().map(|n| n.to_string()))
+    .unwrap_or_else(|| "Exception".into());
+    let repr = format!("{}", value);
+    PanicPayload::new(cls, qualname, repr)
+}
+
+/// Build the `atomr.Terminated(path=...)` Python value used to deliver
+/// watch notifications to a Python actor. We import the Python module
+/// lazily and fall back to a plain `dict` if the import fails (e.g.
+/// during early startup or in stripped-down embeddings).
+fn build_terminated_message(py: Python<'_>, path: &str) -> PyResult<Py<PyAny>> {
+    if let Ok(m) = py.import_bound("atomr") {
+        if let Ok(t) = m.getattr("Terminated") {
+            let kwargs = pyo3::types::PyDict::new_bound(py);
+            kwargs.set_item("path", path)?;
+            let v = t.call((), Some(&kwargs))?;
+            return Ok(v.unbind());
+        }
+    }
+    // Fallback: plain dict so user code still observes the event.
+    let dict = pyo3::types::PyDict::new_bound(py);
+    dict.set_item("__terminated__", true)?;
+    dict.set_item("path", path)?;
+    Ok(dict.into_any().unbind())
 }
 
 /// Apply a `CtxOp` against the live `&mut Context<PyActor>`.
@@ -389,6 +473,7 @@ async fn apply_op_eager(actor: &mut PyActor, ctx: &mut Context<PyActor>, op: Ctx
             let path_str = format!("{}/{}", ctx.path(), name);
             let hash_seed = stable_hash(&path_str);
             let strategy = actor.strategy.clone();
+            let strategy_for_actor = strategy.clone();
             let factory_for_actor = factory;
             let pool_cl = pool.clone();
             let _ = dispatcher; // role lives on the pool; dispatcher is captured by pool kind
@@ -399,9 +484,10 @@ async fn apply_op_eager(actor: &mut PyActor, ctx: &mut Context<PyActor>, op: Ctx
                     factory,
                     pool_cl.clone(),
                     hash_seed,
-                    strategy.clone(),
+                    strategy_for_actor.clone(),
                 )
-            });
+            })
+            .with_supervisor_strategy(strategy);
 
             match ctx.spawn(rust_props, &name) {
                 Ok(child_ref) => {
@@ -457,6 +543,19 @@ async fn apply_op_eager(actor: &mut PyActor, ctx: &mut Context<PyActor>, op: Ctx
         }
         CtxOp::Unbecome => {
             actor.current_handler = None;
+        }
+        CtxOp::Watch(target) => {
+            // Track on the PyActor so that `on_terminated` knows which
+            // watches were initiated from Python (and we can synthesize
+            // a Python-visible Terminated message).
+            let target_path = target.path().to_string();
+            actor.watching.insert(target_path);
+            ctx.watch(target.as_ref());
+        }
+        CtxOp::Unwatch(target) => {
+            let target_path = target.path().to_string();
+            actor.watching.remove(&target_path);
+            ctx.unwatch(target.as_ref());
         }
     }
 }

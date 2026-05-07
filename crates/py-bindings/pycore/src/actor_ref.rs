@@ -95,6 +95,20 @@ impl PyActorRef {
         })
     }
 
+    /// Send a `SystemMsg::Stop` to the target. The actor finishes the
+    /// current message (if any), runs `post_stop`, and notifies any
+    /// watchers via `Terminated`.
+    fn stop(&self) {
+        self.inner.stop();
+    }
+
+    /// Best-effort: returns `True` once the actor cell has shut down.
+    /// For remote refs we cannot inspect the far-end mailbox so this
+    /// always returns `False`.
+    fn is_terminated(&self) -> bool {
+        self.inner.is_terminated()
+    }
+
     fn __repr__(&self) -> String {
         format!("<ActorRef path={}>", self.path)
     }

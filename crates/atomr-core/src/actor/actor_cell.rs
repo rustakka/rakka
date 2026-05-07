@@ -19,7 +19,7 @@ use super::context::Context;
 use super::path::ActorPath;
 use super::props::Props;
 use super::traits::{Actor, MessageEnvelope};
-use crate::supervision::Directive;
+use crate::supervision::{Directive, PanicPayload};
 
 /// Messages on the actor's system channel.
 #[derive(Debug)]
@@ -169,6 +169,7 @@ async fn handle_system<A: Actor>(actor: &mut A, ctx: &mut Context<A>, msg: Syste
         SystemMsg::Terminated(path) => {
             tracing::debug!(self_path = %ctx.path, watched = %path, "watched actor terminated");
             ctx.watching.remove(&path);
+            actor.on_terminated(ctx, &path).await;
             false
         }
         SystemMsg::Watch(subscriber) => {
@@ -201,7 +202,9 @@ async fn run_handle<A: Actor>(actor: &mut A, ctx: &mut Context<A>, msg: A::Msg) 
 }
 
 fn panic_payload_to_string(p: Box<dyn std::any::Any + Send>) -> String {
-    if let Some(s) = p.downcast_ref::<&str>() {
+    if let Some(payload) = p.downcast_ref::<PanicPayload>() {
+        payload.to_wire()
+    } else if let Some(s) = p.downcast_ref::<&str>() {
         s.to_string()
     } else if let Some(s) = p.downcast_ref::<String>() {
         s.clone()

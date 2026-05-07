@@ -127,6 +127,18 @@ impl<M: Send + 'static> ActorRef<M> {
         }
     }
 
+    /// Best-effort liveness check. Returns `true` if the user
+    /// mailbox's receiver half has been dropped, which means the
+    /// actor cell has finished and will no longer process messages.
+    /// For `Remote` refs we cannot inspect the far-end mailbox, so we
+    /// always return `false`.
+    pub fn is_terminated(&self) -> bool {
+        match &*self.inner {
+            RefImpl::Local { user, .. } => user.is_closed(),
+            RefImpl::Remote { .. } => false,
+        }
+    }
+
     /// Ask pattern: callers supply a closure that embeds a `oneshot::Sender<R>`
     /// in the message. The future resolves when the actor replies, or errors
     /// out on timeout/actor-stop.

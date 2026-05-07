@@ -48,7 +48,8 @@ pub mod prelude {
     };
     pub use crate::pattern::{ask, pipe_to};
     pub use crate::supervision::{
-        Directive, OneForOneStrategy, SupervisionError, SupervisorOf, SupervisorStrategy,
+        Directive, OneForOneStrategy, PanicPayload, SupervisionError, SupervisorOf,
+        SupervisorStrategy,
     };
     pub use async_trait::async_trait;
     pub use atomr_config::Config;

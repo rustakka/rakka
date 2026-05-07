@@ -52,6 +52,12 @@ pub trait Actor: Sized + Send + 'static {
     /// Called after a restart.
     async fn post_restart(&mut self, _ctx: &mut Context<Self>, _err: &str) {}
 
+    /// Called when a watched actor terminates. The `path` argument is
+    /// the path of the actor that just stopped. Default is a no-op.
+    /// Implementations may translate this into a user-visible message
+    /// (the Python binding does this for `Terminated` events).
+    async fn on_terminated(&mut self, _ctx: &mut Context<Self>, _path: &super::path::ActorPath) {}
+
     /// The supervisor strategy this actor applies to its own children.
     fn supervisor_strategy(&self) -> SupervisorStrategy {
         SupervisorStrategy::default()

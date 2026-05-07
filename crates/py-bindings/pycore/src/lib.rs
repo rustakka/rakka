@@ -29,6 +29,7 @@ mod metrics;
 mod props;
 mod py_actor;
 mod runtime;
+mod supervision;
 
 mod ext_cluster;
 mod ext_cluster_metrics;
@@ -62,6 +63,7 @@ fn _native(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     interpreter::register(py, m)?;
     metrics::register(py, m)?;
     props::register(py, m)?;
+    supervision::register(py, m)?;
     compat::register(py, m)?;
 
     ext_testkit::register(py, m)?;

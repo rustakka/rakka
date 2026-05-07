@@ -21,6 +21,9 @@ from .errors import (
 from .interpreter import InterpreterQuota, subinterpreters_supported, nogil_supported
 from .compat import declare_compat, compat_flags, compat_list
 
+from . import supervision
+from .supervision import SupervisorStrategy, Directive, Terminated
+
 from . import testkit
 from . import cluster
 from . import cluster_metrics
@@ -59,6 +62,10 @@ __all__ = [
     "AskError",
     "InterpreterOverloaded",
     "InterpreterCompatError",
+    "SupervisorStrategy",
+    "Directive",
+    "Terminated",
+    "supervision",
     "testkit",
     "cluster",
     "cluster_metrics",

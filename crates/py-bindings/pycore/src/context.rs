@@ -69,6 +69,13 @@ pub enum CtxOp {
     Become(Py<PyAny>),
     /// Restore the default handler (`instance.handle`).
     Unbecome,
+    /// Begin watching `target`. Phase 2 — when `target` terminates,
+    /// `PyActor::on_terminated` translates the framework `Terminated`
+    /// system message into a Python-visible `Terminated(path)` user
+    /// message tell-ed to self.
+    Watch(Arc<atomr_core::actor::ActorRef<PyMessage>>),
+    /// Stop watching `target`.
+    Unwatch(Arc<atomr_core::actor::ActorRef<PyMessage>>),
 }
 
 /// Python-facing `Context`. One instance per dispatched message.
@@ -261,6 +268,20 @@ impl PyContext {
     /// Restore the actor's default handler.
     fn unbecome(&self) -> PyResult<()> {
         self.send_op(CtxOp::Unbecome)
+    }
+
+    /// Watch `target` for termination. When `target` stops, this actor
+    /// receives a Python `atomr.Terminated(path)` user-message in its
+    /// regular `handle(ctx, msg)` flow.
+    fn watch(&self, py: Python<'_>, target: Py<PyActorRef>) -> PyResult<()> {
+        let inner = target.borrow(py).inner.clone();
+        self.send_op(CtxOp::Watch(inner))
+    }
+
+    /// Stop watching `target`.
+    fn unwatch(&self, py: Python<'_>, target: Py<PyActorRef>) -> PyResult<()> {
+        let inner = target.borrow(py).inner.clone();
+        self.send_op(CtxOp::Unwatch(inner))
     }
 
     fn __repr__(&self) -> String {

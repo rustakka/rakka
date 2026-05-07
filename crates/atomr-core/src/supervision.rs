@@ -3,6 +3,46 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+/// Structured panic payload carried via `std::panic::panic_any` so that
+/// language-binding actors (Python, etc.) can attach typed failure
+/// metadata that the decider can inspect by class name. The
+/// `actor_cell` panic-catch path renders this as
+/// `"<module>.<qualname>: <repr>"` for the legacy `Decider: Fn(&str)`
+/// surface; deciders wishing to match by class can split on the first
+/// `": "` boundary.
+#[derive(Debug, Clone)]
+pub struct PanicPayload {
+    pub module: String,
+    pub qualname: String,
+    pub repr: String,
+}
+
+impl PanicPayload {
+    pub fn new(module: impl Into<String>, qualname: impl Into<String>, repr: impl Into<String>) -> Self {
+        Self {
+            module: module.into(),
+            qualname: qualname.into(),
+            repr: repr.into(),
+        }
+    }
+
+    /// Fully-qualified class path, e.g. `"builtins.ValueError"`.
+    pub fn class_path(&self) -> String {
+        if self.module.is_empty() {
+            self.qualname.clone()
+        } else {
+            format!("{}.{}", self.module, self.qualname)
+        }
+    }
+
+    /// Wire format used by `actor_cell::panic_payload_to_string` so
+    /// that legacy `Decider: Fn(&str) -> Directive` deciders can still
+    /// inspect the payload.
+    pub fn to_wire(&self) -> String {
+        format!("{}: {}", self.class_path(), self.repr)
+    }
+}
+
 /// What the supervisor decides when a child fails.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
