@@ -171,6 +171,7 @@ atomr-coordination = { path = "crates/atomr-coordination", version = "0.3.1" }
 atomr-discovery = { path = "crates/atomr-discovery", version = "0.3.1" }
 atomr-di = { path = "crates/atomr-di", version = "0.3.1" }
 atomr-hosting = { path = "crates/atomr-hosting", version = "0.3.1" }
+atomr-pyremote = { path = "crates/py-bindings/pyremote", version = "0.3.1" }
 
 [profile.release]
 opt-level = 3
