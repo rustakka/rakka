@@ -24,6 +24,7 @@ parking_lot = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 async-trait = { workspace = true }
+dashmap = { workspace = true }
 
 [dev-dependencies]
 atomr-testkit = { workspace = true }

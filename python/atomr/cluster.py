@@ -38,6 +38,7 @@ VectorClock = _sub.VectorClock
 LeaderHandover = _sub.LeaderHandover
 LeaderHandoverEvent = _sub.LeaderHandoverEvent
 member_weakly_up = _sub.member_weakly_up
+ClusterRegistry = _sub.ClusterRegistry
 
 
 # ---------------------------------------------------------------------------
@@ -242,11 +243,49 @@ class Cluster:
 
     @classmethod
     def get(cls, system: Any) -> "Cluster":
-        """Return (or lazily create) the cluster singleton for ``system``."""
-        # Accept both the Python `ActorSystem` wrapper and the raw native
-        # object.
+        """Return (or lazily create) the cluster singleton for ``system``.
+
+        Without a prior call to :meth:`with_test_transport` or
+        :meth:`with_tcp_transport`, the underlying transport is a
+        no-op (single-node mode).
+        """
         sys_native = getattr(system, "_native", system)
         return cls(_sub.Cluster.get(sys_native))
+
+    @classmethod
+    def with_test_transport(
+        cls,
+        system: Any,
+        registry: ClusterRegistry,
+        advertised_address: Optional[str] = None,
+    ) -> "Cluster":
+        """Configure an in-process cluster transport bound to ``registry``.
+
+        Multiple :class:`ActorSystem`s sharing the same
+        :class:`ClusterRegistry` reach each other deterministically via
+        in-memory channels — useful for multi-node tests in a single
+        Python process.
+
+        ``advertised_address`` overrides the address the local node
+        announces to peers. Defaults to ``akka://<system_name>``.
+        """
+        sys_native = getattr(system, "_native", system)
+        return cls(_sub.Cluster.with_test_transport(sys_native, registry, advertised_address))
+
+    @classmethod
+    def with_tcp_transport(
+        cls,
+        system: Any,
+        bind_addr: str,
+        advertised_host: Optional[str] = None,
+    ) -> "Cluster":
+        """Configure a TCP cluster transport bound to ``bind_addr``.
+
+        Pass ``"127.0.0.1:0"`` to auto-allocate a port; the resolved
+        address is observable via :attr:`Cluster.self_address`.
+        """
+        sys_native = getattr(system, "_native", system)
+        return cls(_sub.Cluster.with_tcp_transport(sys_native, bind_addr, advertised_host))
 
     @property
     def self_address(self) -> str:
@@ -311,6 +350,7 @@ __all__ = [
     "member_weakly_up",
     # Active control plane.
     "Cluster",
+    "ClusterRegistry",
     "SBR_STRATEGIES",
     # Event dataclasses.
     "MemberInfo",

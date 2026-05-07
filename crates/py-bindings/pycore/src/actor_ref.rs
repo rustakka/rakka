@@ -122,6 +122,19 @@ impl PyActorRef {
     fn __repr__(&self) -> String {
         format!("<ActorRef path={}>", self.path)
     }
+
+    /// Return a sibling `ActorRef` with the same underlying mailbox
+    /// channel but a rewritten path. Used by Epic A's remote-tell
+    /// tests to mint a "remote-shaped" ref pointing at another
+    /// system's TCP-resolved address — `tell_remote` consults the
+    /// path string when deciding local-vs-remote routing.
+    ///
+    /// The `inner` channel is only relevant for the local fast-path;
+    /// for true remote sends the transport delivers via path lookup
+    /// on the receiving side, so the original `inner` is harmless.
+    fn with_path(slf: PyRef<'_, Self>, path: String) -> PyActorRef {
+        PyActorRef { inner: slf.inner.clone(), path }
+    }
 }
 
 pub fn register(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
