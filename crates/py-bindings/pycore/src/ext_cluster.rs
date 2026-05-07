@@ -22,7 +22,7 @@ use tokio::sync::mpsc;
 
 use atomr_cluster::{
     spawn_daemon, spawn_daemon_with_sbr, ClusterDaemonHandle, ClusterEvent, ClusterEventBus, DaemonConfig,
-    GossipPdu, GossipTransport, KeepMajorityStrategy, KeepOldestStrategy, LeaderHandover, LeaderHandoverEvent,
+    GossipTransport, KeepMajorityStrategy, KeepOldestStrategy, LeaderHandover, LeaderHandoverEvent,
     LeaseMajorityStrategy, Member, MemberStatus, MembershipState, SbrRuntime, StaticQuorumStrategy,
     SubscriptionHandle, VectorClock, VectorRelation,
 };
@@ -246,16 +246,13 @@ impl PyLeaderHandover {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 5 — active cluster control plane.
+// Phase 5 + Epic A — active cluster control plane.
 // ---------------------------------------------------------------------------
 
-/// No-op gossip transport. Discards every PDU. Used for single-node
-/// clusters until Phase 9 plugs in a real remote transport.
-struct NoopGossipTransport;
-
-impl GossipTransport for NoopGossipTransport {
-    fn send(&self, _target: &Address, _pdu: GossipPdu) {}
-}
+use crate::cluster_transport::{
+    self, PyClusterRegistry, PyRemoteMessageSink, PyTransportConfig, TransportChoice,
+    TransportSlotExt,
+};
 
 /// Per-`ActorSystem` cluster extension. Holds the daemon handle, the
 /// event bus, and the self-address. Cloneable via `Arc`.
@@ -281,36 +278,58 @@ pub struct PyCluster {
 impl PyCluster {
     /// Return (or lazily create) the cluster extension for the given
     /// `ActorSystem`. Idempotent — successive calls return the same
-    /// underlying daemon.
+    /// underlying daemon. The transport in use is whatever was set up
+    /// via `with_test_transport` / `with_tcp_transport`; if neither
+    /// was called, a no-op transport is installed (single-node mode).
     #[staticmethod]
     fn get(py: Python<'_>, system: &PyActorSystem) -> PyResult<Py<PyCluster>> {
-        let sys = system.inner.clone();
-        // Reuse if already installed.
-        if let Some(ext) = sys.extensions().get::<ClusterExt>() {
-            return Py::new(py, PyCluster { ext: (*ext).clone() });
-        }
-        // First call — start the daemon. Configure SBR if config asks
-        // for one.
-        let cfg = sys.config().clone();
-        let bus = ClusterEventBus::new();
-        let transport: Arc<dyn GossipTransport> = Arc::new(NoopGossipTransport);
-        let dcfg = DaemonConfig::default();
-        let self_addr = sys.address().clone();
+        ensure_cluster(py, system, TransportChoice::Noop)
+    }
 
-        // `spawn_daemon` calls `tokio::spawn` internally, which requires
-        // being inside a runtime. The Python entry point is sync, so
-        // enter the shared atomr runtime for this call.
-        let rt = runtime();
-        let _guard = rt.enter();
-        let handle = build_daemon(self_addr.clone(), transport, bus.clone(), dcfg, &cfg)?;
+    /// Configure an in-process cluster transport joined to `registry`.
+    /// All `ActorSystem`s sharing the same `ClusterRegistry` reach each
+    /// other through deterministic in-memory channels — useful for
+    /// multi-node tests in a single Python process.
+    ///
+    /// On first call, installs the transport and starts the daemon.
+    /// Subsequent calls (with the same registry) are idempotent.
+    #[staticmethod]
+    #[pyo3(signature = (system, registry, advertised_address=None))]
+    fn with_test_transport(
+        py: Python<'_>,
+        system: &PyActorSystem,
+        registry: &PyClusterRegistry,
+        advertised_address: Option<String>,
+    ) -> PyResult<Py<PyCluster>> {
+        let bind_address = match advertised_address.as_deref() {
+            Some(s) => Address::parse(s).or_else(|| Some(Address::local(s))),
+            None => None,
+        };
+        let choice = TransportChoice::Test {
+            registry: registry.inner.clone(),
+            bind_address,
+        };
+        ensure_cluster(py, system, choice)
+    }
 
-        // Register self as a Joining member so the daemon can promote
-        // us to Up on the next leader-action tick.
-        handle.join(Member::new(self_addr.clone(), Vec::new()));
-
-        let ext = ClusterExt { inner: Arc::new(ClusterExtInner { handle, bus, self_addr }) };
-        sys.extensions().register::<ClusterExt>(ext.clone());
-        Py::new(py, PyCluster { ext })
+    /// Configure a TCP cluster transport bound to `bind_addr` (e.g.
+    /// `"127.0.0.1:0"` for an auto-allocated port, or
+    /// `"0.0.0.0:9090"` for a fixed listener). On success the cluster
+    /// extension is installed and the daemon starts; the resolved
+    /// listening address is observable via `cluster.self_address`.
+    #[staticmethod]
+    #[pyo3(signature = (system, bind_addr, advertised_host=None))]
+    fn with_tcp_transport(
+        py: Python<'_>,
+        system: &PyActorSystem,
+        bind_addr: String,
+        advertised_host: Option<String>,
+    ) -> PyResult<Py<PyCluster>> {
+        let bind: std::net::SocketAddr = bind_addr
+            .parse()
+            .map_err(|e| PyErr::new::<PyValueError, _>(format!("invalid bind_addr: {e}")))?;
+        let choice = TransportChoice::Tcp { bind, advertised_host };
+        ensure_cluster(py, system, choice)
     }
 
     /// The local node's address as a string.
@@ -520,6 +539,95 @@ impl PyCluster {
     }
 }
 
+/// Lazy-create the cluster extension under the requested transport
+/// choice. If a cluster has already been installed, the existing
+/// daemon is returned regardless of the requested choice (transports
+/// can't be swapped at runtime).
+fn ensure_cluster(
+    py: Python<'_>,
+    system: &PyActorSystem,
+    choice: TransportChoice,
+) -> PyResult<Py<PyCluster>> {
+    let sys = system.inner.clone();
+    if let Some(ext) = sys.extensions().get::<ClusterExt>() {
+        return Py::new(py, PyCluster { ext: (*ext).clone() });
+    }
+    let cfg = sys.config().clone();
+    let bus = ClusterEventBus::new();
+    let dcfg = DaemonConfig::default();
+    let self_addr = sys.address().clone();
+
+    // Build the transport up front so we have the daemon's gossip inbox
+    // wired in before publishing any events.
+    let rt = runtime();
+    let _guard = rt.enter();
+
+    // We need the daemon's gossip inbox for the transport. Spawn the
+    // daemon first, then start the inbound demux on the transport.
+    let actors = sys
+        .extensions()
+        .get::<crate::cluster_transport::PyActorRegistry>()
+        .map(|a| (*a).clone())
+        .unwrap_or_else(|| {
+            let r = crate::cluster_transport::PyActorRegistry::default();
+            sys.extensions().register::<crate::cluster_transport::PyActorRegistry>(r.clone());
+            r
+        });
+    let codecs = system.codecs.clone();
+    let sink: Arc<dyn atomr_cluster::RemoteMessageSink> =
+        Arc::new(PyRemoteMessageSink::new(actors, codecs));
+
+    // Build a placeholder gossip-inbox first; we'll connect it to the
+    // daemon after spawn.
+    let (placeholder_tx, mut placeholder_rx) = tokio::sync::mpsc::unbounded_channel();
+    let (built, gossip_transport, resolved_addr) =
+        cluster_transport::build_transport(choice.clone(), self_addr.clone(), placeholder_tx, sink)
+            .map_err(|e| PyErr::new::<errors::AtomrError, _>(format!("transport: {e}")))?;
+    let handle =
+        build_daemon(resolved_addr.clone(), gossip_transport, bus.clone(), dcfg, &cfg)?;
+
+    // Forward placeholder PDUs into the daemon's actual inbox.
+    {
+        let inbox = handle.gossip_inbox();
+        tokio::spawn(async move {
+            while let Some(pdu) = placeholder_rx.recv().await {
+                if inbox.send(pdu).is_err() {
+                    break;
+                }
+            }
+        });
+    }
+
+    // Stash the transport handle so it isn't dropped (and so
+    // `tell_remote` can find it).
+    sys.extensions()
+        .register::<TransportSlotExt>(TransportSlotExt::new(built));
+    // Stash the transport choice for diagnostics.
+    let cfg_ext = sys
+        .extensions()
+        .get::<PyTransportConfig>()
+        .map(|a| (*a).clone())
+        .unwrap_or_default();
+    match &choice {
+        TransportChoice::Test { registry, bind_address } => {
+            cfg_ext.set_test(registry.clone(), bind_address.clone());
+        }
+        TransportChoice::Tcp { bind, advertised_host } => {
+            cfg_ext.set_tcp(*bind, advertised_host.clone());
+        }
+        TransportChoice::Noop => {}
+    }
+    sys.extensions().register::<PyTransportConfig>(cfg_ext);
+
+    handle.join(Member::new(resolved_addr.clone(), Vec::new()));
+
+    let ext = ClusterExt {
+        inner: Arc::new(ClusterExtInner { handle, bus, self_addr: resolved_addr }),
+    };
+    sys.extensions().register::<ClusterExt>(ext.clone());
+    Py::new(py, PyCluster { ext })
+}
+
 fn build_daemon(
     self_addr: Address,
     transport: Arc<dyn GossipTransport>,
@@ -704,6 +812,7 @@ pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     sub.add_class::<PyLeaderHandoverEvent>()?;
     sub.add_class::<PyCluster>()?;
     sub.add_class::<PyClusterSubscription>()?;
+    sub.add_class::<PyClusterRegistry>()?;
     sub.add_function(wrap_pyfunction!(member_weakly_up, &sub)?)?;
     m.add_submodule(&sub)?;
     Ok(())

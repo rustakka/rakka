@@ -9,6 +9,7 @@ use atomr_core::actor::{ActorSystem as RustSystem, Props as RustProps};
 use atomr_core::supervision::SupervisorStrategy;
 
 use crate::actor_ref::PyActorRef;
+use crate::cluster_transport;
 use crate::config::PyConfig;
 use crate::dispatcher;
 use crate::errors;
@@ -155,7 +156,11 @@ impl PyActorSystem {
             }
         };
         let path = format!("akka://{}/user/{}", self.inner.name(), name);
-        Py::new(py, PyActorRef::new(actor_ref, path))
+        // Mirror the typed ref into the per-system registry so the
+        // remote sink can route inbound `RemoteTell` frames to it.
+        let py_ref = PyActorRef::new(actor_ref, path.clone());
+        cluster_transport::record_actor(&self.inner, &path, py_ref.inner.clone());
+        Py::new(py, py_ref)
     }
 
     /// Async terminate.
@@ -234,12 +239,19 @@ impl PyActorSystem {
         Ok(())
     }
 
-    /// In-process "remote" send: encode `obj` via the registered codec
-    /// (manifest derived from the object's class), decode on the other
-    /// side, then `tell` the result on `target`. This exercises the
-    /// full Phase-9 codec pipeline without crossing a network — the
-    /// wire-level path through `atomr-remote` reuses the same encode
-    /// / decode functions.
+    /// Encode `obj` via the registered codec, then send it to `target`.
+    ///
+    /// Routing:
+    /// * If `target.path` resolves to an address that matches the local
+    ///   system, perform the encode + immediate decode + local tell.
+    ///   This is the in-process pipeline used by single-node tests.
+    /// * Otherwise, ship the `(manifest, bytes)` envelope through the
+    ///   cluster transport (TCP or in-process) so the receiving side
+    ///   decodes via *its* codec registry.
+    ///
+    /// In both cases the manifest must be registered. Decode failures
+    /// at the receiver dead-letter silently — surfacing them would
+    /// require synchronous round-trips we don't have here.
     fn tell_remote(
         &self,
         py: Python<'_>,
@@ -253,9 +265,45 @@ impl PyActorSystem {
             ))
         })?;
         let bytes = call_encoder(py, &encoder, &msg)?;
-        let decoded = call_decoder(py, &decoder, &bytes)?;
+
+        // Decide local vs remote.
         let target_ref = target.borrow(py);
-        target_ref.inner.tell(PyMessage::new(decoded));
+        let target_path = target_ref.path.clone();
+        let local_address = self.inner.address().clone();
+        let target_address = parse_address_from_path(&target_path);
+
+        // Local iff the target address is exactly the local system's
+        // address. Two distinct local-scope addresses (different system
+        // names) still need the transport.
+        let is_local = match &target_address {
+            Some(addr) => *addr == local_address,
+            None => true,
+        };
+
+        if is_local {
+            let decoded = call_decoder(py, &decoder, &bytes)?;
+            target_ref.inner.tell(PyMessage::new(decoded));
+            return Ok(());
+        }
+
+        // Remote send. Drop the GIL while we hand off to the transport
+        // task — the bytes are owned, no Python objects survive.
+        let target_addr = target_address.expect("target_address known");
+        let sender_path: Option<String> = None; // sender plumbing TBD
+        let sent = cluster_transport::try_send_remote(
+            &self.inner,
+            &target_addr,
+            &target_path,
+            &manifest,
+            bytes,
+            sender_path,
+        );
+        if !sent {
+            return Err(PyErr::new::<errors::AtomrError, _>(format!(
+                "tell_remote: no transport configured for remote target `{target_path}` — \
+                 call Cluster.with_test_transport / with_tcp_transport before sending"
+            )));
+        }
         Ok(())
     }
 
@@ -283,6 +331,19 @@ fn stable_hash(s: &str) -> u64 {
     let mut h = std::collections::hash_map::DefaultHasher::new();
     s.hash(&mut h);
     h.finish()
+}
+
+/// Extract the `Address` portion of a full actor-path string, e.g.
+/// `akka.tcp://Sys@host:1234/user/foo` → `akka.tcp://Sys@host:1234`.
+/// Returns `None` if the input is malformed.
+fn parse_address_from_path(path: &str) -> Option<atomr_core::actor::Address> {
+    let scheme_end = path.find("://")?;
+    let after_scheme = &path[scheme_end + 3..];
+    let split = match after_scheme.find('/') {
+        Some(i) => scheme_end + 3 + i,
+        None => path.len(),
+    };
+    atomr_core::actor::Address::parse(&path[..split])
 }
 
 pub fn register(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {

@@ -19,6 +19,7 @@ use pyo3::prelude::*;
 
 mod actor_ref;
 mod actor_system;
+mod cluster_transport;
 mod compat;
 mod config;
 mod context;
