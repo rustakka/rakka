@@ -214,25 +214,21 @@ fn panic_payload_to_string(p: Box<dyn std::any::Any + Send>) -> String {
 async fn finalize<A: Actor>(actor: &mut A, ctx: &mut Context<A>) {
     ctx.phase = super::context::LifecyclePhase::Stopping;
     actor.post_stop(ctx).await;
-    for w in ctx.watched_by.drain().collect::<Vec<_>>() {
-        w.notify_watchers(ctx.path.clone());
-    }
     for (_, child) in std::mem::take(&mut ctx.children) {
         let _ = child.system_tx.send(SystemMsg::Stop);
     }
     if let Some(system) = ctx.system.upgrade() {
         // Free the user_guardian slot for this child name once it has
-        // fully stopped (post_stop returned, watchers notified). This
-        // makes `system.actor_of(name)` succeed for a fresh actor
-        // re-using the same name. Child names are unique among
-        // *currently-alive* siblings, not unique forever.
+        // fully stopped (post_stop returned). Done *before* watcher
+        // notifications so any actor woken by `Terminated(self.path)`
+        // can immediately call `actor_of(name)` and succeed. Child names
+        // are unique among *currently-alive* siblings, not forever.
         if ctx.path.elements.len() == 2 && ctx.path.elements[0].as_str() == "user" {
             let name = ctx.path.elements[1].as_str();
             let mut guardian = system.user_guardian.lock();
-            // Only remove if the entry still corresponds to *this* actor
-            // (matched by path); this guards against a fast respawn that
-            // happened to win the lock before the dying actor reached
-            // finalize (which the current API forbids, but we are defensive).
+            // Path-guarded removal: only erase the slot if it still
+            // points at *this* actor. Defends against a (currently
+            // forbidden) fast respawn that won the lock first.
             if guardian.get(name).is_some_and(|c| c.path == ctx.path) {
                 guardian.remove(name);
             }
@@ -240,5 +236,11 @@ async fn finalize<A: Actor>(actor: &mut A, ctx: &mut Context<A>) {
         if let Some(obs) = system.spawn_observer.read().as_ref() {
             obs.on_stop(&ctx.path);
         }
+    }
+    // Notify watchers *after* the user_guardian slot is freed, so a
+    // watcher that immediately re-spawns the same name on `Terminated`
+    // is guaranteed not to race the cleanup.
+    for w in ctx.watched_by.drain().collect::<Vec<_>>() {
+        w.notify_watchers(ctx.path.clone());
     }
 }
