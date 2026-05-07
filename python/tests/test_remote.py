@@ -169,3 +169,156 @@ def test_unknown_manifest_raises_atomr_error():
             sys.codec_roundtrip(Greeting(text="x"))
     finally:
         sys.terminate_blocking()
+
+
+# ---------------------------------------------------------------------------
+# Epic G — collision policy & lax (`strict=False`) manifest validation.
+# ---------------------------------------------------------------------------
+
+
+def test_register_codec_collision_raises_by_default():
+    """First registration wins; second raises a clear ValueError listing the
+    existing codec name."""
+    sys = ActorSystem.create_blocking("codec-collide")
+    try:
+        sys.register_codec(
+            "json", _encoder, _decoder, manifests=["test_remote.Greeting"]
+        )
+        # Second registration with the same manifest collides.
+        with pytest.raises(ValueError) as excinfo:
+            sys.register_codec(
+                "alt", _encoder, _decoder, manifests=["test_remote.Greeting"]
+            )
+        msg = str(excinfo.value)
+        assert "test_remote.Greeting" in msg
+        assert "json" in msg
+        assert "force" in msg.lower()
+    finally:
+        sys.terminate_blocking()
+
+
+def test_register_codec_force_true_overrides_collision():
+    """`force=True` silently replaces the existing codec entry."""
+    sys = ActorSystem.create_blocking("codec-force")
+    try:
+        # First, register a "tagged" codec that wraps the dict in an
+        # envelope so we can tell the two codecs apart later.
+        def _tag_enc(obj):
+            return json.dumps({"v": obj.to_dict(), "tag": "first"}).encode()
+
+        def _tag_dec(blob):
+            payload = json.loads(blob.decode())
+            return Greeting.from_dict(payload["v"])
+
+        sys.register_codec(
+            "tagged", _tag_enc, _tag_dec, manifests=["test_remote.Greeting"]
+        )
+        # Round-trip uses the first codec.
+        out1 = sys.codec_roundtrip(Greeting(text="a", n=1))
+        assert out1 == Greeting(text="a", n=1)
+
+        # Force-replace with the plain encoder.
+        sys.register_codec(
+            "json",
+            _encoder,
+            _decoder,
+            manifests=["test_remote.Greeting"],
+            force=True,
+        )
+        # Still round-trips, but now via the new codec.
+        out2 = sys.codec_roundtrip(Greeting(text="b", n=2))
+        assert out2 == Greeting(text="b", n=2)
+    finally:
+        sys.terminate_blocking()
+
+
+def test_use_json_codec_collision_and_force():
+    """`use_json_codec` honors the same collision/force policy."""
+    sys = ActorSystem.create_blocking("codec-json-collide")
+    try:
+        sys.use_json_codec(manifests=["test_remote.Greeting"])
+        with pytest.raises(ValueError):
+            sys.use_json_codec(manifests=["test_remote.Greeting"])
+        # Force-true is the documented override.
+        sys.use_json_codec(manifests=["test_remote.Greeting"], force=True)
+    finally:
+        sys.terminate_blocking()
+
+
+def test_validate_manifest_lax_skips_importlib_with_warning():
+    """`strict=False` skips the importlib round-trip and emits a warning
+    instead of raising, so `__main__`-scoped fixtures can be addressed.
+    """
+    import warnings
+
+    # Strict mode rejects an unknown class.
+    with pytest.raises(ValueError):
+        validate_manifest("test_remote.NoSuchClass")
+
+    # Lax mode accepts it but emits a warning.
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        validate_manifest("test_remote.NoSuchClass", strict=False)
+    assert any(
+        "not strictly validated" in str(w.message) for w in caught
+    ), [str(w.message) for w in caught]
+
+
+def test_register_codec_strict_false_accepts_main_scoped_manifest():
+    """`__main__`-scoped class manifests are normally rejected by strict
+    mode (the qualname can't be looked up via importlib at registration
+    time). With `strict=False`, the registration succeeds and emits a
+    warning.
+    """
+    import warnings
+
+    sys = ActorSystem.create_blocking("codec-main")
+    try:
+        # Strict mode (default) refuses — `__main__.MyMessage` cannot be
+        # resolved in the test harness.
+        with pytest.raises(ValueError):
+            sys.register_codec(
+                "json",
+                _encoder,
+                _decoder,
+                manifests=["__main__.MyMessage"],
+            )
+
+        # Lax mode lets it through; warning is emitted.
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            sys.register_codec(
+                "json",
+                _encoder,
+                _decoder,
+                manifests=["__main__.MyMessage"],
+                strict=False,
+            )
+        assert any(
+            "__main__.MyMessage" in str(w.message) for w in caught
+        ), [str(w.message) for w in caught]
+
+        # Round-trip works via the registered codec because we asked
+        # for a manifest match through the public encode/decode API.
+        reg = sys.codecs
+        blob = reg.encode("__main__.MyMessage", Greeting(text="x", n=0))
+        out = reg.decode("__main__.MyMessage", blob)
+        assert out == Greeting(text="x", n=0)
+    finally:
+        sys.terminate_blocking()
+
+
+def test_pycodec_registry_register_force_true():
+    """The lower-level `PyCodecRegistry.register` also takes `force`."""
+    reg = PyCodecRegistry()
+    reg.register("greet", _encoder, _decoder, ["test_remote.Greeting"])
+    with pytest.raises(ValueError):
+        reg.register("alt", _encoder, _decoder, ["test_remote.Greeting"])
+    reg.register(
+        "alt2",
+        _encoder,
+        _decoder,
+        ["test_remote.Greeting"],
+        force=True,
+    )
+    assert "alt2" in reg.names()

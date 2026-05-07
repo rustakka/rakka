@@ -14,8 +14,12 @@
 //!   so Python can configure max concurrent recoveries.
 //! * `Effect` — small Rust pyclass enum returned from
 //!   `command_handler`. Variants: `persist(event)`,
-//!   `persist_all(events)`, `snapshot(every=None)`, `reply(value)`,
-//!   `stop()`, `none()`.
+//!   `persist_all(events)`, `snapshot(every=None)`,
+//!   `reply_message(value)`, `stop()`, `none()`. The reply-payload
+//!   field is exposed as `effect.value` (Phase 4 originally named the
+//!   constructor `reply` and the field `reply_value`, which collided
+//!   with the staticmethod-vs-getter name space — see the field
+//!   docstring below for the migration note).
 //!
 //! The actual recovery / persist orchestration runs entirely in the
 //! Python `EventSourcedActor` base class — see `python/atomr/persistence.py`.
@@ -366,10 +370,17 @@ pub struct PyEffect {
     /// `Some(n)` for `n > 0` means snapshot every `n` events.
     #[pyo3(get)]
     every: Option<u64>,
-    /// Reply payload — populated for `reply`. Field name avoids
-    /// shadowing the `reply` staticmethod by exposing under
-    /// `reply_value` on the Python side.
-    #[pyo3(get, name = "reply_value")]
+    /// Reply payload — populated by `Effect.reply_message(value)`.
+    ///
+    /// Originally the constructor was named `Effect.reply` and the
+    /// field surfaced as `reply_value`, but PyO3 collides a
+    /// staticmethod and a getter under the same name when the
+    /// staticmethod-name (`reply`) matches a prefix of any other
+    /// member. The clean fix renames the constructor to
+    /// `reply_message` and exposes the field under the natural
+    /// `value`. See `python/atomr/persistence.py` for the full
+    /// migration note.
+    #[pyo3(get, name = "value")]
     reply_payload: Option<Py<PyAny>>,
 }
 
@@ -423,8 +434,13 @@ impl PyEffect {
     }
 
     /// Reply to the sender of the current command.
+    ///
+    /// Note: this used to be `Effect.reply(value)`, but the name
+    /// collided with the field that exposes the payload back to
+    /// Python. The constructor is now `Effect.reply_message(value)`
+    /// and the payload is read as `effect.value`.
     #[staticmethod]
-    fn reply(value: Py<PyAny>) -> Self {
+    fn reply_message(value: Py<PyAny>) -> Self {
         Self {
             kind: "reply".into(),
             events: None,

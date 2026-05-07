@@ -49,9 +49,9 @@ class CounterActor(EventSourcedActor):
         if op == "snap":
             return [Effect.snapshot()]
         if op == "get":
-            return [Effect.reply(state["count"])]
+            return [Effect.reply_message(state["count"])]
         if op == "get_seq":
-            return [Effect.reply(self.sequence_nr)]
+            return [Effect.reply_message(self.sequence_nr)]
         if op == "stop":
             return [Effect.stop()]
         return []
@@ -298,3 +298,17 @@ def test_inmemory_journal_legacy_api_still_works():
     payloads = [bytes(p) for p in j.replay("pid")]
     assert payloads == [b"a", b"b"]
     assert j.highest_sequence_nr("pid") == 2
+
+
+def test_effect_reply_message_constructor_and_value_field():
+    """Epic G renamed `Effect.reply(v)` -> `Effect.reply_message(v)` and the
+    payload is now read back as `effect.value` (was `effect.reply_value`).
+    """
+    eff = Effect.reply_message(42)
+    assert eff.kind == "reply"
+    assert eff.value == 42
+    eff2 = Effect.reply_message({"ok": True})
+    assert eff2.value == {"ok": True}
+    # The old field name and constructor must both be gone.
+    assert not hasattr(eff, "reply_value")
+    assert not hasattr(Effect, "reply")

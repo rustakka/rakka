@@ -29,9 +29,26 @@ constructors:
 * :meth:`Effect.persist(event)` — persist one event then apply it.
 * :meth:`Effect.persist_all(events)` — persist a batch atomically.
 * :meth:`Effect.snapshot(every=None)` — emit a snapshot, or set a cadence.
-* :meth:`Effect.reply(value)` — reply to the sender of the current command.
+* :meth:`Effect.reply_message(value)` — reply to the sender of the current
+  command. Read the payload back as ``effect.value``.
 * :meth:`Effect.stop()` — stop the actor after the current command.
 * :meth:`Effect.none()` — sentinel no-op.
+
+Migration note (Effect reply API rename)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Phase 4 originally exposed the reply constructor as
+``Effect.reply(value)`` with the payload read back as
+``effect.reply_value``. PyO3 collides a staticmethod and a field/getter
+when their names share a prefix, so the API has been **renamed** in
+this release wave:
+
+* constructor: ``Effect.reply(value)`` → ``Effect.reply_message(value)``;
+* field:        ``effect.reply_value`` → ``effect.value``.
+
+This is a breaking change confined to the same release wave that
+introduced the API. Any user code written against the original names
+must be updated.
 
 Codec registration
 ~~~~~~~~~~~~~~~~~~
@@ -307,7 +324,7 @@ class EventSourcedActor:
                 else:
                     await self._save_snapshot()
             elif kind == "reply":
-                last_reply = eff.reply_value
+                last_reply = eff.value
             elif kind == "stop":
                 stop_after = True
             elif kind == "none":
