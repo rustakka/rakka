@@ -281,7 +281,7 @@ subsystem above through PyO3 plus a native GIL-isolation layer.
 - Profiler mirror in `atomr.profiler` with the same scenarios as
   the Rust binary.
 
-See [`docs/python.md`](docs/python.md) for the GIL strategy guide.
+See [`python.md`](python.md) for the GIL strategy guide.
 
 ## Forward-looking
 
@@ -292,7 +292,7 @@ The roadmap items below are *new*, not catch-up:
   coalesced into a host buffer, scheduled as a kernel, and the
   results feed back into the actor system as reply messages. The
   dispatch boundary is the unification point — see
-  [`docs/actors-and-agentic-computing.md`](docs/actors-and-agentic-computing.md).
+  [`actors-and-agentic-computing.md`](actors-and-agentic-computing.md).
 - **Heterogeneous serialization** — a serializer that lays out
   messages in accelerator-friendly tensor layouts when the
   destination is a GPU dispatcher.

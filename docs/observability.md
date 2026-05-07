@@ -18,7 +18,7 @@ to external observability backends. Two exporters ship in-tree:
   exporter for metrics (and traces, when enabled).
 
 Both are strictly opt-in: you must compile the matching cargo feature
-**and** flip the runtime config. See [Dashboard](./dashboard.md#exporters-prometheus--opentelemetry)
+**and** flip the runtime config. See [Dashboard](./dashboard.md#exporters-prometheus-opentelemetry)
 for the full feature matrix and metric reference.
 
 ## Turning on Prometheus

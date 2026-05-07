@@ -43,7 +43,7 @@ off the well-trodden trail of features that production users expect.
 The Python facade exposes the Rust crates above through PyO3 plus a
 GIL-isolation layer (`InterpreterInstance`, `InterpreterQuota`,
 `InterpreterMetrics`) that is atomr-native. See
-[`docs/python.md`](docs/python.md).
+[`python.md`](python.md).
 
 | Python surface | Subsystem |
 |---|---|
@@ -65,7 +65,7 @@ GIL-isolation layer (`InterpreterInstance`, `InterpreterQuota`,
 
 - **Wire format.** atomr uses Tokio + a serde / bincode framed PDU
   codec. The remote story is a clean native transport — see
-  [`docs/remoting.md`](docs/remoting.md).
+  [`remoting.md`](remoting.md).
 - **Typed refs.** `ActorRef<M>` is parameterized by message type and
   checked at compile time. There is no untyped reference you can pass
   around without the type info.
