@@ -30,19 +30,46 @@ use crate::interpreter::{InterpreterInstance, PyTask};
 
 /// Erased Python message — we wrap `Py<PyAny>` plus an optional reply
 /// channel. The reply channel is used by `ask`.
+///
+/// `hash` is an optional consistent-hash key used by the consistent-hash
+/// router. Set it via [`PyMessage::with_hash`] / [`PyMessage::ask_with_hash`]
+/// or through the Python-side `tell_with_key(msg, key)` shortcut.
 pub struct PyMessage {
     pub payload: Py<PyAny>,
     pub reply: Option<oneshot::Sender<PyResult<Py<PyAny>>>>,
+    pub hash: Option<u64>,
 }
 
 impl PyMessage {
     pub fn new(payload: Py<PyAny>) -> Self {
-        Self { payload, reply: None }
+        Self { payload, reply: None, hash: None }
+    }
+
+    /// New message envelope carrying an explicit consistent-hash key.
+    pub fn with_hash(payload: Py<PyAny>, hash: u64) -> Self {
+        Self { payload, reply: None, hash: Some(hash) }
     }
 
     pub fn ask(payload: Py<PyAny>) -> (Self, oneshot::Receiver<PyResult<Py<PyAny>>>) {
         let (tx, rx) = oneshot::channel();
-        (Self { payload, reply: Some(tx) }, rx)
+        (Self { payload, reply: Some(tx), hash: None }, rx)
+    }
+
+    /// `ask` variant carrying a consistent-hash key.
+    pub fn ask_with_hash(
+        payload: Py<PyAny>,
+        hash: u64,
+    ) -> (Self, oneshot::Receiver<PyResult<Py<PyAny>>>) {
+        let (tx, rx) = oneshot::channel();
+        (Self { payload, reply: Some(tx), hash: Some(hash) }, rx)
+    }
+
+    /// Best-effort clone of the payload using the GIL. Reply channels
+    /// are *not* duplicated — the clone is reply-less. Used by
+    /// broadcast routing.
+    pub fn clone_payload_gil(&self) -> Self {
+        let payload = Python::with_gil(|py| self.payload.clone_ref(py));
+        Self { payload, reply: None, hash: self.hash }
     }
 }
 
@@ -176,7 +203,7 @@ impl Actor for PyActor {
     }
 
     async fn handle(&mut self, _ctx: &mut Context<Self>, msg: Self::Msg) {
-        let PyMessage { payload, reply } = msg;
+        let PyMessage { payload, reply, .. } = msg;
         let Some(instance) = self.instance.as_ref().map(|p| p.clone_ref_py()) else {
             return;
         };

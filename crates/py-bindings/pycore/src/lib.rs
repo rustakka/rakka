@@ -42,7 +42,9 @@ mod ext_ddata_lmdb;
 mod ext_di;
 mod ext_discovery;
 mod ext_hosting;
+mod ext_pattern;
 mod ext_persistence;
+mod ext_routing;
 mod ext_streams;
 mod ext_telemetry;
 mod ext_testkit;
@@ -79,6 +81,10 @@ fn _native(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     ext_hosting::register(py, m)?;
     ext_dashboard::register(py, m)?;
     ext_telemetry::register(py, m)?;
+    ext_pattern::register(py, m)?;
+    // Routing must register *after* ext_pattern and props because it
+    // attaches classmethods to the `Props` class object.
+    ext_routing::register(py, m)?;
 
     Ok(())
 }

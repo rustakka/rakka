@@ -35,6 +35,8 @@ from . import discovery
 from . import di
 from . import hosting
 from . import telemetry
+from . import pattern
+from . import routing
 
 __version__ = _native.__version__
 
@@ -73,4 +75,6 @@ __all__ = [
     "di",
     "hosting",
     "telemetry",
+    "pattern",
+    "routing",
 ]

@@ -38,6 +38,16 @@ impl PyActorRef {
         Ok(())
     }
 
+    /// Fire-and-forget send with an explicit consistent-hash routing
+    /// key. Required when sending through a `Props.consistent_hash`
+    /// router; otherwise the router has no stable basis for picking a
+    /// routee.
+    fn tell_with_key(&self, msg: Bound<'_, PyAny>, key: u64) -> PyResult<()> {
+        let payload = msg.unbind();
+        self.inner.tell(PyMessage::with_hash(payload, key));
+        Ok(())
+    }
+
     /// Async ask — returns an `asyncio`-compatible awaitable.
     #[pyo3(signature = (msg, timeout=5.0))]
     fn ask<'py>(&self, py: Python<'py>, msg: Bound<'py, PyAny>, timeout: f64) -> PyResult<Bound<'py, PyAny>> {
