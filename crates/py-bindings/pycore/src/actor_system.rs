@@ -13,7 +13,8 @@ use crate::config::PyConfig;
 use crate::dispatcher;
 use crate::errors;
 use crate::ext_remote::{
-    call_decoder, call_encoder, manifest_for, validate_manifest, PyCodecRegistry,
+    call_decoder, call_encoder, collision_to_pyerr, manifest_for, validate_manifest_with_mode,
+    PyCodecRegistry,
 };
 use crate::interpreter::{InterpreterQuota, InterpreterRegistry};
 use crate::props::PyProps;
@@ -188,9 +189,18 @@ impl PyActorSystem {
     }
 
     /// Register a codec for one or more `module.qualname` manifests.
-    /// Each manifest is validated by importing the module and walking
-    /// the qualname; failures raise `ValueError`.
-    #[pyo3(signature = (name, encoder, decoder, manifests))]
+    ///
+    /// Each manifest is validated. Strict mode (the default) imports
+    /// the module and walks the qualname; failures raise `ValueError`.
+    /// Pass `strict=False` to skip the importlib round-trip — handy
+    /// for `__main__`-scoped classes and inline test fixtures. Lax
+    /// validation emits `warnings.warn(...)` per manifest so production
+    /// code does not silently rely on it.
+    ///
+    /// On collision (manifest already registered) and `force=False`,
+    /// raises `ValueError` listing the existing codec name. With
+    /// `force=True`, the existing entry is silently replaced.
+    #[pyo3(signature = (name, encoder, decoder, manifests, force=false, strict=true))]
     fn register_codec(
         &self,
         py: Python<'_>,
@@ -198,6 +208,8 @@ impl PyActorSystem {
         encoder: Py<PyAny>,
         decoder: Py<PyAny>,
         manifests: Vec<String>,
+        force: bool,
+        strict: bool,
     ) -> PyResult<()> {
         if manifests.is_empty() {
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
@@ -205,27 +217,35 @@ impl PyActorSystem {
             ));
         }
         for m in &manifests {
-            validate_manifest(py, m)?;
+            validate_manifest_with_mode(py, m, strict)?;
         }
-        self.codecs.insert(name, encoder, decoder, &manifests);
-        Ok(())
+        self.codecs
+            .insert(name, encoder, decoder, &manifests, force)
+            .map_err(collision_to_pyerr)
     }
 
     /// Convenience: install the JSON codec for `manifests` (or none —
     /// pair with `default=True` to fall back for any unmatched
     /// manifest).
-    #[pyo3(signature = (manifests=Vec::new(), default=false))]
+    ///
+    /// Honors the same `force` and `strict` flags as `register_codec`.
+    /// On collision and `force=False`, raises `ValueError`.
+    #[pyo3(signature = (manifests=Vec::new(), default=false, force=false, strict=true))]
     fn use_json_codec(
         &self,
         py: Python<'_>,
         manifests: Vec<String>,
         default: bool,
+        force: bool,
+        strict: bool,
     ) -> PyResult<()> {
         for m in &manifests {
-            validate_manifest(py, m)?;
+            validate_manifest_with_mode(py, m, strict)?;
         }
         if !manifests.is_empty() {
-            self.codecs.install_json(py, &manifests)?;
+            self.codecs
+                .install_json(py, &manifests, force)?
+                .map_err(collision_to_pyerr)?;
         }
         if default {
             let (encoder, decoder) = crate::ext_remote::build_json_pair(py)?;

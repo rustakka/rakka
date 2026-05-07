@@ -38,15 +38,48 @@ pub(crate) struct CodecEntry {
     decoder: Py<PyAny>,
 }
 
+/// Returned by [`PyCodecRegistry::insert`] when `force=false` and a
+/// manifest is already registered.
+pub(crate) struct CodecCollision {
+    pub manifest: String,
+    pub existing_name: String,
+}
+
 /// Validate that `manifest` is a fully-qualified Python class path
 /// (`module.qualname`) by importing the module and walking the
 /// qualname segments. Raises `ValueError` on failure.
+///
+/// When `strict` is `false`, the importlib round-trip is skipped and
+/// `warnings.warn(...)` is emitted to flag that the receiver is
+/// trusted to recognise the manifest. The dotted-path syntax check
+/// (`module.qualname` must contain at least one dot) is still enforced.
 pub(crate) fn validate_manifest(py: Python<'_>, manifest: &str) -> PyResult<()> {
+    validate_manifest_with_mode(py, manifest, true)
+}
+
+/// Strict (default) and lax (`strict=False`) variants of
+/// [`validate_manifest`]. See the public function's docstring.
+pub(crate) fn validate_manifest_with_mode(
+    py: Python<'_>,
+    manifest: &str,
+    strict: bool,
+) -> PyResult<()> {
     let (module_path, qualname) = manifest.rsplit_once('.').ok_or_else(|| {
         PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
             "manifest `{manifest}` must be `module.qualname` (no dot found)"
         ))
     })?;
+    if !strict {
+        // Lax mode: only enforce the dotted-path syntax. Emit a
+        // WARNING so production users notice if they accidentally
+        // rely on it.
+        let warnings = py.import_bound("warnings")?;
+        let msg = format!(
+            "manifest `{manifest}` not strictly validated; relying on receiver to recognize it"
+        );
+        warnings.call_method1("warn", (msg,))?;
+        return Ok(());
+    }
     let importlib = py.import_bound("importlib")?;
     let module = importlib.call_method1("import_module", (module_path,)).map_err(|e| {
         PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
@@ -104,13 +137,29 @@ impl PyCodecRegistry {
 
     /// Insert a codec entry. Used by the pymethod and by callers in
     /// `actor_system.rs`.
+    ///
+    /// When `force` is false, this returns an error containing the
+    /// (manifest, existing-codec-name) for the **first** collision
+    /// encountered without mutating any entries. When `force` is true,
+    /// existing entries are silently replaced.
     pub(crate) fn insert(
         &self,
         name: String,
         encoder: Py<PyAny>,
         decoder: Py<PyAny>,
         manifests: &[String],
-    ) {
+        force: bool,
+    ) -> Result<(), CodecCollision> {
+        if !force {
+            for manifest in manifests {
+                if let Some(existing) = self.entries.get(manifest) {
+                    return Err(CodecCollision {
+                        manifest: manifest.clone(),
+                        existing_name: existing.name.clone(),
+                    });
+                }
+            }
+        }
         Python::with_gil(|py| {
             for manifest in manifests {
                 self.entries.insert(
@@ -124,6 +173,7 @@ impl PyCodecRegistry {
             }
         });
         self.rust_mirror.register(Arc::new(JsonCodec), manifests.iter().cloned());
+        Ok(())
     }
 
     /// Install a default fallback codec.
@@ -133,11 +183,17 @@ impl PyCodecRegistry {
     }
 
     /// Register the JSON codec for `manifests`, building the encoder
-    /// and decoder lambdas from `json.dumps` / `json.loads`.
-    pub(crate) fn install_json(&self, py: Python<'_>, manifests: &[String]) -> PyResult<()> {
+    /// and decoder lambdas from `json.dumps` / `json.loads`. Returns
+    /// `Ok(Ok(()))` on success, `Ok(Err(collision))` on collision when
+    /// `force=false`, and `Err(...)` on Python-level errors.
+    pub(crate) fn install_json(
+        &self,
+        py: Python<'_>,
+        manifests: &[String],
+        force: bool,
+    ) -> PyResult<Result<(), CodecCollision>> {
         let (encoder, decoder) = build_json_pair(py)?;
-        self.insert("json".to_string(), encoder, decoder, manifests);
-        Ok(())
+        Ok(self.insert("json".to_string(), encoder, decoder, manifests, force))
     }
 }
 
@@ -172,33 +228,44 @@ impl PyCodecRegistry {
     /// `encoder(obj) -> bytes` and `decoder(bytes) -> obj`. Manifests
     /// must be `module.qualname` strings; validation is the caller's
     /// responsibility (see `PyActorSystem.register_codec`).
-    #[pyo3(name = "register")]
+    ///
+    /// On collision (manifest already registered) and `force=false`,
+    /// raises `ValueError` listing the existing codec name. With
+    /// `force=true`, the existing entry is silently replaced.
+    #[pyo3(name = "register", signature = (name, encoder, decoder, manifests, force=false))]
     fn py_register(
         &self,
         name: String,
         encoder: Py<PyAny>,
         decoder: Py<PyAny>,
         manifests: Vec<String>,
+        force: bool,
     ) -> PyResult<()> {
         if manifests.is_empty() {
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
                 "register: manifests must not be empty",
             ));
         }
-        self.insert(name, encoder, decoder, &manifests);
-        Ok(())
+        self.insert(name, encoder, decoder, &manifests, force)
+            .map_err(collision_to_pyerr)
     }
 
     /// Convenience: register the built-in JSON codec for the given
-    /// manifests.
-    #[pyo3(name = "register_json")]
-    fn py_register_json(&self, py: Python<'_>, manifests: Vec<String>) -> PyResult<()> {
+    /// manifests. Honors the same `force` flag as `register`.
+    #[pyo3(name = "register_json", signature = (manifests, force=false))]
+    fn py_register_json(
+        &self,
+        py: Python<'_>,
+        manifests: Vec<String>,
+        force: bool,
+    ) -> PyResult<()> {
         if manifests.is_empty() {
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
                 "register_json: manifests must not be empty",
             ));
         }
-        self.install_json(py, &manifests)
+        self.install_json(py, &manifests, force)?
+            .map_err(collision_to_pyerr)
     }
 
     /// Mark the JSON codec (or any user-supplied codec) as the
@@ -326,9 +393,23 @@ pub(crate) fn manifest_for(py: Python<'_>, obj: &Py<PyAny>) -> PyResult<String> 
 }
 
 /// Free-function variant of validate_manifest, exposed to Python.
+///
+/// Pass `strict=False` to skip the importlib round-trip; useful for
+/// `__main__`-scoped classes and inline test fixtures. Lax mode emits
+/// `warnings.warn(...)` so production code does not silently rely on
+/// it.
 #[pyfunction]
-fn validate_manifest_py(py: Python<'_>, manifest: String) -> PyResult<()> {
-    validate_manifest(py, &manifest)
+#[pyo3(signature = (manifest, strict=true))]
+fn validate_manifest_py(py: Python<'_>, manifest: String, strict: bool) -> PyResult<()> {
+    validate_manifest_with_mode(py, &manifest, strict)
+}
+
+/// Translate a `CodecCollision` into a Python `ValueError`.
+pub(crate) fn collision_to_pyerr(c: CodecCollision) -> PyErr {
+    PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+        "manifest '{}' already registered as codec '{}'; pass force=True to override",
+        c.manifest, c.existing_name
+    ))
 }
 
 /// Compute `module.qualname` for a Python object. Mirrors the manifest
