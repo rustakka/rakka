@@ -3,8 +3,9 @@
 //! `expect_msg_all_of_in_order` / `within` matchers.
 
 use std::net::SocketAddr;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use parking_lot::Mutex;
 use pyo3::prelude::*;
@@ -16,8 +17,9 @@ use crate::py_actor::{PyActor, PyMessage};
 use crate::runtime::runtime;
 
 use atomr_core::actor::{ActorRef as RustRef, ActorSystem as RustSystem, Props as RustProps};
+use atomr_core::event::EventStream;
 use atomr_core::supervision::SupervisorStrategy;
-use atomr_testkit::{MultiNodeOopController, MultiNodeOopNode};
+use atomr_testkit::{MultiNodeOopController, MultiNodeOopNode, TestScheduler as RustTestScheduler};
 
 /// A TestProbe is a lightweight actor that records every message received
 /// and lets the caller assert on the stream.
@@ -98,8 +100,40 @@ impl PyTestProbe {
         })
     }
 
+    /// Drain messages until `predicate(msg)` returns truthy, dropping
+    /// non-matches. Mirrors `TestProbe::fish_for_message` from the
+    /// Rust testkit.
+    #[pyo3(signature = (predicate, timeout=1.0))]
+    fn fish_for_message<'py>(
+        &self,
+        py: Python<'py>,
+        predicate: Py<PyAny>,
+        timeout: f64,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let inbox = self.inbox.clone();
+        let notify_rx = self.notify_rx.clone();
+        let dur = Duration::from_secs_f64(timeout);
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            let deadline = tokio::time::Instant::now() + dur;
+            loop {
+                let remaining = deadline
+                    .checked_duration_since(tokio::time::Instant::now())
+                    .ok_or_else(|| PyErr::new::<errors::AtomrError, _>("probe timeout"))?;
+                let msg = pop_or_wait(&inbox, &notify_rx, remaining).await?;
+                let matched = Python::with_gil(|gil| -> PyResult<bool> {
+                    let res = predicate.call1(gil, (msg.clone_ref(gil),))?;
+                    let b = res.bind(gil).is_truthy()?;
+                    Ok(b)
+                })?;
+                if matched {
+                    return Ok(msg);
+                }
+            }
+        })
+    }
+
     /// Wait for `len(expected)` messages and assert they appear in the
-    /// exact order of `expected`. 
+    /// exact order of `expected`.
     /// `ExpectMsgAllOf` (sequential semantics).
     #[pyo3(signature = (expected, timeout=1.0))]
     fn expect_msg_all_of_in_order<'py>(
@@ -310,7 +344,14 @@ impl PyTestKit {
         let props =
             RustProps::<ProbeActor>::create(move || ProbeActor { inbox: inbox_cl.clone(), tx: ntx.clone() });
         let name = format!("probe-{id}");
-        let r: RustRef<PyMessage> = self.system.actor_of(props, &name).map_err(errors::map)?;
+        let rt = runtime();
+        let system = self.system.clone();
+        let r: RustRef<PyMessage> = py
+            .allow_threads(|| {
+                let _guard = rt.enter();
+                system.actor_of(props, &name)
+            })
+            .map_err(errors::map)?;
         let path = format!("akka://{}/user/{}", self.system.name(), name);
         let actor_ref = Py::new(py, PyActorRef::new(r, path))?;
         Py::new(py, PyTestProbe { inbox, notify_rx: Arc::new(tokio::sync::Mutex::new(nrx)), actor_ref })
@@ -347,12 +388,236 @@ impl atomr_core::actor::Actor for ProbeActor {
 #[allow(dead_code)]
 fn _unused(_: &PyActor) {}
 
+// ---------------------------------------------------------------------
+// TestScheduler — virtual-time scheduler for deterministic Python
+// tests. Wraps `atomr_testkit::TestScheduler`. Callbacks are Python
+// callables; they fire on `advance(seconds)` after the scheduled
+// delay has elapsed in virtual time.
+// ---------------------------------------------------------------------
+
+/// Wrapper around `atomr_testkit::TestScheduler`. Schedules Python
+/// callables and advances virtual time on demand.
+#[pyclass(name = "TestScheduler", module = "atomr._native.testkit")]
+pub struct PyTestScheduler {
+    inner: RustTestScheduler,
+    base: Instant,
+}
+
+#[pymethods]
+impl PyTestScheduler {
+    #[new]
+    fn new() -> Self {
+        let inner = RustTestScheduler::new();
+        let base = inner.now();
+        Self { inner, base }
+    }
+
+    /// Current virtual time, in seconds since this scheduler was
+    /// constructed.
+    fn now(&self) -> f64 {
+        self.inner.now().duration_since(self.base).as_secs_f64()
+    }
+
+    /// Schedule `callback` to fire after `delay` seconds of virtual
+    /// time. Returns an opaque token whose only useful method is
+    /// `cancel()`.
+    fn schedule_after(
+        &self,
+        delay: f64,
+        callback: Py<PyAny>,
+    ) -> PyResult<PyScheduledToken> {
+        let token = self.inner.schedule_after(Duration::from_secs_f64(delay), move || {
+            Python::with_gil(|py| {
+                if let Err(e) = callback.call0(py) {
+                    e.print(py);
+                }
+            });
+        });
+        Ok(PyScheduledToken {
+            inner: self.inner.clone(),
+            token,
+        })
+    }
+
+    /// Advance virtual time by `seconds` and synchronously fire any
+    /// scheduled callbacks whose deadline falls in the new interval.
+    fn advance<'py>(&self, py: Python<'py>, seconds: f64) -> PyResult<Bound<'py, PyAny>> {
+        let inner = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            inner.advance_by(Duration::from_secs_f64(seconds)).await;
+            Ok(())
+        })
+    }
+
+    /// Blocking variant of `advance` for synchronous test code.
+    fn advance_blocking(&self, py: Python<'_>, seconds: f64) {
+        let rt = runtime();
+        let inner = self.inner.clone();
+        py.allow_threads(|| rt.block_on(async move { inner.advance_by(Duration::from_secs_f64(seconds)).await }));
+    }
+
+    /// How many scheduled callbacks remain pending (not fired and not
+    /// cancelled).
+    fn pending(&self) -> usize {
+        self.inner.pending()
+    }
+}
+
+#[pyclass(name = "ScheduledToken", module = "atomr._native.testkit")]
+pub struct PyScheduledToken {
+    inner: RustTestScheduler,
+    token: atomr_testkit::ScheduledToken,
+}
+
+#[pymethods]
+impl PyScheduledToken {
+    fn cancel(&self) -> bool {
+        self.inner.cancel(self.token)
+    }
+
+    fn fired(&self) -> bool {
+        self.inner.fired(self.token)
+    }
+}
+
+// ---------------------------------------------------------------------
+// EventStream + EventFilter — Python-facing event bus and a filter
+// that counts matching events. Backed by `atomr_core::event::EventStream`
+// instantiated per-test-kit (one stream per `PyEventStream`).
+// ---------------------------------------------------------------------
+
+/// A typed publish/subscribe bus exposed to Python tests. Events are
+/// `Py<PyAny>`; subscribers and filters receive every published event
+/// and apply Python-side predicates to decide whether it counts as a
+/// match.
+#[pyclass(name = "EventStream", module = "atomr._native.testkit")]
+pub struct PyEventStream {
+    inner: Arc<EventStream>,
+}
+
+#[pymethods]
+impl PyEventStream {
+    #[new]
+    fn new() -> Self {
+        Self { inner: Arc::new(EventStream::new()) }
+    }
+
+    /// Publish a Python object onto the stream.
+    fn publish(&self, _py: Python<'_>, value: Py<PyAny>) {
+        self.inner.publish(PyEvent { obj: Arc::new(Mutex::new(Some(value))) });
+    }
+}
+
+/// Internal event wrapper — stores a `Py<PyAny>` inside an
+/// `Arc<Mutex<>>` so we can move it into subscriber callbacks without
+/// holding the GIL.
+#[derive(Clone)]
+struct PyEvent {
+    obj: Arc<Mutex<Option<Py<PyAny>>>>,
+}
+
+/// `EventFilter` — counts events on `EventStream` matching a class
+/// path and/or message-regex predicate.
+#[pyclass(name = "EventFilter", module = "atomr._native.testkit")]
+pub struct PyEventFilter {
+    matches: Arc<AtomicUsize>,
+    _sub: atomr_core::event::Subscription,
+}
+
+#[pymethods]
+impl PyEventFilter {
+    /// Construct a filter on `stream`. `cls_path` is a manifest in the
+    /// `module.qualname` form; if `None` the filter accepts any
+    /// class. `message_regex` is an optional Python `re` pattern
+    /// applied to `repr(event)`; if `None` the regex check is skipped.
+    #[new]
+    #[pyo3(signature = (stream, cls_path=None, message_regex=None))]
+    fn new(
+        py: Python<'_>,
+        stream: &PyEventStream,
+        cls_path: Option<String>,
+        message_regex: Option<String>,
+    ) -> PyResult<Self> {
+        let regex_obj: Option<Py<PyAny>> = match message_regex {
+            Some(pat) => {
+                let re = py.import_bound("re")?;
+                Some(re.call_method1("compile", (pat,))?.unbind())
+            }
+            None => None,
+        };
+        let matches = Arc::new(AtomicUsize::new(0));
+        let counter = matches.clone();
+        let cls_filter = cls_path.clone();
+        let sub = stream.inner.subscribe(move |evt: &PyEvent| {
+            let guard = evt.obj.lock();
+            // Clone the Py<PyAny> inside the GIL; leave it in place
+            // for any other subscribers.
+            let obj = match guard.as_ref() {
+                Some(o) => Python::with_gil(|py| o.clone_ref(py)),
+                None => return,
+            };
+            drop(guard);
+            let matched = Python::with_gil(|py| -> PyResult<bool> {
+                let bound = obj.bind(py);
+                if let Some(want) = &cls_filter {
+                    let cls = bound.get_type();
+                    let module: String = cls.getattr("__module__")?.extract()?;
+                    let qualname: String = cls.getattr("__qualname__")?.extract()?;
+                    let path = format!("{module}.{qualname}");
+                    if &path != want {
+                        return Ok(false);
+                    }
+                }
+                if let Some(rx) = &regex_obj {
+                    let repr = bound.repr()?.to_string();
+                    let res = rx.call_method1(py, "search", (repr,))?;
+                    if res.bind(py).is_none() {
+                        return Ok(false);
+                    }
+                }
+                Ok(true)
+            })
+            .unwrap_or(false);
+            if matched {
+                counter.fetch_add(1, Ordering::Relaxed);
+            }
+        });
+        Ok(Self { matches, _sub: sub })
+    }
+
+    fn count(&self) -> usize {
+        self.matches.load(Ordering::Relaxed)
+    }
+
+    /// Block until `n` events have matched, or `timeout` seconds
+    /// elapse. Returns whether the count was reached.
+    #[pyo3(signature = (n, timeout=1.0))]
+    fn await_count<'py>(&self, py: Python<'py>, n: usize, timeout: f64) -> PyResult<Bound<'py, PyAny>> {
+        let matches = self.matches.clone();
+        let dur = Duration::from_secs_f64(timeout);
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            let deadline = tokio::time::Instant::now() + dur;
+            while tokio::time::Instant::now() < deadline {
+                if matches.load(Ordering::Relaxed) >= n {
+                    return Ok(true);
+                }
+                tokio::time::sleep(Duration::from_millis(5)).await;
+            }
+            Ok(matches.load(Ordering::Relaxed) >= n)
+        })
+    }
+}
+
 pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     let sub = PyModule::new_bound(py, "testkit")?;
     sub.add_class::<PyTestKit>()?;
     sub.add_class::<PyTestProbe>()?;
     sub.add_class::<PyMultiNodeOopController>()?;
     sub.add_class::<PyMultiNodeOopNode>()?;
+    sub.add_class::<PyTestScheduler>()?;
+    sub.add_class::<PyScheduledToken>()?;
+    sub.add_class::<PyEventStream>()?;
+    sub.add_class::<PyEventFilter>()?;
     sub.add_function(wrap_pyfunction!(within, &sub)?)?;
     m.add_submodule(&sub)?;
     Ok(())

@@ -12,9 +12,12 @@ use crate::actor_ref::PyActorRef;
 use crate::config::PyConfig;
 use crate::dispatcher;
 use crate::errors;
+use crate::ext_remote::{
+    call_decoder, call_encoder, manifest_for, validate_manifest, PyCodecRegistry,
+};
 use crate::interpreter::{InterpreterQuota, InterpreterRegistry};
 use crate::props::PyProps;
-use crate::py_actor::PyActor;
+use crate::py_actor::{PyActor, PyMessage};
 use crate::runtime::runtime;
 
 static REGISTRY: Lazy<InterpreterRegistry> = Lazy::new(InterpreterRegistry::default);
@@ -26,6 +29,7 @@ pub fn registry() -> &'static InterpreterRegistry {
 #[pyclass(name = "ActorSystem", module = "atomr._native")]
 pub struct PyActorSystem {
     pub(crate) inner: RustSystem,
+    pub(crate) codecs: PyCodecRegistry,
 }
 
 #[pymethods]
@@ -42,7 +46,10 @@ impl PyActorSystem {
             .unwrap_or_else(atomr_config::Config::empty);
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let inner = RustSystem::create(name, cfg).await.map_err(errors::map)?;
-            Python::with_gil(|py| Py::new(py, PyActorSystem { inner }).map(|p| p.into_any()))
+            Python::with_gil(|py| {
+                Py::new(py, PyActorSystem { inner, codecs: PyCodecRegistry::default() })
+                    .map(|p| p.into_any())
+            })
         })
     }
 
@@ -53,7 +60,7 @@ impl PyActorSystem {
         let cfg = config.map(|c| c.borrow(py).inner.clone()).unwrap_or_else(atomr_config::Config::empty);
         let rt = runtime();
         let inner = py.allow_threads(|| rt.block_on(RustSystem::create(name, cfg))).map_err(errors::map)?;
-        Py::new(py, PyActorSystem { inner })
+        Py::new(py, PyActorSystem { inner, codecs: PyCodecRegistry::default() })
     }
 
     #[getter]
@@ -132,6 +139,103 @@ impl PyActorSystem {
             inner.when_terminated().await;
             Ok(())
         })
+    }
+
+    /// Phase 9 — codec registry access.
+    #[getter]
+    fn codecs(&self) -> PyCodecRegistry {
+        self.codecs.clone()
+    }
+
+    /// Register a codec for one or more `module.qualname` manifests.
+    /// Each manifest is validated by importing the module and walking
+    /// the qualname; failures raise `ValueError`.
+    #[pyo3(signature = (name, encoder, decoder, manifests))]
+    fn register_codec(
+        &self,
+        py: Python<'_>,
+        name: String,
+        encoder: Py<PyAny>,
+        decoder: Py<PyAny>,
+        manifests: Vec<String>,
+    ) -> PyResult<()> {
+        if manifests.is_empty() {
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "register_codec: manifests must not be empty",
+            ));
+        }
+        for m in &manifests {
+            validate_manifest(py, m)?;
+        }
+        self.codecs.insert(name, encoder, decoder, &manifests);
+        Ok(())
+    }
+
+    /// Convenience: install the JSON codec for `manifests` (or none —
+    /// pair with `default=True` to fall back for any unmatched
+    /// manifest).
+    #[pyo3(signature = (manifests=Vec::new(), default=false))]
+    fn use_json_codec(
+        &self,
+        py: Python<'_>,
+        manifests: Vec<String>,
+        default: bool,
+    ) -> PyResult<()> {
+        for m in &manifests {
+            validate_manifest(py, m)?;
+        }
+        if !manifests.is_empty() {
+            self.codecs.install_json(py, &manifests)?;
+        }
+        if default {
+            let (encoder, decoder) = crate::ext_remote::build_json_pair(py)?;
+            self.codecs.install_default(encoder, decoder);
+        }
+        Ok(())
+    }
+
+    /// In-process "remote" send: encode `obj` via the registered codec
+    /// (manifest derived from the object's class), decode on the other
+    /// side, then `tell` the result on `target`. This exercises the
+    /// full Phase-9 codec pipeline without crossing a network — the
+    /// wire-level path through `atomr-remote` reuses the same encode
+    /// / decode functions.
+    fn tell_remote(
+        &self,
+        py: Python<'_>,
+        target: Py<PyActorRef>,
+        msg: Py<PyAny>,
+    ) -> PyResult<()> {
+        let manifest = manifest_for(py, &msg)?;
+        let (encoder, decoder) = self.codecs.lookup(&manifest).ok_or_else(|| {
+            PyErr::new::<errors::AtomrError, _>(format!(
+                "no codec registered for manifest `{manifest}`"
+            ))
+        })?;
+        let bytes = call_encoder(py, &encoder, &msg)?;
+        let decoded = call_decoder(py, &decoder, &bytes)?;
+        let target_ref = target.borrow(py);
+        target_ref.inner.tell(PyMessage::new(decoded));
+        Ok(())
+    }
+
+    /// Round-trip `obj` through the codec registry without sending.
+    /// Useful for tests of the codec wiring and for debugging the
+    /// manifest derivation.
+    fn codec_roundtrip<'py>(
+        &self,
+        py: Python<'py>,
+        msg: Py<PyAny>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let manifest = manifest_for(py, &msg)?;
+        let (encoder, decoder) = self.codecs.lookup(&manifest).ok_or_else(|| {
+            PyErr::new::<errors::AtomrError, _>(format!(
+                "no codec registered for manifest `{manifest}`"
+            ))
+        })?;
+        let bytes = call_encoder(py, &encoder, &msg)?;
+        let decoded = call_decoder(py, &decoder, &bytes)?;
+        Ok(decoded.into_bound(py))
     }
 }
 

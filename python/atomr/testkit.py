@@ -14,6 +14,12 @@ MultiNodeOopController = _native.testkit.MultiNodeOopController
 MultiNodeOopNode = _native.testkit.MultiNodeOopNode
 within = _native.testkit.within
 
+# Phase 9 — testkit polish.
+TestScheduler = _native.testkit.TestScheduler
+ScheduledToken = _native.testkit.ScheduledToken
+EventStream = _native.testkit.EventStream
+EventFilter = _native.testkit.EventFilter
+
 
 @pytest.fixture
 def testkit() -> Iterator[TestKit]:
@@ -32,4 +38,8 @@ __all__ = [
     "MultiNodeOopNode",
     "within",
     "testkit",
+    "TestScheduler",
+    "ScheduledToken",
+    "EventStream",
+    "EventFilter",
 ]

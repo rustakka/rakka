@@ -20,6 +20,7 @@ atomr-core = { workspace = true }
 atomr-config = { workspace = true }
 atomr-testkit = { workspace = true }
 atomr-remote = { workspace = true }
+atomr-pyremote = { workspace = true }
 atomr-cluster = { workspace = true }
 atomr-cluster-tools = { workspace = true }
 atomr-cluster-sharding = { workspace = true }

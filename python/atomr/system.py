@@ -13,6 +13,12 @@ ActorRef = _native.ActorRef
 Config = _native.Config
 Context = _native.Context
 
+# Phase 9 — codec registry re-exports.
+PyCodecRegistry = _native.remote.PyCodecRegistry
+BuiltinJsonCodec = _native.remote.BuiltinJsonCodec
+manifest_of = _native.remote.manifest_of
+validate_manifest = _native.remote.validate_manifest_py
+
 
 def props(
     actor_cls: type,
@@ -28,4 +34,15 @@ def props(
     return Props.create(factory, dispatcher, interpreter_role, mailbox)
 
 
-__all__ = ["ActorSystem", "Props", "ActorRef", "Config", "Context", "props"]
+__all__ = [
+    "ActorSystem",
+    "Props",
+    "ActorRef",
+    "Config",
+    "Context",
+    "props",
+    "PyCodecRegistry",
+    "BuiltinJsonCodec",
+    "manifest_of",
+    "validate_manifest",
+]
