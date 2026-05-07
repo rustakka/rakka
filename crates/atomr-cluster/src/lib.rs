@@ -17,11 +17,16 @@ mod reachability;
 mod remote_adapter;
 mod sbr;
 mod sbr_runtime;
+mod transport;
 mod vector_clock;
 
 pub use cluster_daemon::{
     spawn_daemon, spawn_daemon_with_sbr, ClusterDaemonHandle, DaemonCmd, DaemonConfig, DaemonSnapshot,
     GossipTransport, NoSbr,
+};
+pub use transport::{
+    ClusterFrame, InProcessClusterTransport, InProcessRegistry, RecordingSink,
+    RemoteMessageSink, RemoteTellRecord, TcpClusterTransport,
 };
 pub use events::{ClusterEvent, ClusterEventBus, SubscriptionHandle};
 pub use gossip::{Gossip, GossipOverview};
