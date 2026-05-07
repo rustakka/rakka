@@ -39,6 +39,55 @@ SinkQueue = _sub.SinkQueue
 BroadcastHub = _sub.BroadcastHub
 MergeHub = _sub.MergeHub
 
+# Epic F additions: Phase 8 streams completion.
+RestartSource = _sub.RestartSource
+"""``RestartSource(min_backoff, max_backoff, random_factor, max_restarts)``.
+
+Wraps ``atomr_streams::RestartSource``; ``via_source(source_factory)`` re-runs
+``source_factory()`` (which must return a fresh :class:`Source`) on completion
+or failure, with exponential backoff up to ``max_restarts`` attempts.
+"""
+
+RestartSettings = _sub.RestartSettings
+"""Read-only view onto a ``RestartSource`` configuration."""
+
+GraphDsl = _sub.GraphDsl
+"""Linear-plus-junctions graph builder. ``g.add(node)`` returns a port
+handle; ``g.edge(from, to)`` connects two handles; ``g.run()`` (async) or
+``g.run_blocking()`` materialises the graph. Currently supports
+``Source -> Flow* -> Sink``.
+"""
+
+BidiFlow = _sub.BidiFlow
+"""Bidirectional pair of ``Flow[PyAny -> PyAny]``. Use ``BidiFlow.from_flows
+(forward, backward)`` and project the directions via ``forward()`` and
+``backward()`` for streaming use.
+"""
+
+Framing = _sub.Framing
+"""Codec-level binary framing. ``Framing.delimiter(delim, max_frame_length)``
+and ``Framing.length_field(max_frame_length)`` return ``Flow``s that operate
+on Python ``bytes`` chunks.
+"""
+
+Tcp = _sub.Tcp
+"""Streaming TCP socket adapters.
+
+* ``Tcp.outgoing(host, port)`` returns a :class:`TcpOutgoing` handle.
+* ``Tcp.incoming(bind_addr)`` returns a ``Source`` of ``(remote_addr,
+  data)`` tuples for every chunk received from any client.
+"""
+
+TcpOutgoing = _sub.TcpOutgoing
+"""Handle returned by ``Tcp.outgoing``: ``source()`` exposes the read side,
+``send(bytes)`` queues a write, and ``close()`` closes the write side.
+"""
+
+FileIO = _sub.FileIO
+"""``FileIO.from_path(path, chunk_size=8192)`` and ``FileIO.to_path(path)``
+read/write files as ``bytes`` streams.
+"""
+
 # Legacy helpers.
 map_reduce = _sub.map_reduce
 run_collect = _sub.run_collect
@@ -104,6 +153,15 @@ __all__ = [
     "SinkQueue",
     "BroadcastHub",
     "MergeHub",
+    # Epic F additions
+    "RestartSource",
+    "RestartSettings",
+    "GraphDsl",
+    "BidiFlow",
+    "Framing",
+    "Tcp",
+    "TcpOutgoing",
+    "FileIO",
     # conveniences
     "pipeline",
     "run_pipeline",
