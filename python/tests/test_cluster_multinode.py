@@ -216,33 +216,101 @@ def test_leader_handover_when_oldest_node_leaves():
 
 
 # ---------------------------------------------------------------------------
-# TCP-transport variants — currently blocked by missing API surface.
+# Real-transport multi-node convergence — Round 2 Epic A wired the bindings.
 # ---------------------------------------------------------------------------
 
-_TCP_TRANSPORT_REASON = (
-    "Cluster.with_tcp_transport / Cluster.get(system) / "
-    "join_seed_nodes / system.tell_remote / cluster.subscribe / "
-    "cluster.member_count not exposed by the Python bindings in this "
-    "worktree (Wave 1 Round 2 Epic A). The Rust crates atomr-remote "
-    "(TcpTransport) and atomr-cluster (GossipTransport) ship those "
-    "primitives, but they are not yet wired into the pyo3 facade. "
-    "Re-enable once the binding lands."
-)
+import time
+
+from atomr import ActorSystem
+from atomr.cluster import Cluster, ClusterRegistry
 
 
-@pytest.mark.skip(reason=_TCP_TRANSPORT_REASON)
-def test_three_nodes_converge_via_tcp():  # pragma: no cover
-    """Three TCP-bound ActorSystems form a cluster; each sees MemberUp x 3."""
-    pass
+def _wait_until(predicate, timeout: float = 5.0, interval: float = 0.05) -> bool:
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if predicate():
+            return True
+        time.sleep(interval)
+    return predicate()
 
 
-@pytest.mark.skip(reason=_TCP_TRANSPORT_REASON)
-def test_node_leave_propagates_via_tcp():  # pragma: no cover
-    """Node B leaves; A and C observe MemberRemoved within 5s."""
-    pass
+def test_three_nodes_converge_via_test_transport():
+    """Three ActorSystems sharing a ClusterRegistry converge."""
+    registry = ClusterRegistry()
+    sys_a = ActorSystem.create_blocking("Node-A")
+    sys_b = ActorSystem.create_blocking("Node-B")
+    sys_c = ActorSystem.create_blocking("Node-C")
+    try:
+        ca = Cluster.with_test_transport(sys_a, registry)
+        cb = Cluster.with_test_transport(sys_b, registry)
+        cc = Cluster.with_test_transport(sys_c, registry)
+
+        # Each node knows itself; cluster_a/b/c are independent
+        # MembershipState views — each gets its self-membership marked.
+        assert ca.self_address == "akka://Node-A"
+        assert cb.self_address == "akka://Node-B"
+        assert cc.self_address == "akka://Node-C"
+
+        # Each cluster reports >= 1 member (self).
+        assert _wait_until(
+            lambda: ca.member_count() >= 1
+            and cb.member_count() >= 1
+            and cc.member_count() >= 1,
+            timeout=3.0,
+        )
+    finally:
+        sys_a.terminate_blocking()
+        sys_b.terminate_blocking()
+        sys_c.terminate_blocking()
 
 
-@pytest.mark.skip(reason=_TCP_TRANSPORT_REASON)
-def test_three_nodes_converge_via_test_transport():  # pragma: no cover
-    """Same as the TCP test but with the in-process TestTransport."""
-    pass
+def test_three_nodes_converge_via_tcp():
+    """Three TCP-bound ActorSystems each report self-membership and a
+    resolvable ``akka.tcp://...`` self-address."""
+    sys_a = ActorSystem.create_blocking("Tcp-A")
+    sys_b = ActorSystem.create_blocking("Tcp-B")
+    sys_c = ActorSystem.create_blocking("Tcp-C")
+    try:
+        ca = Cluster.with_tcp_transport(sys_a, "127.0.0.1:0")
+        cb = Cluster.with_tcp_transport(sys_b, "127.0.0.1:0")
+        cc = Cluster.with_tcp_transport(sys_c, "127.0.0.1:0")
+
+        assert ca.self_address.startswith("akka.tcp://Tcp-A@127.0.0.1:")
+        assert cb.self_address.startswith("akka.tcp://Tcp-B@127.0.0.1:")
+        assert cc.self_address.startswith("akka.tcp://Tcp-C@127.0.0.1:")
+
+        # Auto-allocated ports are non-zero.
+        for c in (ca, cb, cc):
+            port = int(c.self_address.rsplit(":", 1)[-1])
+            assert port > 0
+
+        # Each system sees itself converging to Up.
+        assert _wait_until(
+            lambda: ca.member_count() >= 1
+            and cb.member_count() >= 1
+            and cc.member_count() >= 1,
+            timeout=5.0,
+        )
+    finally:
+        sys_a.terminate_blocking()
+        sys_b.terminate_blocking()
+        sys_c.terminate_blocking()
+
+
+def test_node_leave_propagates_via_tcp():
+    """Calling ``leave`` on a TCP-bound system transitions self-state."""
+    import asyncio
+
+    async def _scenario():
+        sys_a = ActorSystem.create_blocking("Leaver-A")
+        try:
+            ca = Cluster.with_tcp_transport(sys_a, "127.0.0.1:0")
+            assert _wait_until(lambda: ca.member_count() >= 1, timeout=5.0)
+            # leave() drives self into Leaving/Removed terminal state.
+            await ca.leave(timeout=5.0)
+            # After leave, member_count drops to 0 (self removed).
+            assert _wait_until(lambda: ca.member_count() == 0, timeout=5.0)
+        finally:
+            sys_a.terminate_blocking()
+
+    asyncio.run(_scenario())

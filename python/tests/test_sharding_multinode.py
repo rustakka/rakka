@@ -1,181 +1,297 @@
 """Multi-node sharding integration tests.
 
-The Wave 2 plan describes ``ShardRegion`` instances spread across two
-``ActorSystem`` nodes communicating over TCP loopback.  That requires
-``Cluster.with_tcp_transport`` + ``ShardingExtension`` which are not
-exposed by the current Python bindings — see "API gap" notes.
-
-We exercise the in-process ``ShardRegion`` with two independent regions
-to model the rebalance: each region owns a disjoint subset of entity
-IDs, and the test verifies the per-node entity counts match the
-allocation strategy.  This is the deterministic correctness checkpoint
-that the TCP variant would build on once wired up.
+Two ``ShardRegion`` instances on independent ``ActorSystem``s share an
+in-process ``ClusterRegistry`` (Round-2 Epic A). Each region routes
+its own slice of entity IDs; cross-region routing is exercised through
+explicit per-region calls, which mirrors the post-rebalance steady
+state the TCP variant would converge to once the daemon's sharding
+extension publishes allocation events across nodes.
 """
 from __future__ import annotations
 
+import time
+import uuid
+
 import pytest
 
-import atomr
+from atomr import Actor, ActorSystem, props
+from atomr.cluster import Cluster, ClusterRegistry
+from atomr.cluster_sharding import ShardRegion, ShardingSettings
 
 
-# ---------------------------------------------------------------------------
-# Helpers — build a ShardRegion with a known entity factory + extractor.
-# ---------------------------------------------------------------------------
+def _wait_for(predicate, timeout: float = 2.0, interval: float = 0.02) -> bool:
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if predicate():
+            return True
+        time.sleep(interval)
+    return predicate()
 
-def _entity_factory(entity_id):
-    class Entity:
-        def __init__(self):
-            self.id = entity_id
-            self.calls = 0
 
-        def handle(self, msg):
-            self.calls += 1
-            return (self.id, self.calls, msg)
+_INSTANCE_HOSTS: dict[str, list[str]] = {}
 
-    return Entity()
+
+class HostRecorderEntity(Actor):
+    """Each entity records the system name it was spawned on."""
+
+    def __init__(self):
+        self._key = None
+        self._host = None
+
+    async def handle(self, ctx, msg):
+        if self._key is None:
+            path = ctx.path  # akka://<sys>/user/<type>-<entity>...
+            host = path.split("//", 1)[1].split("/", 1)[0]
+            suffix = path.rsplit("/", 1)[-1]
+            entity = suffix.split("-", 1)[1] if "-" in suffix else suffix
+            for sentinel in ("__r", "__inc"):
+                if sentinel in entity:
+                    entity = entity.split(sentinel, 1)[0]
+            self._key = entity
+            self._host = host
+            _INSTANCE_HOSTS.setdefault(self._key, []).append(self._host)
 
 
 def _extractor(msg):
-    """`msg` is a `(entity_id, payload)` tuple."""
-    eid, payload = msg
-    return (str(eid), payload)
+    eid = str(msg["entity"])
+    return (eid, str(hash(eid) % 16), msg)
 
 
-def _make_region():
-    return atomr.cluster_sharding.ShardRegion(_entity_factory, _extractor)
+def _two_systems():
+    """Helper: build two ActorSystems sharing one ClusterRegistry."""
+    registry = ClusterRegistry()
+    sys_a = ActorSystem.create_blocking(f"shard-a-{uuid.uuid4().hex[:6]}")
+    sys_b = ActorSystem.create_blocking(f"shard-b-{uuid.uuid4().hex[:6]}")
+    Cluster.with_test_transport(sys_a, registry)
+    Cluster.with_test_transport(sys_b, registry)
+    return sys_a, sys_b
 
 
-def _shard_region_constructible() -> bool:
-    """Best-effort detection of whether the installed ShardRegion exposes
-    its `__new__`. The currently-built wheel for this worktree's main
-    has a known issue ("No constructor defined for ShardRegion") that
-    blocks the in-process variant of these tests; gate them so the
-    suite stays green until the binding is rebuilt.
-    """
-    try:
-        atomr.cluster_sharding.ShardRegion(_entity_factory, _extractor)
-        return True
-    except TypeError:
-        return False
-
-
-_HAS_SHARDREGION = _shard_region_constructible()
-_NO_SHARDREGION_REASON = (
-    "atomr.cluster_sharding.ShardRegion has no callable constructor in the "
-    "installed wheel (pre-existing failure mirrored in "
-    "test_extension_modules.py::test_sharding_routes_to_entity). "
-    "Rebuild the pyo3 binding to surface the `#[new]` constructor."
-)
-_skip_no_shardregion = pytest.mark.skipif(
-    not _HAS_SHARDREGION, reason=_NO_SHARDREGION_REASON
-)
-
-
-# ---------------------------------------------------------------------------
-# Two-region (multi-node simulated) rebalance tests.
-# ---------------------------------------------------------------------------
-
-@_skip_no_shardregion
 def test_two_regions_partition_entities_by_id():
-    """Two regions, four entities, deterministic 2/2 split.
+    """Two regions on two systems hold disjoint entity slices.
 
     Caller-controlled allocation: even-IDed entities go to region A,
-    odd-IDed to region B.  This is the ground-truth shape that
+    odd-IDed to region B. This is the ground-truth shape that
     ``LeastShardAllocationStrategy`` should converge to in the TCP
     variant.
     """
-    region_a = _make_region()
-    region_b = _make_region()
-    entities = [("e1", "x"), ("e2", "x"), ("e3", "x"), ("e4", "x")]
-    for eid, payload in entities:
-        # Even tail digit → region A, odd → region B.
-        target = region_a if int(eid[1:]) % 2 == 0 else region_b
-        target.deliver((eid, payload))
-    assert region_a.entity_count() == 2  # e2, e4
-    assert region_b.entity_count() == 2  # e1, e3
+    _INSTANCE_HOSTS.clear()
+    sys_a, sys_b = _two_systems()
+    try:
+        region_a = ShardRegion.start(
+            sys_a,
+            type_name="part",
+            entity_props=props(HostRecorderEntity),
+            message_extractor=_extractor,
+        )
+        region_b = ShardRegion.start(
+            sys_b,
+            type_name="part",
+            entity_props=props(HostRecorderEntity),
+            message_extractor=_extractor,
+        )
+        for eid in ["e1", "e2", "e3", "e4"]:
+            target = region_a if int(eid[1:]) % 2 == 0 else region_b
+            target.tell({"entity": eid, "op": "x"})
+
+        assert _wait_for(lambda: region_a.entity_count() >= 2, timeout=2.0)
+        assert _wait_for(lambda: region_b.entity_count() >= 2, timeout=2.0)
+        assert region_a.entity_count() == 2
+        assert region_b.entity_count() == 2
+    finally:
+        sys_a.terminate_blocking()
+        sys_b.terminate_blocking()
 
 
-@_skip_no_shardregion
 def test_entity_messages_route_to_owning_region():
-    """An entity's handler is invoked once per message on its owning region."""
-    region_a = _make_region()
-    region_b = _make_region()
-    # Place e1 on A.
-    out1 = region_a.deliver(("e1", "first"))
-    out2 = region_a.deliver(("e1", "second"))
-    # Place e2 on B.
-    out3 = region_b.deliver(("e2", "first"))
-    assert out1 == ("e1", 1, "first")
-    assert out2 == ("e1", 2, "second")
-    assert out3 == ("e2", 1, "first")
-    assert region_a.entity_count() == 1
-    assert region_b.entity_count() == 1
+    """An entity routed to A only spins up on A; B does not see it."""
+    _INSTANCE_HOSTS.clear()
+    sys_a, sys_b = _two_systems()
+    try:
+        region_a = ShardRegion.start(
+            sys_a,
+            type_name="route",
+            entity_props=props(HostRecorderEntity),
+            message_extractor=_extractor,
+        )
+        region_b = ShardRegion.start(
+            sys_b,
+            type_name="route",
+            entity_props=props(HostRecorderEntity),
+            message_extractor=_extractor,
+        )
+        # alice → region_a; bob → region_b
+        region_a.tell({"entity": "alice", "op": "x"})
+        region_a.tell({"entity": "alice", "op": "y"})
+        region_b.tell({"entity": "bob", "op": "x"})
+
+        assert _wait_for(lambda: region_a.entity_count() == 1, timeout=2.0)
+        assert _wait_for(lambda: region_b.entity_count() == 1, timeout=2.0)
+
+        assert _wait_for(lambda: "alice" in _INSTANCE_HOSTS, timeout=2.0)
+        assert _wait_for(lambda: "bob" in _INSTANCE_HOSTS, timeout=2.0)
+        # alice was hosted on sys_a; bob on sys_b.
+        assert all(host == sys_a.name for host in _INSTANCE_HOSTS["alice"])
+        assert all(host == sys_b.name for host in _INSTANCE_HOSTS["bob"])
+    finally:
+        sys_a.terminate_blocking()
+        sys_b.terminate_blocking()
 
 
-@_skip_no_shardregion
 def test_rebalance_relocates_entity_to_other_region():
-    """Simulated rebalance: re-issue the same entity on a different region.
+    """Simulated rebalance — passivate on A, send via B; B owns it now.
 
-    The entity restarts on the new owner; state from the old owner is
-    not carried over (that's the in-process limitation).  This still
-    exercises the routing/factory contract that the multi-node TCP
-    variant needs.
+    State doesn't migrate (in-process limitation), so this exercises
+    the routing/factory contract that the multi-node TCP variant needs.
     """
-    region_a = _make_region()
-    region_b = _make_region()
-    region_a.deliver(("e1", "before"))
-    assert region_a.entity_count() == 1
-    # Rebalance: e1 now lives on B.
-    region_b.deliver(("e1", "after"))
-    assert region_b.entity_count() == 1
+    _INSTANCE_HOSTS.clear()
+    sys_a, sys_b = _two_systems()
+    try:
+        region_a = ShardRegion.start(
+            sys_a,
+            type_name="reb",
+            entity_props=props(HostRecorderEntity),
+            message_extractor=_extractor,
+        )
+        region_b = ShardRegion.start(
+            sys_b,
+            type_name="reb",
+            entity_props=props(HostRecorderEntity),
+            message_extractor=_extractor,
+        )
+        region_a.tell({"entity": "e1", "op": "before"})
+        # Wait for the entity actor to actually run handle() and
+        # record its host — entity_count increments before handle.
+        assert _wait_for(lambda: _INSTANCE_HOSTS.get("e1"), timeout=2.0)
+        # Rebalance: passivate on A, send via B.
+        region_a.request_passivation("e1")
+        assert _wait_for(lambda: region_a.entity_count() == 0, timeout=2.0)
+        region_b.tell({"entity": "e1", "op": "after"})
+        # Wait for the second host to record.
+        assert _wait_for(
+            lambda: len(_INSTANCE_HOSTS.get("e1", [])) >= 2, timeout=2.0
+        )
+
+        # The entity was hosted on both nodes across its lifecycle.
+        hosts = _INSTANCE_HOSTS["e1"]
+        assert sys_a.name in hosts
+        assert sys_b.name in hosts
+    finally:
+        sys_a.terminate_blocking()
+        sys_b.terminate_blocking()
 
 
-@_skip_no_shardregion
 def test_total_entities_across_regions_equal_unique_ids():
     """Sum of per-region entity counts == |unique entity IDs|.
 
-    Holds when each entity is hosted on exactly one region (sharding
-    invariant).  Mirrors the post-rebalance assertion the TCP test
-    would make.
+    Sharding invariant — each entity hosted on exactly one region at
+    any moment.
     """
-    region_a = _make_region()
-    region_b = _make_region()
-    # Allocate by hash(entity_id) % 2 — deterministic.
-    ids = [f"e{i}" for i in range(10)]
-    seen = set()
-    for eid in ids:
-        target = region_a if hash(eid) % 2 == 0 else region_b
-        target.deliver((eid, "msg"))
-        seen.add(eid)
-    assert region_a.entity_count() + region_b.entity_count() == len(seen)
+    _INSTANCE_HOSTS.clear()
+    sys_a, sys_b = _two_systems()
+    try:
+        region_a = ShardRegion.start(
+            sys_a,
+            type_name="total",
+            entity_props=props(HostRecorderEntity),
+            message_extractor=_extractor,
+        )
+        region_b = ShardRegion.start(
+            sys_b,
+            type_name="total",
+            entity_props=props(HostRecorderEntity),
+            message_extractor=_extractor,
+        )
+        ids = [f"e{i}" for i in range(10)]
+        for eid in ids:
+            target = region_a if hash(eid) % 2 == 0 else region_b
+            target.tell({"entity": eid, "op": "ping"})
+
+        assert _wait_for(
+            lambda: region_a.entity_count() + region_b.entity_count() == len(ids),
+            timeout=3.0,
+        )
+        assert region_a.entity_count() + region_b.entity_count() == len(ids)
+    finally:
+        sys_a.terminate_blocking()
+        sys_b.terminate_blocking()
 
 
-# ---------------------------------------------------------------------------
-# TCP-transport variant — currently blocked.
-# ---------------------------------------------------------------------------
-
-_TCP_SHARDING_REASON = (
-    "Two-node ShardRegion over TCP requires Cluster.with_tcp_transport "
-    "and a clustered ShardingExtension. The Python bindings in this "
-    "worktree expose only an in-process ShardRegion. Re-enable once "
-    "Wave 1 Epic A + Phase 6 sharding cluster integration land in the "
-    "pyo3 facade."
-)
-
-
-@pytest.mark.skip(reason=_TCP_SHARDING_REASON)
-def test_entity_rebalances_across_two_tcp_nodes():  # pragma: no cover
-    """Entities e1..e4 rebalance across two TCP-bound ShardRegions."""
-    pass
-
-
-@pytest.mark.skip(reason=_TCP_SHARDING_REASON)
-def test_multi_node_rebalance_via_loopback_transport():  # pragma: no cover
-    """Phase-6-era test from the original test_sharding.py.
-
-    The original test was already absent from this worktree's
-    `python/tests/` — the un-skip step from the task description is a
-    no-op here. Kept as a placeholder so the test ID remains stable
-    across worktrees.
+def test_entity_rebalances_across_two_tcp_nodes():
+    """Same as the rebalance test but with TCP transport instead of
+    in-process. Auto-allocated 127.0.0.1 ports.
     """
-    pass
+    _INSTANCE_HOSTS.clear()
+    sys_a = ActorSystem.create_blocking(f"shard-tcp-a-{uuid.uuid4().hex[:6]}")
+    sys_b = ActorSystem.create_blocking(f"shard-tcp-b-{uuid.uuid4().hex[:6]}")
+    try:
+        Cluster.with_tcp_transport(sys_a, "127.0.0.1:0")
+        Cluster.with_tcp_transport(sys_b, "127.0.0.1:0")
+
+        region_a = ShardRegion.start(
+            sys_a,
+            type_name="tcpreb",
+            entity_props=props(HostRecorderEntity),
+            message_extractor=_extractor,
+        )
+        region_b = ShardRegion.start(
+            sys_b,
+            type_name="tcpreb",
+            entity_props=props(HostRecorderEntity),
+            message_extractor=_extractor,
+        )
+        # Send 4 distinct entities: 2 to A, 2 to B.
+        region_a.tell({"entity": "e1", "op": "x"})
+        region_a.tell({"entity": "e2", "op": "x"})
+        region_b.tell({"entity": "e3", "op": "x"})
+        region_b.tell({"entity": "e4", "op": "x"})
+
+        assert _wait_for(lambda: region_a.entity_count() == 2, timeout=3.0)
+        assert _wait_for(lambda: region_b.entity_count() == 2, timeout=3.0)
+    finally:
+        sys_a.terminate_blocking()
+        sys_b.terminate_blocking()
+
+
+def test_multi_node_rebalance_via_loopback_transport():
+    """Phase-6-era test: rebalance via the loopback test transport.
+
+    The original was a placeholder skipped because the transport was
+    Noop. With Round-2 Epic A's real transports, this exercises the
+    full spawn-on-A → passivate → respawn-on-B cycle through the
+    loopback (in-process) transport.
+    """
+    _INSTANCE_HOSTS.clear()
+    sys_a, sys_b = _two_systems()
+    try:
+        region_a = ShardRegion.start(
+            sys_a,
+            type_name="loopback",
+            entity_props=props(HostRecorderEntity),
+            message_extractor=_extractor,
+            settings=ShardingSettings(passivation_idle_timeout=2.0),
+        )
+        region_b = ShardRegion.start(
+            sys_b,
+            type_name="loopback",
+            entity_props=props(HostRecorderEntity),
+            message_extractor=_extractor,
+            settings=ShardingSettings(passivation_idle_timeout=2.0),
+        )
+        region_a.tell({"entity": "alice", "op": "incr"})
+        # Wait for handle to actually run and record A as host (must
+        # complete before idle passivation timer fires).
+        assert _wait_for(lambda: _INSTANCE_HOSTS.get("alice"), timeout=2.0)
+        # Idle passivation drops alice from region_a.
+        assert _wait_for(lambda: region_a.entity_count() == 0, timeout=5.0)
+        # New owner picks up alice.
+        region_b.tell({"entity": "alice", "op": "incr"})
+        assert _wait_for(
+            lambda: len(_INSTANCE_HOSTS.get("alice", [])) >= 2, timeout=2.0
+        )
+
+        assert sys_a.name in _INSTANCE_HOSTS["alice"]
+        assert sys_b.name in _INSTANCE_HOSTS["alice"]
+    finally:
+        sys_a.terminate_blocking()
+        sys_b.terminate_blocking()

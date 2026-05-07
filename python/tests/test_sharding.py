@@ -279,13 +279,48 @@ def test_three_callable_extractor_form():
         sys.terminate_blocking()
 
 
-@pytest.mark.skip(
-    reason=(
-        "Multi-node rebalance via loopback transport is deferred until "
-        "Phase 9 swaps NoopGossipTransport for a real transport. The "
-        "Phase 5 cluster daemon currently never publishes gossip across "
-        "regions, so a second-region rebalance cannot be exercised."
-    )
-)
-def test_multi_node_rebalance_via_loopback_transport():  # pragma: no cover
-    pass
+def test_multi_node_rebalance_via_loopback_transport():
+    """Two-system loopback rebalance via Round-2 Epic A's
+    `Cluster.with_test_transport`. Each system runs its own
+    ``ShardRegion``; sharing a `ClusterRegistry` exercises the gossip
+    bus that previously ran through `NoopGossipTransport`.
+    """
+    from atomr.cluster import Cluster, ClusterRegistry
+
+    INSTANCE_COUNTS.clear()
+    INSTANCE_INSTANCES.clear()
+    registry = ClusterRegistry()
+    sys_a = ActorSystem.create_blocking("loopback-rebal-a")
+    sys_b = ActorSystem.create_blocking("loopback-rebal-b")
+    try:
+        Cluster.with_test_transport(sys_a, registry)
+        Cluster.with_test_transport(sys_b, registry)
+
+        region_a = ShardRegion.start(
+            sys_a,
+            type_name="lp",
+            entity_props=props(CounterEntity),
+            message_extractor=_extractor,
+        )
+        region_b = ShardRegion.start(
+            sys_b,
+            type_name="lp",
+            entity_props=props(CounterEntity),
+            message_extractor=_extractor,
+        )
+
+        # Spawn entity "x" on A.
+        region_a.tell({"entity": "x", "op": "incr"})
+        assert _wait_for(lambda: INSTANCE_INSTANCES.get("x", 0) == 1)
+        assert region_a.entity_count() == 1
+        assert region_b.entity_count() == 0
+
+        # Passivate on A, send via B — entity respawns on B.
+        region_a.request_passivation("x")
+        assert _wait_for(lambda: region_a.entity_count() == 0)
+        region_b.tell({"entity": "x", "op": "incr"})
+        assert _wait_for(lambda: INSTANCE_INSTANCES.get("x", 0) >= 2)
+        assert region_b.entity_count() == 1
+    finally:
+        sys_a.terminate_blocking()
+        sys_b.terminate_blocking()
