@@ -143,6 +143,16 @@ impl ActorSystem {
     }
 
     /// Spawn a top-level actor under `/user`.
+    ///
+    /// **Naming guarantee.** Child names are unique among
+    /// *currently-alive* children of the user guardian — not globally
+    /// unique forever. Once a top-level actor has stopped (its
+    /// `post_stop` has run and death-watch has fired), its name slot is
+    /// freed and a subsequent `actor_of(.., name)` call with the same
+    /// `name` will succeed. To avoid races, callers that re-spawn a
+    /// just-stopped actor should await the previous instance's
+    /// termination (e.g. via a death-watch) before calling `actor_of`
+    /// again, rather than relying on a sleep.
     pub fn actor_of<A: Actor>(
         &self,
         props: Props<A>,
