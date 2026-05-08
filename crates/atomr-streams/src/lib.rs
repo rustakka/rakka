@@ -5,7 +5,7 @@
 //! junctions from upstream:
 //!
 //! * [`Source`], [`Flow`], [`Sink`] — core linear elements.
-//! * [`graph`] — `merge`, `broadcast`, `zip`, `concat` junctions.
+//! * [`GraphDsl`] / [`merge`], [`broadcast`], [`zip`], [`concat()`] junctions.
 //! * [`Framing`] — delimiter / length-field byte framing.
 //! * [`FileIO`], [`Tcp`] — I/O adapters.
 //! * [`KillSwitch`] — external termination.

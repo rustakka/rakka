@@ -199,8 +199,9 @@ impl<A: Actor> Context<A> {
 
     /// Borrow this context as a phase-typed view. The phase parameter is a
     /// phantom witness only — call sites typically use one of
-    /// [`Context::starting`], [`Context::running`], or [`Context::stopping`]
-    /// to get a view whose method surface matches the phase.
+    /// [`Context::starting`], [`Context::running`], or
+    /// [`Context::stopping_view`] to get a view whose method surface
+    /// matches the phase.
     pub fn phased<P: PhaseMarker>(&mut self) -> Option<TypedContext<'_, A, P>> {
         if P::PHASE == self.phase {
             Some(TypedContext { inner: self, _phase: PhantomData })

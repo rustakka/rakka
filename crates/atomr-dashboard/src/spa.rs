@@ -10,7 +10,11 @@ use axum::http::{header, StatusCode, Uri};
 #[cfg(feature = "embed-ui")]
 use axum::response::{IntoResponse, Response};
 
+// `Embed` provides the `get` method that `RustEmbed` derive routes
+// through; rustdoc occasionally flags it as unused depending on how
+// it analyses the derive output, so suppress that one warning.
 #[cfg(feature = "embed-ui")]
+#[allow(unused_imports)]
 use rust_embed::{Embed, RustEmbed};
 
 #[cfg(feature = "embed-ui")]
