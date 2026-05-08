@@ -112,6 +112,9 @@ impl Journal for MongoJournal {
         to: u64,
         max: u64,
     ) -> Result<Vec<PersistentRepr>, JournalError> {
+        if max == 0 {
+            return Ok(Vec::new());
+        }
         let limit = if max > i64::MAX as u64 { i64::MAX } else { max as i64 };
         let opts = FindOptions::builder().sort(doc! { "sequence_nr": 1 }).limit(limit).build();
         let mut cur = self
@@ -141,6 +144,9 @@ impl Journal for MongoJournal {
         from_offset: u64,
         max: u64,
     ) -> Result<Vec<PersistentRepr>, JournalError> {
+        if max == 0 {
+            return Ok(Vec::new());
+        }
         let limit = if max > i64::MAX as u64 { i64::MAX } else { max as i64 };
         let opts =
             FindOptions::builder().sort(doc! { "persistence_id": 1, "sequence_nr": 1 }).limit(limit).build();

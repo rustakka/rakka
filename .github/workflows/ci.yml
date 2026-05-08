@@ -50,8 +50,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RUSTDOCFLAGS: "-D warnings -D rustdoc::broken-intra-doc-links --cfg docsrs"
+      RUSTUP_TOOLCHAIN: nightly
     steps:
       - uses: actions/checkout@v4
+      - name: Drop pinned stable toolchain (need nightly for #![feature(doc_cfg)])
+        run: rm -f rust-toolchain rust-toolchain.toml
       - uses: dtolnay/rust-toolchain@nightly
       - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-node@v4
@@ -64,7 +67,7 @@ jobs:
           npm install --no-audit --no-fund
           npm run build
       - name: cargo doc --workspace --no-deps --all-features
-        run: cargo doc --workspace --no-deps --all-features
+        run: cargo +nightly doc --workspace --no-deps --all-features
 
   verify:
     name: verify (1.0-rc gate)
