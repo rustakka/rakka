@@ -1,0 +1,28 @@
+[package]
+name = "example-dashboard-demo"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+atomr = { path = "../../crates/atomr" }
+atomr-core = { path = "../../crates/atomr-core" }
+atomr-config = { path = "../../crates/atomr-config" }
+atomr-streams = { path = "../../crates/atomr-streams" }
+atomr-telemetry = { path = "../../crates/atomr-telemetry" }
+atomr-dashboard = { path = "../../crates/atomr-dashboard" }
+
+tokio = { workspace = true }
+async-trait = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[features]
+# Bake the React SPA into the binary. Run
+# `(cd crates/atomr-dashboard/ui && npm install && npm run build)`
+# from the repo root *before* `cargo run --features ui`.
+ui = ["atomr-dashboard/embed-ui"]
+
+[lints]
+workspace = true

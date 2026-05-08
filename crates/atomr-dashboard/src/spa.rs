@@ -11,7 +11,7 @@ use axum::http::{header, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
 
 #[cfg(feature = "embed-ui")]
-use rust_embed::RustEmbed;
+use rust_embed::{Embed, RustEmbed};
 
 #[cfg(feature = "embed-ui")]
 #[derive(RustEmbed)]

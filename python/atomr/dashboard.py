@@ -46,6 +46,7 @@ def serve(
     node: str = "local",
     peers: list[str] | None = None,
     exporters: dict[str, Any] | None = None,
+    system: Any | None = None,
 ):
     """Start the dashboard service.
 
@@ -65,15 +66,44 @@ def serve(
               (``"grpc"`` / ``"http"``), ``"service_name"``,
               ``"interval_secs"``, ``"headers"``, ``"resource_attributes"``,
               ``"stdout"``.
+        system: Optional :class:`atomr.ActorSystem` to attach to. When
+            provided, the dashboard renders live data from that system
+            (actor tree, dead letters, cluster, sharding, persistence,
+            etc.). Without it the dashboard runs against an empty
+            telemetry extension.
 
     Returns:
         A ``DashboardHandle`` usable as a context manager. Call
         ``handle.shutdown()`` (or exit the ``with`` block) to stop the
         server gracefully.
     """
-    return _sub.serve(bind=bind, node=node, peers=peers, exporters=exporters)
+    return _sub.serve(
+        bind=bind,
+        node=node,
+        peers=peers,
+        exporters=exporters,
+        system=system,
+    )
 
 
 DashboardHandle = _sub.DashboardHandle
 
-__all__ = ["serve", "DashboardHandle"]
+
+def start_demo_graph(system: Any, name: str) -> int:
+    """Register a fake running stream graph on ``system``'s telemetry probe.
+
+    Pure-Python streams runs don't yet feed the dashboard's Streams page —
+    use this (paired with :func:`finish_demo_graph`) to populate it from
+    a script. Requires ``system`` to have telemetry installed; the easiest
+    way is to start the dashboard with ``serve(..., system=system)`` first.
+    """
+    return _sub.start_demo_graph(system, name)
+
+
+def finish_demo_graph(system: Any, graph_id: int) -> None:
+    """Companion to :func:`start_demo_graph`. ``graph_id`` is what
+    :func:`start_demo_graph` returned."""
+    _sub.finish_demo_graph(system, graph_id)
+
+
+__all__ = ["serve", "DashboardHandle", "start_demo_graph", "finish_demo_graph"]

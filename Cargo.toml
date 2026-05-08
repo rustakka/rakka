@@ -38,6 +38,7 @@ members = [
     "examples/event-sourced-counter",
     "examples/cluster-pubsub-chat",
     "examples/sharded-keyvalue",
+    "examples/dashboard-demo",
     "benches/ping_throughput",
     "crates/atomr-profiler",
     "crates/py-bindings/pycore",

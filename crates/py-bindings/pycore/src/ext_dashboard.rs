@@ -14,6 +14,7 @@ use atomr_dashboard::{DashboardConfig, DashboardMode, DashboardServer};
 use atomr_telemetry::exporters::config::{ExportersConfig, OtlpConfig, PrometheusConfig};
 use atomr_telemetry::TelemetryExtension;
 
+use crate::actor_system::PyActorSystem;
 use crate::errors;
 use crate::runtime::runtime;
 
@@ -108,20 +109,27 @@ fn parse_exporters(dict: Option<&Bound<'_, PyDict>>) -> PyResult<ExportersConfig
     Ok(out)
 }
 
-/// `serve(bind="127.0.0.1:9100", node="local", peers=None, exporters=None)`
+/// `serve(bind, node, peers=None, exporters=None, system=None)`
 /// — start the dashboard server and return a `DashboardHandle`.
 ///
-/// The service runs on the shared PyO3 tokio runtime. Call
-/// `handle.shutdown()` to stop it; dropping the handle without calling
-/// `shutdown()` leaves the server running until interpreter exit.
+/// When `system` is provided, the dashboard reads telemetry off that
+/// `ActorSystem` (installing the extension if it's not already there).
+/// Without a system, the dashboard runs against an empty isolated
+/// telemetry extension — useful only for cluster-aggregation mode or to
+/// verify the service comes up.
+///
+/// Runs on the shared PyO3 tokio runtime. Call `handle.shutdown()` to
+/// stop it; dropping the handle without calling `shutdown()` leaves the
+/// server running until interpreter exit.
 #[pyfunction]
-#[pyo3(signature = (bind="127.0.0.1:9100".into(), node="local".into(), peers=None, exporters=None))]
+#[pyo3(signature = (bind="127.0.0.1:9100".into(), node="local".into(), peers=None, exporters=None, system=None))]
 fn serve(
     py: Python<'_>,
     bind: String,
     node: String,
     peers: Option<Vec<String>>,
     exporters: Option<Py<PyDict>>,
+    system: Option<Py<PyActorSystem>>,
 ) -> PyResult<Py<PyDashboardHandle>> {
     let bind_addr: std::net::SocketAddr = bind.parse().map_err(|e: std::net::AddrParseError| {
         pyo3::exceptions::PyValueError::new_err(format!("invalid bind address {bind:?}: {e}"))
@@ -135,7 +143,14 @@ fn serve(
         let bound = exporters.as_ref().map(|p| p.bind(py));
         parse_exporters(bound)?
     };
-    let telemetry = TelemetryExtension::new(node.clone(), 1024);
+    let telemetry = match system {
+        Some(sys) => {
+            let bound = sys.bind(py).borrow();
+            TelemetryExtension::from_system(&bound.inner)
+                .unwrap_or_else(|| TelemetryExtension::new(node.clone(), 1024).install(&bound.inner))
+        }
+        None => TelemetryExtension::new(node.clone(), 1024),
+    };
     let cfg = DashboardConfig { bind: bind_addr, mode, ws_channel_capacity: 1024, exporters: exporters_cfg };
     let server = DashboardServer::new(telemetry, cfg);
     let rt = runtime();
@@ -145,10 +160,42 @@ fn serve(
     Py::new(py, PyDashboardHandle { bound_addr: bound, inner: Some(handle) })
 }
 
+/// `start_demo_graph(system, name) -> int` — register a pretend running
+/// stream graph on the `system`'s telemetry. Returns the graph id; pass
+/// it to `finish_demo_graph(system, id)` when done. Useful for the
+/// dashboard demo: pure Python streams runs don't yet auto-register
+/// with the telemetry probe, so the Streams page would otherwise stay
+/// empty.
+#[pyfunction]
+fn start_demo_graph(py: Python<'_>, system: Py<PyActorSystem>, name: String) -> PyResult<u64> {
+    let bound = system.bind(py).borrow();
+    let telemetry = TelemetryExtension::from_system(&bound.inner).ok_or_else(|| {
+        pyo3::exceptions::PyRuntimeError::new_err(
+            "telemetry not installed on this ActorSystem — pass `system=` to dashboard.serve(...) first",
+        )
+    })?;
+    Ok(telemetry.streams.start_graph(name))
+}
+
+/// `finish_demo_graph(system, id)` — companion to `start_demo_graph`.
+#[pyfunction]
+fn finish_demo_graph(py: Python<'_>, system: Py<PyActorSystem>, id: u64) -> PyResult<()> {
+    let bound = system.bind(py).borrow();
+    let telemetry = TelemetryExtension::from_system(&bound.inner).ok_or_else(|| {
+        pyo3::exceptions::PyRuntimeError::new_err(
+            "telemetry not installed on this ActorSystem — pass `system=` to dashboard.serve(...) first",
+        )
+    })?;
+    telemetry.streams.finish_graph(id);
+    Ok(())
+}
+
 pub fn register(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     let sub = PyModule::new_bound(py, "dashboard")?;
     sub.add_class::<PyDashboardHandle>()?;
     sub.add_function(wrap_pyfunction!(serve, &sub)?)?;
+    sub.add_function(wrap_pyfunction!(start_demo_graph, &sub)?)?;
+    sub.add_function(wrap_pyfunction!(finish_demo_graph, &sub)?)?;
     m.add_submodule(&sub)?;
     Ok(())
 }
