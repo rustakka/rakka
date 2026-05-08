@@ -110,6 +110,7 @@ fn bump(args: Vec<String>) -> Result<()> {
     println!("{} -> {}", current, next);
     write_workspace_version(cargo_toml, &next)?;
     write_workspace_deps_versions(cargo_toml, &current, &next)?;
+    write_member_crate_pins(&current, &next)?;
     if pyproject.exists() {
         write_pyproject_version(pyproject, &next)?;
     }
@@ -231,6 +232,47 @@ fn write_workspace_deps_versions(path: &std::path::Path, prev: &str, next: &str)
     out.push_str(&new_block);
     out.push_str(tail);
     std::fs::write(path, out)?;
+    Ok(())
+}
+
+/// Walk every `crates/*/Cargo.toml` and bump any `version = "<prev>"` pin
+/// that sits on the same dependency line as a `path = "../..."`. This
+/// catches member crates that pin internal deps directly in their own
+/// `[dependencies]` block instead of going through
+/// `[workspace.dependencies]` — without this the release pipeline's
+/// verify gate fails with `failed to select a version for the
+/// requirement <crate> = "^<prev>"`.
+fn write_member_crate_pins(prev: &str, next: &str) -> Result<()> {
+    let crates_dir = std::path::Path::new("crates");
+    if !crates_dir.is_dir() {
+        return Ok(());
+    }
+    let needle = format!("version = \"{prev}\"");
+    let replacement = format!("version = \"{next}\"");
+    for entry in std::fs::read_dir(crates_dir)? {
+        let entry = entry?;
+        if !entry.file_type()?.is_dir() {
+            continue;
+        }
+        let cargo = entry.path().join("Cargo.toml");
+        if !cargo.exists() {
+            continue;
+        }
+        let text = std::fs::read_to_string(&cargo)?;
+        let mut changed = false;
+        let mut out = String::with_capacity(text.len());
+        for line in text.split_inclusive('\n') {
+            if line.contains("path = \"../") && line.contains(&needle) {
+                out.push_str(&line.replace(&needle, &replacement));
+                changed = true;
+            } else {
+                out.push_str(line);
+            }
+        }
+        if changed {
+            std::fs::write(&cargo, out)?;
+        }
+    }
     Ok(())
 }
 
