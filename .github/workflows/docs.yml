@@ -23,6 +23,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      pages_ready: ${{ steps.pages.outcome == 'success' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -32,15 +34,21 @@ jobs:
         run: pip install mkdocs-material
       - name: Build site
         run: mkdocs build --strict --site-dir _site
-      - uses: actions/configure-pages@v5
-        with:
-          enablement: true
-      - uses: actions/upload-pages-artifact@v3
+      # Pages config is best-effort — until a repo admin flips
+      # Settings → Pages → Source = "GitHub Actions", the
+      # GITHUB_TOKEN can't auto-enable the site. Don't fail the
+      # workflow on that; the mkdocs build itself is the gate.
+      - id: pages
+        uses: actions/configure-pages@v5
+        continue-on-error: true
+      - if: steps.pages.outcome == 'success'
+        uses: actions/upload-pages-artifact@v3
         with:
           path: _site
 
   deploy:
     needs: build
+    if: needs.build.outputs.pages_ready == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
