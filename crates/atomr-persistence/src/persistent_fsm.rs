@@ -9,7 +9,7 @@
 //! decides `(next_state, persisted_event)` per command, and recovery
 //! re-applies events to rebuild the `(S, D)` pair.
 //!
-//! ```ignore
+//! ```text
 //! let fsm = PersistentFSM::<DoorState, DoorData, DoorCmd, DoorEvent>::new("door-1")
 //!     .with_initial(DoorState::Closed, DoorData::default())
 //!     .on_command(|state, data, cmd| { … })

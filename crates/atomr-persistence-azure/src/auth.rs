@@ -23,9 +23,13 @@ impl SharedKeySigner {
     /// Produce the `Authorization` header value for the given request.
     ///
     /// `canonicalized_resource` must start with `/{account}` and include
-    /// the resource path (e.g. `/devstoreaccount1/Tables`).
-    pub fn sign_lite(&self, method: &str, date_header: &str, canonicalized_resource: &str) -> String {
-        let string_to_sign = format!("{method}\n\napplication/json\n{date_header}\n{canonicalized_resource}");
+    /// the resource path (e.g. `/devstoreaccount1/Tables`). For SharedKeyLite
+    /// against the Table service, `StringToSign` is exactly
+    /// `Date + "\n" + CanonicalizedResource` — the verb, Content-MD5 and
+    /// Content-Type are NOT included (that's the plain SharedKey scheme).
+    /// `method` is accepted for API symmetry but unused in the signature.
+    pub fn sign_lite(&self, _method: &str, date_header: &str, canonicalized_resource: &str) -> String {
+        let string_to_sign = format!("{date_header}\n{canonicalized_resource}");
         let mut mac = HmacSha256::new_from_slice(&self.decoded_key).expect("hmac key");
         mac.update(string_to_sign.as_bytes());
         let sig = B64.encode(mac.finalize().into_bytes());
