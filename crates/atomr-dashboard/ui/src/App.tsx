@@ -12,6 +12,7 @@ import Remote from "@/pages/Remote";
 import Streams from "@/pages/Streams";
 import DData from "@/pages/DData";
 import Events from "@/pages/Events";
+import Topology from "@/pages/Topology";
 
 export function App() {
   const append = useEventsStore((s) => s.append);
@@ -22,6 +23,7 @@ export function App() {
       <Routes>
         <Route path="/" element={<Overview />} />
         <Route path="/actors" element={<Actors />} />
+        <Route path="/topology" element={<Topology />} />
         <Route path="/dead-letters" element={<DeadLetters />} />
         <Route path="/cluster" element={<Cluster />} />
         <Route path="/sharding" element={<Sharding />} />

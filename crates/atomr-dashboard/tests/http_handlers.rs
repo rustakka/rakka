@@ -20,6 +20,7 @@ fn make_server() -> (Arc<TelemetryExtension>, DashboardServer) {
         actor_type: "Demo".into(),
         mailbox_depth: 0,
         spawned_at: "now".into(),
+        host: None,
     });
     telemetry.dead_letters.record("/user/a".into(), None, "String".into(), "hi".into());
     let cfg = DashboardConfig {

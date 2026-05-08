@@ -18,6 +18,7 @@ fn status(path: &str) -> ActorStatus {
         actor_type: "T".into(),
         mailbox_depth: 0,
         spawned_at: "now".into(),
+        host: None,
     }
 }
 

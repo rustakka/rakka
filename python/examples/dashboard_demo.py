@@ -56,8 +56,8 @@ class Boss(Actor):
         if message == "Tick":
             for _, ref in self.workers:
                 ref.tell("Inc")
-        elif message == "Retire":
-            ctx.stop_child("worker-2")
+        elif isinstance(message, tuple) and message[0] == "Retire":
+            ctx.stop_child(message[1])
             # Keep the ref in self.workers so subsequent Ticks still try
             # to deliver to it — that's what produces the dead letters.
 
@@ -68,15 +68,25 @@ class Boss(Actor):
 
 
 def run_ticker(boss, stop_event: threading.Event) -> None:
-    while not stop_event.is_set():
+    """Tick every 2s for ~25s, then back off so the DeadLetters page
+    caps at a small bounded total instead of growing forever."""
+    deadline = time.monotonic() + 25.0
+    while not stop_event.is_set() and time.monotonic() < deadline:
         boss.tell("Tick")
-        stop_event.wait(0.25)
+        stop_event.wait(2.0)
 
 
 def run_retirer(boss, stop_event: threading.Event) -> None:
-    if not stop_event.wait(5.0):
-        boss.tell("Retire")
-        print("[demo] retired worker-2 → subsequent ticks become dead letters")
+    """Retire workers one at a time so the DeadLetters page shows
+    variety in recipients, not a flood from a single worker."""
+    schedule = [(6.0, "worker-2"), (14.0, "worker-1"), (22.0, "worker-0")]
+    start = time.monotonic()
+    for at, name in schedule:
+        wait = max(0.0, (start + at) - time.monotonic())
+        if stop_event.wait(wait):
+            return
+        boss.tell(("Retire", name))
+        print(f"[demo] retired {name} — its ref now produces dead letters")
 
 
 def run_streams(system, stop_event: threading.Event) -> None:

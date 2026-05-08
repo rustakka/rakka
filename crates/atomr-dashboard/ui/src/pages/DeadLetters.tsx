@@ -21,8 +21,14 @@ export default function DeadLetters() {
     queryFn: () => api.deadLetters(200),
   });
 
-  const live = useEventsStore((s) =>
-    s.events.filter(isDeadLetter).map((e) => e as unknown as DeadLetterRecord),
+  // Select the raw events array (stable reference until events mutate)
+  // and memoize the filter/cast outside the selector. Returning a fresh
+  // array from the selector on every render trips React error #185
+  // (max update depth) under Zustand's default `Object.is` comparator.
+  const events = useEventsStore((s) => s.events);
+  const live = useMemo(
+    () => events.filter(isDeadLetter).map((e) => e as unknown as DeadLetterRecord),
+    [events],
   );
 
   const merged = useMemo(() => {

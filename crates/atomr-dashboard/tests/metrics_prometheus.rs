@@ -23,6 +23,7 @@ async fn metrics_endpoint_renders_registry() {
         actor_type: "Demo".into(),
         mailbox_depth: 0,
         spawned_at: "now".into(),
+        host: None,
     });
     telemetry.dead_letters.record("/user/a".into(), None, "String".into(), "hi".into());
     let _ = DeadLetterRecord {
@@ -52,6 +53,7 @@ async fn metrics_endpoint_renders_registry() {
         actor_type: "Demo".into(),
         mailbox_depth: 3,
         spawned_at: "now".into(),
+        host: None,
     });
     telemetry.dead_letters.record("/user/b".into(), None, "String".into(), "dead".into());
 

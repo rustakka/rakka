@@ -7,6 +7,8 @@ export interface ActorStatus {
   actor_type: string;
   mailbox_depth: number;
   spawned_at: string;
+  /** Optional cluster host annotation set by the application. */
+  host?: string;
 }
 
 export interface ActorTreeNode {
@@ -14,6 +16,8 @@ export interface ActorTreeNode {
   name: string;
   actor_type: string;
   mailbox_depth: number;
+  /** Optional cluster host annotation set by the application. */
+  host?: string;
   children: ActorTreeNode[];
 }
 

@@ -11,6 +11,13 @@ pub struct ActorStatus {
     pub actor_type: String,
     pub mailbox_depth: u64,
     pub spawned_at: String,
+    /// Optional host annotation supplied by the application via
+    /// [`crate::actor_registry::ActorRegistry::set_host`]. Single-process
+    /// systems leave this `None`; cluster-aware demos use it to group
+    /// actors by their owning cluster member on the dashboard's
+    /// Topology page.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub host: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,6 +26,8 @@ pub struct ActorTreeNode {
     pub name: String,
     pub actor_type: String,
     pub mailbox_depth: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub host: Option<String>,
     pub children: Vec<ActorTreeNode>,
 }
 

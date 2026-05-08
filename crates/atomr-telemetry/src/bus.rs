@@ -135,6 +135,7 @@ mod tests {
             actor_type: "Test".into(),
             mailbox_depth: 0,
             spawned_at: "now".into(),
+            host: None,
         });
         assert_eq!(e.topic(), "actors");
     }

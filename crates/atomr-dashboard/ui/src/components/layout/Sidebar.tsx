@@ -6,7 +6,7 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex w-56 flex-col border-r bg-card/40 px-3 py-4">
       <div className="px-2 pb-4 text-sm font-semibold tracking-wide">
-        <span className="text-primary">rust</span>akka
+        <span className="text-primary">atom</span>r
       </div>
       <nav className="flex flex-col gap-0.5">
         {NAV_ITEMS.map((item) => (

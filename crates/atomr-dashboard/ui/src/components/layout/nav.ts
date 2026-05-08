@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   MoreHorizontal,
   Network,
+  Orbit,
   Share2,
   Waves,
 } from "lucide-react";
@@ -21,6 +22,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { label: "Overview", to: "/", icon: LayoutDashboard, mobilePrimary: true },
   { label: "Actors", to: "/actors", icon: Boxes, mobilePrimary: true },
+  { label: "Topology", to: "/topology", icon: Orbit, mobilePrimary: true },
   { label: "Cluster", to: "/cluster", icon: Share2, mobilePrimary: true },
   { label: "Dead letters", to: "/dead-letters", icon: Inbox },
   { label: "Persistence", to: "/persistence", icon: Database, mobilePrimary: true },

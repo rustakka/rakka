@@ -16,7 +16,7 @@ export function TopBar() {
   return (
     <header className="sticky top-0 z-30 flex h-12 items-center gap-3 border-b bg-background/85 px-3 backdrop-blur">
       <div className="flex md:hidden items-center gap-1 text-sm font-semibold">
-        <span className="text-primary">rust</span>akka
+        <span className="text-primary">atom</span>r
       </div>
       <div className="ml-auto flex items-center gap-2">
         <Badge variant="outline" className="gap-1">

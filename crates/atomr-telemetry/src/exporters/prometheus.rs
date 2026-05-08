@@ -377,6 +377,7 @@ mod tests {
             actor_type: "T".into(),
             mailbox_depth: 0,
             spawned_at: "now".into(),
+            host: None,
         }));
         exp.on_event(&TelemetryEvent::MailboxSampled { path: "/user/a".into(), depth: 5 });
         exp.on_event(&TelemetryEvent::DeadLetter(DeadLetterRecord {
@@ -420,6 +421,7 @@ mod tests {
                 actor_type: "T".into(),
                 mailbox_depth: 0,
                 spawned_at: "now".into(),
+                host: None,
             })
         };
         exp.on_event(&spawn("/user/a"));

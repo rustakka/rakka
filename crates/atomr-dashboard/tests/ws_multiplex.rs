@@ -51,6 +51,7 @@ async fn ws_forwards_actor_events_without_filter() {
         actor_type: "Demo".into(),
         mailbox_depth: 0,
         spawned_at: "now".into(),
+        host: None,
     });
 
     let msg = read_text(&mut socket).await.expect("text frame");
@@ -72,6 +73,7 @@ async fn ws_topic_filter_excludes_non_matching_events() {
         actor_type: "Demo".into(),
         mailbox_depth: 0,
         spawned_at: "now".into(),
+        host: None,
     });
     telemetry.dead_letters.record("/user/x".into(), None, "String".into(), "".into());
 

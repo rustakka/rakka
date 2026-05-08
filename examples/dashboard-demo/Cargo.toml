@@ -11,12 +11,15 @@ atomr-config = { path = "../../crates/atomr-config" }
 atomr-streams = { path = "../../crates/atomr-streams" }
 atomr-telemetry = { path = "../../crates/atomr-telemetry" }
 atomr-dashboard = { path = "../../crates/atomr-dashboard" }
+atomr-persistence = { path = "../../crates/atomr-persistence" }
 
 tokio = { workspace = true }
 async-trait = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+chrono = { workspace = true }
+once_cell = { workspace = true }
 
 [features]
 # Bake the React SPA into the binary. Run

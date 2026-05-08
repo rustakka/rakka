@@ -24,6 +24,7 @@ async fn capturing_exporter_sees_probe_activity() {
         actor_type: "Demo".into(),
         mailbox_depth: 0,
         spawned_at: "now".into(),
+        host: None,
     });
     telemetry.dead_letters.record("/user/a".into(), None, "String".into(), "hi".into());
 

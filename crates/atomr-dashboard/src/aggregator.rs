@@ -121,6 +121,7 @@ mod imp {
                 name: node.clone(),
                 actor_type: "Node".into(),
                 mailbox_depth: 0,
+                host: Some(node.clone()),
                 children: snap.roots.clone(),
             });
         }

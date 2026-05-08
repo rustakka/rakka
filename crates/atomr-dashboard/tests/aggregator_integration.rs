@@ -20,6 +20,7 @@ async fn start_peer(label: &str, actors: &[&str]) -> atomr_dashboard::DashboardH
             actor_type: "Demo".into(),
             mailbox_depth: 0,
             spawned_at: "now".into(),
+            host: None,
         });
     }
     t.dead_letters.record("/x".into(), None, "String".into(), "".into());

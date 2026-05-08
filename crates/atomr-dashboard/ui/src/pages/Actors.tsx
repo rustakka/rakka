@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { ActorTreeFlow } from "@/components/viz/ActorTreeFlow";
+import { ActorTreeFlow, type Orientation } from "@/components/viz/ActorTreeFlow";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 export default function Actors() {
   const [selected, setSelected] = useState<string | null>(null);
+  const [orientation, setOrientation] = useState<Orientation>("vertical");
   const { data, isLoading } = useQuery({ queryKey: ["actors"], queryFn: api.actors });
 
   const sel = useMemo(
@@ -17,11 +18,43 @@ export default function Actors() {
   return (
     <div className="grid gap-3 md:grid-cols-[1fr_320px]">
       <Card className="overflow-hidden">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle>
             Actor hierarchy{" "}
             {data && <Badge variant="outline">{data.total} live</Badge>}
           </CardTitle>
+          <div
+            role="group"
+            aria-label="Orientation"
+            className="flex overflow-hidden rounded-md border text-xs"
+          >
+            <button
+              type="button"
+              aria-pressed={orientation === "vertical"}
+              onClick={() => setOrientation("vertical")}
+              className={
+                orientation === "vertical"
+                  ? "bg-accent px-2 py-1 text-accent-foreground"
+                  : "px-2 py-1 text-muted-foreground hover:bg-accent/40"
+              }
+              title="Top-to-bottom hierarchy"
+            >
+              ▼ vertical
+            </button>
+            <button
+              type="button"
+              aria-pressed={orientation === "horizontal"}
+              onClick={() => setOrientation("horizontal")}
+              className={
+                orientation === "horizontal"
+                  ? "bg-accent px-2 py-1 text-accent-foreground"
+                  : "px-2 py-1 text-muted-foreground hover:bg-accent/40"
+              }
+              title="Left-to-right hierarchy"
+            >
+              ▶ horizontal
+            </button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading || !data ? (
@@ -29,7 +62,11 @@ export default function Actors() {
               loading…
             </div>
           ) : (
-            <ActorTreeFlow roots={data.roots} onSelect={setSelected} />
+            <ActorTreeFlow
+              roots={data.roots}
+              onSelect={setSelected}
+              orientation={orientation}
+            />
           )}
         </CardContent>
       </Card>

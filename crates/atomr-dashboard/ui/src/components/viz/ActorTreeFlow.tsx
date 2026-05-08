@@ -11,29 +11,36 @@ import "reactflow/dist/style.css";
 
 import type { ActorTreeNode } from "@/lib/api";
 
+export type Orientation = "vertical" | "horizontal";
+
 interface Layout {
   nodes: Node[];
   edges: Edge[];
 }
 
-function layout(roots: ActorTreeNode[]): Layout {
+function layout(roots: ActorTreeNode[], orientation: Orientation): Layout {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
-  const hGap = 220;
-  const vGap = 80;
+  // Cross-axis spacing keeps siblings apart, depth-axis spacing puts
+  // each generation on its own row/column. The cross-axis needs to be
+  // wider in horizontal mode so labels don't overlap.
+  const depthGap = orientation === "vertical" ? 100 : 260;
+  const crossGap = orientation === "vertical" ? 220 : 90;
 
-  let depthCursor: number[] = [];
+  const depthCursor: number[] = [];
 
   function walk(n: ActorTreeNode, depth: number, parentId?: string) {
     const id = n.path;
     depthCursor[depth] = (depthCursor[depth] ?? -1) + 1;
-    const y = depth * vGap;
-    const x = depthCursor[depth] * hGap;
+    const cross = depthCursor[depth] * crossGap;
+    const along = depth * depthGap;
+    const position =
+      orientation === "vertical" ? { x: cross, y: along } : { x: along, y: cross };
     nodes.push({
       id,
-      position: { x, y },
-      sourcePosition: Position.Bottom,
-      targetPosition: Position.Top,
+      position,
+      sourcePosition: orientation === "vertical" ? Position.Bottom : Position.Right,
+      targetPosition: orientation === "vertical" ? Position.Top : Position.Left,
       data: {
         label: (
           <div className="flex flex-col items-start">
@@ -71,11 +78,16 @@ function layout(roots: ActorTreeNode[]): Layout {
 export function ActorTreeFlow({
   roots,
   onSelect,
+  orientation = "vertical",
 }: {
   roots: ActorTreeNode[];
   onSelect?: (path: string) => void;
+  orientation?: Orientation;
 }) {
-  const { nodes, edges } = useMemo(() => layout(roots), [roots]);
+  const { nodes, edges } = useMemo(
+    () => layout(roots, orientation),
+    [roots, orientation],
+  );
   return (
     <div className="h-[60vh] md:h-[70vh] w-full rounded-lg border bg-card/40">
       <ReactFlow
@@ -83,6 +95,7 @@ export function ActorTreeFlow({
         edges={edges}
         onNodeClick={(_, n) => onSelect?.(n.id)}
         fitView
+        fitViewOptions={{ padding: 0.2 }}
         proOptions={{ hideAttribution: true }}
       >
         <Background />

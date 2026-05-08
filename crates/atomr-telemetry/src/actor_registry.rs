@@ -30,6 +30,17 @@ impl ActorRegistry {
         self.bus.publish(TelemetryEvent::ActorSpawned(status));
     }
 
+    /// Annotate an existing actor with the cluster host it logically lives
+    /// on. The actor system itself is single-process; this is a hint
+    /// supplied by the application (the dashboard demo, sharding code,
+    /// etc.) so the dashboard's Topology page can group actors by host.
+    /// Calling this for an unknown path is a no-op.
+    pub fn set_host(&self, path: &str, host: impl Into<String>) {
+        if let Some(mut e) = self.entries.get_mut(path) {
+            e.host = Some(host.into());
+        }
+    }
+
     pub fn record_stop(&self, path: &str) {
         if self.entries.remove(path).is_some() {
             self.stopped.fetch_add(1, Ordering::Relaxed);
@@ -71,6 +82,7 @@ impl SpawnObserver for ActorRegistry {
             actor_type: actor_type.to_string(),
             mailbox_depth: 0,
             spawned_at: chrono::Utc::now().to_rfc3339(),
+            host: None,
         });
     }
 
@@ -111,6 +123,7 @@ fn build_tree(flat: &[ActorStatus]) -> Vec<ActorTreeNode> {
             name,
             actor_type: s.actor_type.clone(),
             mailbox_depth: s.mailbox_depth,
+            host: s.host.clone(),
             children,
         }
     }
@@ -129,6 +142,7 @@ mod tests {
             actor_type: "Test".into(),
             mailbox_depth: 0,
             spawned_at: "now".into(),
+            host: None,
         }
     }
 
