@@ -46,9 +46,13 @@ pub mod cqrs;
 pub mod ddd;
 pub mod error;
 pub mod extensions;
+pub mod inbox;
 pub mod outbox;
 pub mod prelude;
+pub mod process_manager;
+pub mod reactor;
 pub mod saga;
+pub mod specification;
 pub mod topology;
 
 pub use error::PatternError;

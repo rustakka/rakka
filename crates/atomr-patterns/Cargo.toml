@@ -29,6 +29,7 @@ parking_lot             = { workspace = true }
 [dev-dependencies]
 atomr-persistence-query-inmemory = { workspace = true }
 atomr-config                     = { workspace = true }
+atomr-cluster-tools              = { workspace = true }
 
 [features]
 default = []

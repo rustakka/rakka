@@ -8,6 +8,21 @@
 
 use async_trait::async_trait;
 
+/// What stream of events the reader subscribes to. Selected via
+/// [`Reader::filter`]; defaults to [`ReaderFilter::All`].
+#[derive(Debug, Clone)]
+#[non_exhaustive]
+pub enum ReaderFilter {
+    /// Every event from every persistence id.
+    All,
+    /// Only events whose [`crate::DomainEvent::tags`] contains this tag.
+    Tag(String),
+    /// Only events from the given persistence id.
+    PersistenceId(String),
+    /// Only events whose persistence id is in the given set.
+    PersistenceIds(Vec<String>),
+}
+
 /// Fold journal events into a projection.
 ///
 /// The runner polls the configured read journal, decodes each
@@ -34,15 +49,27 @@ pub trait Reader: Send + 'static {
     /// dashboard child-actor naming. Must be unique per CQRS instance.
     fn name(&self) -> &str;
 
-    /// Optional tag filter. `None` means "every event from every
-    /// persistence id"; `Some(tag)` matches events whose
-    /// [`crate::DomainEvent::tags`] contains `tag`.
+    /// Legacy tag filter. Default `None`. Implemented in terms of
+    /// [`Self::filter`] so existing v1 readers keep working unchanged.
+    /// Prefer [`Self::filter`] in new code.
     fn tag(&self) -> Option<String> {
         None
     }
 
+    /// What stream of events this reader follows. Default returns
+    /// [`ReaderFilter::Tag`] when [`Self::tag`] is `Some`, else
+    /// [`ReaderFilter::All`].
+    fn filter(&self) -> ReaderFilter {
+        match self.tag() {
+            Some(t) => ReaderFilter::Tag(t),
+            None => ReaderFilter::All,
+        }
+    }
+
     /// Decode a journal payload back into the event type. The codec
-    /// must be the inverse of the aggregate's `encode_event`.
+    /// must be the inverse of the aggregate's `encode_event`. Used
+    /// as the fallback when no [`crate::cqrs::EventCodecRegistry`] is
+    /// configured for the relevant `manifest`.
     fn decode(bytes: &[u8]) -> Result<Self::Event, String>;
 
     /// Apply one event to the projection.

@@ -32,6 +32,9 @@ pub enum PatternError<E> {
     #[error("intercepted: {0}")]
     Intercepted(String),
 
+    #[error("concurrency conflict: expected version {expected}, actual {actual}")]
+    ConcurrencyConflict { expected: u64, actual: u64 },
+
     #[error("reply channel dropped")]
     ReplyDropped,
 }

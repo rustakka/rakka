@@ -46,4 +46,20 @@ pub trait AggregateRoot: Eventsourced {
     fn check_invariants(_state: &Self::State) -> Result<(), Self::Error> {
         Ok(())
     }
+
+    /// Encode `State` for snapshot persistence. Returning `None`
+    /// disables snapshotting for this aggregate even if a snapshot
+    /// store is configured at the pattern level — recovery falls back
+    /// to journal replay only. Returning `Some(Err(_))` surfaces
+    /// [`crate::PatternError::Codec`].
+    fn encode_state(_state: &Self::State) -> Option<Result<Vec<u8>, String>> {
+        None
+    }
+
+    /// Decode a snapshot payload back into `State`. Must be the
+    /// inverse of [`Self::encode_state`]. Required iff `encode_state`
+    /// is implemented.
+    fn decode_state(_bytes: &[u8]) -> Result<Self::State, String> {
+        Err("decode_state not implemented".into())
+    }
 }

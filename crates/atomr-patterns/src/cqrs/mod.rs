@@ -16,11 +16,17 @@
 //!
 //! See [`CqrsPattern::builder`] for the entry point.
 
+pub mod audit;
 mod builder;
 mod command_gateway;
+mod event_codec;
 mod projection;
 mod reader;
+mod scheduled;
 
+pub use audit::{AuditLog, AuditProjection};
 pub use builder::{CqrsBuilder, CqrsHandles, CqrsPattern, CqrsTopology};
+pub use event_codec::EventCodecRegistry;
 pub use projection::ProjectionHandle;
-pub use reader::Reader;
+pub use reader::{Reader, ReaderFilter};
+pub use scheduled::schedule_command;

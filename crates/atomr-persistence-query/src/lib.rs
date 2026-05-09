@@ -38,6 +38,10 @@ pub struct EventEnvelope {
     pub payload: Vec<u8>,
     pub offset: u64,
     pub tags: Vec<String>,
+    /// Manifest tag the event was written with. Mirrors
+    /// [`PersistentRepr::manifest`]; used by readers that dispatch
+    /// decoding based on event-schema version.
+    pub manifest: String,
 }
 
 impl From<PersistentRepr> for EventEnvelope {
@@ -48,6 +52,7 @@ impl From<PersistentRepr> for EventEnvelope {
             payload: r.payload,
             offset: r.sequence_nr,
             tags: r.tags,
+            manifest: r.manifest,
         }
     }
 }

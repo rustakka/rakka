@@ -6,6 +6,10 @@
 //! (e.g. publishing to Kafka, hitting a webhook) that must occur
 //! "at-least-once after every successful aggregate write."
 
+mod journal_offset_store;
+
+pub use journal_offset_store::JournalOffsetStore;
+
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::sync::atomic::{AtomicU64, Ordering};

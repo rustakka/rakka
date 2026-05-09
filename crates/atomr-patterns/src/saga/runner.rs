@@ -14,6 +14,7 @@ use async_trait::async_trait;
 use atomr_core::actor::ActorSystem;
 use tokio::sync::mpsc::UnboundedReceiver;
 
+use crate::saga::state_store::{InMemorySagaStateStore, SagaStateStore};
 use crate::topology::Topology;
 use crate::PatternError;
 
@@ -48,6 +49,19 @@ pub trait Saga: Send + 'static {
         state: &mut Self::State,
         event: Self::Event,
     ) -> Result<Vec<SagaAction<Self::Command>>, Self::Error>;
+
+    /// Optional codec for state persistence. `None` keeps state
+    /// in-memory only (default — preserves v1 behavior). Implement to
+    /// participate in [`crate::saga::SagaStateStore`] persistence.
+    fn encode_state(_state: &Self::State) -> Option<Result<Vec<u8>, String>> {
+        None
+    }
+
+    /// Decode a persisted payload back into `State`. Required iff
+    /// [`Self::encode_state`] is implemented.
+    fn decode_state(_bytes: &[u8]) -> Result<Self::State, String> {
+        Err("decode_state not implemented".into())
+    }
 }
 
 /// Public, zero-sized handle for the saga pattern.
@@ -71,11 +85,12 @@ pub struct SagaBuilder<S: Saga> {
     saga: Option<S>,
     events: Option<UnboundedReceiver<S::Event>>,
     dispatcher: Option<SagaDispatcher<S::Command>>,
+    state_store: Option<Arc<dyn SagaStateStore>>,
 }
 
 impl<S: Saga> Default for SagaBuilder<S> {
     fn default() -> Self {
-        Self { name: None, saga: None, events: None, dispatcher: None }
+        Self { name: None, saga: None, events: None, dispatcher: None, state_store: None }
     }
 }
 
@@ -115,13 +130,26 @@ impl<S: Saga> SagaBuilder<S> {
         self
     }
 
+    /// Provide a [`SagaStateStore`]. When set together with
+    /// [`Saga::encode_state`] / [`Saga::decode_state`], the runner
+    /// reloads in-flight saga states on startup and persists state
+    /// after each event handle. Default: in-memory.
+    pub fn state_store<T: SagaStateStore>(mut self, store: Arc<T>) -> Self {
+        self.state_store = Some(store);
+        self
+    }
+
     /// Finalize the builder.
     pub fn build(self) -> Result<SagaTopology<S>, PatternError<S::Error>> {
+        let state_store: Arc<dyn SagaStateStore> = self
+            .state_store
+            .unwrap_or_else(|| Arc::new(InMemorySagaStateStore::new()));
         Ok(SagaTopology {
             name: self.name.unwrap_or_else(|| "saga".into()),
             saga: self.saga.ok_or(PatternError::NotConfigured("saga"))?,
             events: self.events.ok_or(PatternError::NotConfigured("events"))?,
             dispatcher: self.dispatcher.ok_or(PatternError::NotConfigured("dispatcher"))?,
+            state_store,
         })
     }
 }
@@ -132,6 +160,7 @@ pub struct SagaTopology<S: Saga> {
     saga: S,
     events: UnboundedReceiver<S::Event>,
     dispatcher: SagaDispatcher<S::Command>,
+    state_store: Arc<dyn SagaStateStore>,
 }
 
 /// Handles handed back after [`Topology::materialize`].
@@ -144,10 +173,29 @@ impl<S: Saga> Topology for SagaTopology<S> {
     type Handles = SagaHandles;
 
     async fn materialize(self, _system: &ActorSystem) -> Result<SagaHandles, PatternError<()>> {
-        let SagaTopology { name, mut saga, mut events, dispatcher } = self;
+        let SagaTopology { name, mut saga, mut events, dispatcher, state_store } = self;
         let task_name = name.clone();
         tokio::spawn(async move {
             let mut states: HashMap<String, S::State> = HashMap::new();
+            // Rehydrate any persisted in-flight saga states.
+            if S::encode_state(&S::State::default()).is_some() {
+                for corr in state_store.keys().await {
+                    if let Some(payload) = state_store.load(&corr).await {
+                        match S::decode_state(&payload) {
+                            Ok(state) => {
+                                states.insert(corr, state);
+                            }
+                            Err(e) => {
+                                tracing::warn!(
+                                    saga = %task_name,
+                                    error = %e,
+                                    "decode saga state failed; dropping"
+                                );
+                            }
+                        }
+                    }
+                }
+            }
             while let Some(event) = events.recv().await {
                 let Some(corr) = S::correlation_id(&event) else {
                     continue;
@@ -155,6 +203,12 @@ impl<S: Saga> Topology for SagaTopology<S> {
                 let state = states.entry(corr.clone()).or_default();
                 match saga.handle(state, event).await {
                     Ok(actions) => {
+                        // Persist updated state before any dispatch so a
+                        // crash mid-dispatch doesn't lose the decision.
+                        if let Some(Ok(payload)) = S::encode_state(state) {
+                            state_store.save(&corr, payload).await;
+                        }
+                        let mut completed = false;
                         for action in actions {
                             match action {
                                 SagaAction::Send(c) => {
@@ -173,10 +227,14 @@ impl<S: Saga> Topology for SagaTopology<S> {
                                     }
                                 }
                                 SagaAction::Complete => {
-                                    states.remove(&corr);
+                                    completed = true;
                                     break;
                                 }
                             }
+                        }
+                        if completed {
+                            states.remove(&corr);
+                            state_store.delete(&corr).await;
                         }
                     }
                     Err(e) => {
