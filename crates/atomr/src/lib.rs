@@ -60,6 +60,7 @@
 //! | `persistence` | `atomr::persistence` | Event sourcing — journals + snapshots |
 //! | `persistence-query` | `atomr::persistence_query` | Tagged event streams |
 //! | `streams` | `atomr::streams` | Typed reactive streams DSL |
+//! | `patterns` | `atomr::patterns` | DDD/CQRS aggregates + readers + sagas |
 //! | `coordination` | `atomr::coordination` | Lease primitives |
 //! | `discovery` | `atomr::discovery` | Service discovery |
 //! | `di` | `atomr::di` | DI container |
@@ -126,6 +127,10 @@ pub use atomr_persistence_query as persistence_query;
 #[cfg(feature = "streams")]
 #[cfg_attr(docsrs, doc(cfg(feature = "streams")))]
 pub use atomr_streams as streams;
+
+#[cfg(feature = "patterns")]
+#[cfg_attr(docsrs, doc(cfg(feature = "patterns")))]
+pub use atomr_patterns as patterns;
 
 #[cfg(feature = "coordination")]
 #[cfg_attr(docsrs, doc(cfg(feature = "coordination")))]

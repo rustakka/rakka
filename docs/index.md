@@ -115,6 +115,8 @@ python python/examples/ml_inference.py
 - [Persistence providers](persistence-providers.md) — storage adapters
   and the shared TCK.
 - [Streams](https://github.com/rustakka/atomr#whats-in-the-box) — reactive stream DSL.
+- [Patterns](patterns.md) — DDD/CQRS pattern library: aggregates,
+  readers, projections, sagas, outbox, anti-corruption layer.
 - [Dashboard](dashboard.md) — live system UI.
 - [Observability](observability.md) — exporters and integration
   points.

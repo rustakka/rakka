@@ -24,6 +24,7 @@ members = [
     "crates/atomr-persistence-aws",
     "crates/atomr-persistence-azure",
     "crates/atomr-streams",
+    "crates/atomr-patterns",
     "crates/atomr-telemetry",
     "crates/atomr-dashboard",
     "crates/atomr-coordination",
@@ -166,6 +167,7 @@ atomr-persistence-cassandra = { path = "crates/atomr-persistence-cassandra", ver
 atomr-persistence-aws = { path = "crates/atomr-persistence-aws", version = "0.6.1" }
 atomr-persistence-azure = { path = "crates/atomr-persistence-azure", version = "0.6.1" }
 atomr-streams = { path = "crates/atomr-streams", version = "0.6.1" }
+atomr-patterns = { path = "crates/atomr-patterns", version = "0.6.1" }
 atomr-telemetry = { path = "crates/atomr-telemetry", version = "0.6.1" }
 atomr-dashboard = { path = "crates/atomr-dashboard", version = "0.6.1" }
 atomr-coordination = { path = "crates/atomr-coordination", version = "0.6.1" }

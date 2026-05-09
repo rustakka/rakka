@@ -343,6 +343,7 @@ jobs:
             atomr-persistence-cassandra atomr-persistence-aws \
             atomr-persistence-azure \
             atomr-cluster-sharding \
+            atomr-patterns \
             atomr-telemetry \
             atomr-dashboard \
             atomr; do
@@ -362,7 +363,7 @@ jobs:
         run: |
           for c in atomr-config atomr-macros atomr-core atomr-testkit atomr-remote \
                    atomr-distributed-data atomr-cluster atomr-persistence atomr-streams \
-                   atomr-cluster-sharding atomr; do
+                   atomr-cluster-sharding atomr-patterns atomr; do
             echo "==> $c"
             cargo publish -p "$c" --dry-run --allow-dirty || true
           done

@@ -27,6 +27,7 @@ atomr-distributed-data = { workspace = true, optional = true }
 atomr-persistence = { workspace = true, optional = true }
 atomr-persistence-query = { workspace = true, optional = true }
 atomr-streams = { workspace = true, optional = true }
+atomr-patterns = { workspace = true, optional = true }
 atomr-coordination = { workspace = true, optional = true }
 atomr-discovery = { workspace = true, optional = true }
 atomr-di = { workspace = true, optional = true }
@@ -73,6 +74,9 @@ persistence-query = ["dep:atomr-persistence-query", "persistence"]
 # Typed reactive streams DSL.
 streams = ["dep:atomr-streams"]
 
+# DDD/CQRS pattern library — aggregates, readers, projections, sagas.
+patterns = ["dep:atomr-patterns", "persistence", "persistence-query", "streams"]
+
 # Lease-based leadership primitives.
 coordination = ["dep:atomr-coordination"]
 
@@ -101,6 +105,7 @@ full = [
   "persistence",
   "persistence-query",
   "streams",
+  "patterns",
   "coordination",
   "discovery",
   "di",
@@ -122,6 +127,7 @@ cluster-app = [
   "persistence",
   "persistence-query",
   "streams",
+  "patterns",
   "telemetry",
 ]
 
