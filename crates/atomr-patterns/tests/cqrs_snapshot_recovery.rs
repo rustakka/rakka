@@ -148,11 +148,7 @@ async fn case_snapshot_first_recovery_skips_replayed_events() {
 
     // Snapshot loaded once, exactly 5 events replayed (21..=25), not 25.
     assert_eq!(STATE_DECODES.load(Ordering::SeqCst), 1, "snapshot decoded once");
-    assert_eq!(
-        EVENT_DECODES.load(Ordering::SeqCst),
-        5,
-        "only events after the snapshot are replayed"
-    );
+    assert_eq!(EVENT_DECODES.load(Ordering::SeqCst), 5, "only events after the snapshot are replayed");
 }
 
 async fn case_no_snapshot_store_falls_back_to_full_replay() {

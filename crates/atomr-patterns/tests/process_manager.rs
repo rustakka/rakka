@@ -6,9 +6,7 @@ use std::time::Duration;
 
 use atomr_config::Config;
 use atomr_core::actor::ActorSystem;
-use atomr_patterns::process_manager::{
-    ProcessManager, ProcessManagerPattern, Transition,
-};
+use atomr_patterns::process_manager::{ProcessManager, ProcessManagerPattern, Transition};
 use atomr_patterns::topology::Topology;
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
@@ -49,22 +47,18 @@ impl ProcessManager for OrderProcess {
         })
     }
 
-    fn transition(
-        state: &St,
-        event: Event,
-    ) -> Result<Transition<St, Cmd>, PmErr> {
+    fn transition(state: &St, event: Event) -> Result<Transition<St, Cmd>, PmErr> {
         Ok(match (state, &event) {
-            (St::Pending, Event::Pay { order }) => Transition::Goto {
-                next: St::Paid,
-                commands: vec![Cmd::Notify(format!("paid:{order}"))],
-            },
+            (St::Pending, Event::Pay { order }) => {
+                Transition::Goto { next: St::Paid, commands: vec![Cmd::Notify(format!("paid:{order}"))] }
+            }
             (St::Paid, Event::Ship { order }) => Transition::Goto {
                 next: St::Shipped,
                 commands: vec![Cmd::Notify(format!("shipped:{order}"))],
             },
-            (St::Shipped, Event::Deliver { order }) => Transition::Complete {
-                commands: vec![Cmd::Notify(format!("delivered:{order}"))],
-            },
+            (St::Shipped, Event::Deliver { order }) => {
+                Transition::Complete { commands: vec![Cmd::Notify(format!("delivered:{order}"))] }
+            }
             _ => Transition::Stay,
         })
     }

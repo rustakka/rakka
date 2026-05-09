@@ -139,9 +139,7 @@ impl<E: Clone + Send + 'static> OutboxBuilder<E> {
             poll_interval: self.poll_interval,
             decode: self.decode.ok_or(PatternError::NotConfigured("decode"))?,
             publish: self.publish.ok_or(PatternError::NotConfigured("publish"))?,
-            offset_store: self
-                .offset_store
-                .unwrap_or_else(|| Arc::new(InMemoryOffsetStore::new())),
+            offset_store: self.offset_store.unwrap_or_else(|| Arc::new(InMemoryOffsetStore::new())),
         })
     }
 }
@@ -177,14 +175,7 @@ impl<E: Clone + Send + 'static> Topology for OutboxTopology<E> {
     type Handles = OutboxHandles;
 
     async fn materialize(self, _system: &ActorSystem) -> Result<OutboxHandles, PatternError<()>> {
-        let OutboxTopology {
-            name,
-            read_journal,
-            poll_interval,
-            decode,
-            publish,
-            offset_store,
-        } = self;
+        let OutboxTopology { name, read_journal, poll_interval, decode, publish, offset_store } = self;
         let published = Arc::new(AtomicU64::new(0));
         let published_clone = published.clone();
         let (stop_tx, mut stop_rx) = oneshot::channel();
@@ -204,10 +195,7 @@ impl<E: Clone + Send + 'static> Topology for OutboxTopology<E> {
                 };
                 for pid in pids {
                     let from = pid_offsets.get(&pid).copied().unwrap_or(0).saturating_add(1);
-                    let events = match read_journal
-                        .events_by_persistence_id(&pid, from, u64::MAX)
-                        .await
-                    {
+                    let events = match read_journal.events_by_persistence_id(&pid, from, u64::MAX).await {
                         Ok(e) => e,
                         Err(e) => {
                             tracing::warn!(outbox = %name, pid = %pid, error = ?e, "read failed");

@@ -107,12 +107,7 @@ async fn live_tail_reader_with_retry_recovers_from_transient_failures() {
     let system = ActorSystem::create("live", Config::reference()).await.unwrap();
     let journal = Arc::new(InMemoryJournal::default());
 
-    let bus = DomainEventBus::<Tick>::builder()
-        .name("ticks")
-        .build()
-        .materialize(&system)
-        .await
-        .unwrap();
+    let bus = DomainEventBus::<Tick>::builder().name("ticks").build().materialize(&system).await.unwrap();
 
     let fail_count = Arc::new(AtomicU32::new(2));
     let reader = FlakyReader { fail_n_times: fail_count.clone() };

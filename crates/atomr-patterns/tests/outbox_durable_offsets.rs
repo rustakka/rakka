@@ -42,9 +42,7 @@ async fn journal_offset_store_persists_across_restarts() {
         .read_journal(rj.clone())
         .poll_interval(Duration::from_millis(20))
         .offset_store(store.clone())
-        .decode(|b: &[u8]| {
-            Ok(u64::from_le_bytes(b.try_into().map_err(|_| "len".to_string())?))
-        })
+        .decode(|b: &[u8]| Ok(u64::from_le_bytes(b.try_into().map_err(|_| "len".to_string())?)))
         .publish({
             let p = published.clone();
             move |_n: u64| {
@@ -101,9 +99,7 @@ async fn journal_offset_store_persists_across_restarts() {
         .read_journal(rj.clone())
         .poll_interval(Duration::from_millis(20))
         .offset_store(Arc::new(reconstructed))
-        .decode(|b: &[u8]| {
-            Ok(u64::from_le_bytes(b.try_into().map_err(|_| "len".to_string())?))
-        })
+        .decode(|b: &[u8]| Ok(u64::from_le_bytes(b.try_into().map_err(|_| "len".to_string())?)))
         .publish({
             let p = published.clone();
             move |_n: u64| {
@@ -128,11 +124,7 @@ async fn journal_offset_store_persists_across_restarts() {
         tokio::time::sleep(Duration::from_millis(20)).await;
     }
 
-    assert_eq!(
-        published.load(Ordering::Acquire),
-        6,
-        "exactly 6 publishes, no dupes"
-    );
+    assert_eq!(published.load(Ordering::Acquire), 6, "exactly 6 publishes, no dupes");
     p2_handles.stop();
     system.terminate().await;
 }

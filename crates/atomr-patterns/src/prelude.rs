@@ -7,7 +7,7 @@ pub use crate::topology::Topology;
 pub use crate::PatternError;
 
 pub use atomr_persistence::{
-    AsyncSnapshotter, Eventsourced, EventsourcedError, InMemoryJournal, InMemorySnapshotStore,
-    Journal, RecoveryPermitter, SnapshotPolicy, SnapshotStore,
+    AsyncSnapshotter, Eventsourced, EventsourcedError, InMemoryJournal, InMemorySnapshotStore, Journal,
+    RecoveryPermitter, SnapshotPolicy, SnapshotStore,
 };
 pub use atomr_persistence_query::{EventEnvelope, Offset, ReadJournal};

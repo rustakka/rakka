@@ -76,8 +76,7 @@ impl<S: Saga> SagaPattern<S> {
     }
 }
 
-type SagaDispatcher<C> =
-    Arc<dyn Fn(C) -> futures::future::BoxFuture<'static, bool> + Send + Sync>;
+type SagaDispatcher<C> = Arc<dyn Fn(C) -> futures::future::BoxFuture<'static, bool> + Send + Sync>;
 
 /// Fluent builder.
 pub struct SagaBuilder<S: Saga> {
@@ -141,9 +140,8 @@ impl<S: Saga> SagaBuilder<S> {
 
     /// Finalize the builder.
     pub fn build(self) -> Result<SagaTopology<S>, PatternError<S::Error>> {
-        let state_store: Arc<dyn SagaStateStore> = self
-            .state_store
-            .unwrap_or_else(|| Arc::new(InMemorySagaStateStore::new()));
+        let state_store: Arc<dyn SagaStateStore> =
+            self.state_store.unwrap_or_else(|| Arc::new(InMemorySagaStateStore::new()));
         Ok(SagaTopology {
             name: self.name.unwrap_or_else(|| "saga".into()),
             saga: self.saga.ok_or(PatternError::NotConfigured("saga"))?,

@@ -43,28 +43,16 @@ async fn tell_crosses_serial_cable() {
     let (a_reader, a_writer) = tokio::io::split(a_io);
     let (b_reader, b_writer) = tokio::io::split(b_io);
 
-    let transport_a: Arc<dyn Transport> = Arc::new(SerialTransport::with_streams(
-        "A",
-        a_reader,
-        a_writer,
-        4 * 1024 * 1024,
-    ));
-    let transport_b: Arc<dyn Transport> = Arc::new(SerialTransport::with_streams(
-        "B",
-        b_reader,
-        b_writer,
-        4 * 1024 * 1024,
-    ));
+    let transport_a: Arc<dyn Transport> =
+        Arc::new(SerialTransport::with_streams("A", a_reader, a_writer, 4 * 1024 * 1024));
+    let transport_b: Arc<dyn Transport> =
+        Arc::new(SerialTransport::with_streams("B", b_reader, b_writer, 4 * 1024 * 1024));
 
     let sys_a = ActorSystem::create("A", atomr_config::Config::reference()).await.unwrap();
     let sys_b = ActorSystem::create("B", atomr_config::Config::reference()).await.unwrap();
 
-    let a = RemoteSystem::start_with_transport(sys_a, transport_a, RemoteSettings::default())
-        .await
-        .unwrap();
-    let b = RemoteSystem::start_with_transport(sys_b, transport_b, RemoteSettings::default())
-        .await
-        .unwrap();
+    let a = RemoteSystem::start_with_transport(sys_a, transport_a, RemoteSettings::default()).await.unwrap();
+    let b = RemoteSystem::start_with_transport(sys_b, transport_b, RemoteSettings::default()).await.unwrap();
 
     a.register_bincode::<Hello>();
     b.register_bincode::<Hello>();
@@ -75,17 +63,13 @@ async fn tell_crosses_serial_cable() {
     let l1 = last.clone();
     let echo = a
         .system
-        .actor_of(
-            Props::create(move || Recorder { received: r1.clone(), last_text: l1.clone() }),
-            "echo",
-        )
+        .actor_of(Props::create(move || Recorder { received: r1.clone(), last_text: l1.clone() }), "echo")
         .unwrap();
     a.expose_actor(echo);
 
     // From B, look up A's `echo` and tell.
     let target_path = format!("{}/user/echo", a.local_address);
-    let remote: ActorRef<Hello> =
-        b.actor_selection::<Hello>(&target_path).expect("remote selection");
+    let remote: ActorRef<Hello> = b.actor_selection::<Hello>(&target_path).expect("remote selection");
     for i in 0..3 {
         remote.tell(Hello { text: format!("hi-{i}"), seq: i });
     }

@@ -86,10 +86,7 @@ async fn expected_version_mismatch_returns_concurrency_conflict() {
 
     // Stale write: expects 0 but actual is 1.
     let stale = repo.send(Add { n: 999, expect: Some(0) }).await;
-    assert!(matches!(
-        stale,
-        Err(PatternError::ConcurrencyConflict { expected: 0, actual: 1 })
-    ));
+    assert!(matches!(stale, Err(PatternError::ConcurrencyConflict { expected: 0, actual: 1 })));
 
     // Fresh write: expects 1, succeeds, bumps to 2.
     repo.send(Add { n: 3, expect: Some(1) }).await.unwrap();

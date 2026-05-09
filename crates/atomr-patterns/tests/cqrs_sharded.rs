@@ -73,11 +73,8 @@ async fn shards_route_consistently_by_id_and_preserve_fifo() {
     let system = ActorSystem::create("sharded-cqrs", Config::reference()).await.unwrap();
     let journal = Arc::new(InMemoryJournal::default());
 
-    let topology = CqrsPattern::<A>::builder(journal.clone())
-        .factory(|id| A { id })
-        .shards(4)
-        .build()
-        .unwrap();
+    let topology =
+        CqrsPattern::<A>::builder(journal.clone()).factory(|id| A { id }).shards(4).build().unwrap();
     let h = topology.materialize(&system).await.unwrap();
     let repo = h.repository();
 

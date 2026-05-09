@@ -109,22 +109,13 @@ impl<J: Journal> SagaStateStore for JournalSagaStateStore<J> {
         if highest == 0 {
             return None;
         }
-        let reprs = self
-            .journal
-            .replay_messages(&pid, highest, highest, 1)
-            .await
-            .ok()?;
+        let reprs = self.journal.replay_messages(&pid, highest, highest, 1).await.ok()?;
         reprs.into_iter().last().filter(|r| !r.deleted).map(|r| r.payload)
     }
 
     async fn save(&self, correlation_id: &str, payload: Vec<u8>) {
         let pid = self.pid(correlation_id);
-        let next_seq = self
-            .journal
-            .highest_sequence_nr(&pid, 0)
-            .await
-            .unwrap_or(0)
-            + 1;
+        let next_seq = self.journal.highest_sequence_nr(&pid, 0).await.unwrap_or(0) + 1;
         let _ = self
             .journal
             .write_messages(vec![PersistentRepr {
@@ -162,9 +153,6 @@ impl<J: Journal> SagaStateStore for JournalSagaStateStore<J> {
 
 fn rand_id() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
+    let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
     format!("{nanos:x}")
 }

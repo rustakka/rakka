@@ -48,11 +48,7 @@ pub(crate) struct SnapshotConfig {
 
 impl Clone for SnapshotConfig {
     fn clone(&self) -> Self {
-        Self {
-            store: self.store.clone(),
-            policy: self.policy,
-            keep_last: self.keep_last,
-        }
+        Self { store: self.store.clone(), policy: self.policy, keep_last: self.keep_last }
     }
 }
 
@@ -70,8 +66,10 @@ impl SnapshotConfig {
 }
 
 pub(crate) type CommandReply<A> = oneshot::Sender<
-    Result<Vec<<A as atomr_persistence::Eventsourced>::Event>,
-           PatternError<<A as atomr_persistence::Eventsourced>::Error>>,
+    Result<
+        Vec<<A as atomr_persistence::Eventsourced>::Event>,
+        PatternError<<A as atomr_persistence::Eventsourced>::Error>,
+    >,
 >;
 
 /// Envelope received by the gateway actor.
@@ -125,7 +123,6 @@ where
     pub dedupe_window: usize,
 }
 
-
 #[async_trait]
 impl<A, J> Actor for CommandGateway<A, J>
 where
@@ -149,10 +146,7 @@ where
     A::Event: DomainEvent,
     J: Journal,
 {
-    async fn process(
-        &mut self,
-        cmd: A::Command,
-    ) -> Result<Vec<A::Event>, PatternError<A::Error>> {
+    async fn process(&mut self, cmd: A::Command) -> Result<Vec<A::Event>, PatternError<A::Error>> {
         // 1. Pre-handler interceptors. Any rejection short-circuits.
         self.extensions.run_interceptors(&cmd)?;
 
@@ -160,10 +154,8 @@ where
 
         // 2. Take entity out of the map so we can borrow it mutably
         //    across the async work without colliding with `&mut self`.
-        let mut entity = self
-            .entities
-            .remove(&id)
-            .unwrap_or_else(|| EntityState::new((self.factory)(id.clone())));
+        let mut entity =
+            self.entities.remove(&id).unwrap_or_else(|| EntityState::new((self.factory)(id.clone())));
 
         // 3. Idempotency check: is this command_id already cached?
         if self.dedupe_window > 0 {
@@ -200,11 +192,7 @@ where
         // Capture the command_id before consuming `cmd` in
         // `command_to_events`. We populate the dedupe cache once we
         // have the result.
-        let dedupe_key = if self.dedupe_window > 0 {
-            cmd.command_id().map(|s| s.to_string())
-        } else {
-            None
-        };
+        let dedupe_key = if self.dedupe_window > 0 { cmd.command_id().map(|s| s.to_string()) } else { None };
         // Optimistic concurrency: caller-supplied expected_version.
         let expected = cmd.expected_version();
 
@@ -223,10 +211,7 @@ where
         }
 
         // Pure projection of command -> events. Domain validation lives here.
-        let events = entity
-            .aggregate
-            .command_to_events(&entity.state, cmd)
-            .map_err(PatternError::Domain)?;
+        let events = entity.aggregate.command_to_events(&entity.state, cmd).map_err(PatternError::Domain)?;
 
         if events.is_empty() {
             return Ok(events);
@@ -299,10 +284,7 @@ where
     /// and decodable), then replay only events written *after* the
     /// snapshot's `sequence_nr`. Falls back to full replay on cache
     /// miss or decode failure.
-    async fn recover_entity(
-        &mut self,
-        entity: &mut EntityState<A>,
-    ) -> Result<(), PatternError<A::Error>> {
+    async fn recover_entity(&mut self, entity: &mut EntityState<A>) -> Result<(), PatternError<A::Error>> {
         let _permit = self
             .permits
             .acquire()
@@ -335,11 +317,7 @@ where
         };
 
         // Replay events from (snapshot_seq + 1) .. highest.
-        let highest = self
-            .journal
-            .highest_sequence_nr(&pid, 0)
-            .await
-            .map_err(PatternError::Journal)?;
+        let highest = self.journal.highest_sequence_nr(&pid, 0).await.map_err(PatternError::Journal)?;
         let from = snapshot_seq.map(|s| s + 1).unwrap_or(1);
         if highest >= from {
             let events = self
@@ -359,4 +337,3 @@ where
         Ok(())
     }
 }
-

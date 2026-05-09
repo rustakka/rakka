@@ -45,8 +45,7 @@ impl<P: ProcessManager> ProcessManagerPattern<P> {
     }
 }
 
-type DispatcherFn<C> =
-    Arc<dyn Fn(C) -> futures::future::BoxFuture<'static, bool> + Send + Sync>;
+type DispatcherFn<C> = Arc<dyn Fn(C) -> futures::future::BoxFuture<'static, bool> + Send + Sync>;
 
 pub struct ProcessManagerBuilder<P: ProcessManager> {
     name: Option<String>,

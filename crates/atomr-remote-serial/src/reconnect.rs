@@ -21,11 +21,7 @@ pub struct ReconnectPolicy {
 
 impl Default for ReconnectPolicy {
     fn default() -> Self {
-        Self {
-            initial: Duration::from_millis(50),
-            max: Duration::from_secs(5),
-            multiplier: 2.0,
-        }
+        Self { initial: Duration::from_millis(50), max: Duration::from_secs(5), multiplier: 2.0 }
     }
 }
 
@@ -33,11 +29,7 @@ impl ReconnectPolicy {
     /// Disable reconnect entirely. The transport will surface
     /// `TransportError::Closed` on disconnect and never retry.
     pub fn never() -> Self {
-        Self {
-            initial: Duration::ZERO,
-            max: Duration::ZERO,
-            multiplier: 1.0,
-        }
+        Self { initial: Duration::ZERO, max: Duration::ZERO, multiplier: 1.0 }
     }
 
     pub(crate) fn next_delay(&self, current: Duration) -> Duration {

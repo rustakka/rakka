@@ -34,11 +34,7 @@ impl Saga for CountingSaga {
         Some("the-only-saga".into())
     }
 
-    async fn handle(
-        &mut self,
-        state: &mut Counter,
-        _e: Step,
-    ) -> Result<Vec<SagaAction<()>>, Err_> {
+    async fn handle(&mut self, state: &mut Counter, _e: Step) -> Result<Vec<SagaAction<()>>, Err_> {
         state.seen += 1;
         Ok(vec![])
     }
@@ -110,11 +106,7 @@ async fn saga_state_rehydrates_from_store_on_restart() {
         }
     }
     let payload = store.load("the-only-saga").await.expect("state persisted");
-    assert_eq!(
-        u32::from_le_bytes(payload.try_into().unwrap()),
-        4,
-        "rehydrated state was incremented"
-    );
+    assert_eq!(u32::from_le_bytes(payload.try_into().unwrap()), 4, "rehydrated state was incremented");
 
     system.terminate().await;
 }

@@ -43,10 +43,7 @@ impl<J: Journal> JournalOffsetStore<J> {
         let outbox_name = outbox_name.into();
         let pid = format!("outbox::{}::offsets", outbox_name);
         let cache = match journal.highest_sequence_nr(&pid, 0).await {
-            Ok(highest) if highest > 0 => match journal
-                .replay_messages(&pid, highest, highest, 1)
-                .await
-            {
+            Ok(highest) if highest > 0 => match journal.replay_messages(&pid, highest, highest, 1).await {
                 Ok(reprs) => reprs
                     .into_iter()
                     .last()
@@ -57,12 +54,7 @@ impl<J: Journal> JournalOffsetStore<J> {
             },
             _ => HashMap::new(),
         };
-        Self {
-            journal,
-            pid,
-            cache: Mutex::new(cache),
-            writer_uuid: format!("outbox-{}", rand_id()),
-        }
+        Self { journal, pid, cache: Mutex::new(cache), writer_uuid: format!("outbox-{}", rand_id()) }
     }
 }
 
@@ -113,7 +105,9 @@ impl<J: Journal> OutboxOffsetStore for JournalOffsetStore<J> {
         } else {
             // No tokio runtime — best we can do is drop the write.
             // This path is intended for debug/test environments only.
-            tracing::warn!("JournalOffsetStore::save called outside a tokio runtime; offset not durably written");
+            tracing::warn!(
+                "JournalOffsetStore::save called outside a tokio runtime; offset not durably written"
+            );
             std::mem::drop(task);
         }
     }
@@ -159,9 +153,6 @@ fn decode(bytes: &[u8]) -> Option<HashMap<String, u64>> {
 
 fn rand_id() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
+    let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
     format!("{nanos:x}")
 }

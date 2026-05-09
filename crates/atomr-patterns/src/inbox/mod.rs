@@ -71,13 +71,7 @@ pub struct InboxPattern<E>(PhantomData<E>);
 
 impl<E: Send + 'static> InboxPattern<E> {
     pub fn builder() -> InboxBuilder<E> {
-        InboxBuilder {
-            name: None,
-            key: None,
-            source: None,
-            handler: None,
-            store: None,
-        }
+        InboxBuilder { name: None, key: None, source: None, handler: None, store: None }
     }
 }
 

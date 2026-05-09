@@ -87,8 +87,7 @@ async fn rebuild_resets_and_replays_to_same_total() {
     let system = ActorSystem::create("rebuild", Config::reference()).await.unwrap();
     let journal = Arc::new(InMemoryJournal::default());
     let rj = Arc::new(read_journal(journal.clone()));
-    let codecs =
-        EventCodecRegistry::<Tick>::new().with_default(|b: &[u8]| A::decode_event(b));
+    let codecs = EventCodecRegistry::<Tick>::new().with_default(|b: &[u8]| A::decode_event(b));
 
     let (builder, totals) = CqrsPattern::<A>::builder(journal.clone())
         .factory(|_| A)

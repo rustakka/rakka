@@ -16,8 +16,7 @@ use crate::PatternError;
 
 /// A pre-handler interceptor. Receives the command by reference; may
 /// reject it (turns into [`PatternError::Intercepted`]).
-pub type CommandInterceptor<C, E> =
-    Arc<dyn Fn(&C) -> Result<(), PatternError<E>> + Send + Sync + 'static>;
+pub type CommandInterceptor<C, E> = Arc<dyn Fn(&C) -> Result<(), PatternError<E>> + Send + Sync + 'static>;
 
 /// A post-persist event listener. Synchronous; fast hooks only — for
 /// async work, push events into a tap channel and react out-of-band.

@@ -124,11 +124,7 @@ async fn publisher_resumes_from_offset_store_after_restart() {
     }
 
     // Total across both runs should be exactly 8 (no double-publishes).
-    assert_eq!(
-        published_total.load(Ordering::Acquire),
-        8,
-        "exactly 8 publishes total, none repeated"
-    );
+    assert_eq!(published_total.load(Ordering::Acquire), 8, "exactly 8 publishes total, none repeated");
 
     p2_handles.stop();
     system.terminate().await;

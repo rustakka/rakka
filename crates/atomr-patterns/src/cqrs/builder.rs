@@ -393,11 +393,8 @@ where
             let writer_uuid = writer_uuid.clone();
             let extensions = extensions.clone();
             let snapshot = snapshot.clone();
-            let actor_name = if shards == 1 {
-                self.name.clone()
-            } else {
-                format!("{}-shard-{shard_idx}", self.name)
-            };
+            let actor_name =
+                if shards == 1 { self.name.clone() } else { format!("{}-shard-{shard_idx}", self.name) };
             let actor_ref = system
                 .actor_of(
                     Props::create(move || CommandGateway::<A, J> {
@@ -426,30 +423,28 @@ where
         let codecs = self.event_codecs.clone();
         let retry_cfg = self.reader_retry;
         if !self.readers.is_empty() {
-            let need_journal = bus.is_none();
-            let rj = if need_journal {
-                Some(read_journal.clone().expect("checked in build()"))
-            } else {
-                read_journal.clone()
-            };
-            for spec in self.readers {
-                let codecs = codecs.clone();
-                let retry = retry_cfg;
-                if let Some(bus_handles) = &bus {
+            let interval = self.poll_interval;
+            if let Some(bus_handles) = bus {
+                for spec in self.readers {
                     let rx = bus_handles.subscribe();
-                    tokio::spawn(run_reader_live(spec, rx, retry));
-                } else {
-                    let rj_clone = rj.clone().expect("checked above");
-                    let interval = self.poll_interval;
-                    tokio::spawn(run_reader_poll(spec, rj_clone, interval, codecs, retry));
+                    tokio::spawn(run_reader_live(spec, rx, retry_cfg));
                 }
+            } else if let Some(rj) = read_journal.clone() {
+                for spec in self.readers {
+                    let codecs = codecs.clone();
+                    tokio::spawn(run_reader_poll(spec, rj.clone(), interval, codecs, retry_cfg));
+                }
+            } else {
+                // build() rejects this combination, but surface a real
+                // error rather than panicking if it ever slips through.
+                return Err(PatternError::Invariant(
+                    "readers configured without an event bus or a read journal".into(),
+                ));
             }
         }
 
-        let repo: Arc<dyn Repository<Aggregate = A>> = Arc::new(ShardedRepository::<A> {
-            gateways,
-            timeout: self.repo_timeout,
-        });
+        let repo: Arc<dyn Repository<Aggregate = A>> =
+            Arc::new(ShardedRepository::<A> { gateways, timeout: self.repo_timeout });
 
         // Build rebuild closures for each registered reader. Rebuild
         // requires a read_journal; live-tail-only readers (no journal
@@ -473,9 +468,7 @@ where
                 let codecs = codecs.clone();
                 Box::pin(async move {
                     let Some(rj) = journal else {
-                        return Err(
-                            "rebuild_projection requires a read_journal".into(),
-                        );
+                        return Err("rebuild_projection requires a read_journal".into());
                     };
                     rebuild_one_projection(ctx, rj, codecs).await
                 })
@@ -494,10 +487,9 @@ async fn rebuild_one_projection<E: Send + Clone + 'static>(
 ) -> Result<(), String> {
     (ctx.state_reset)().await;
     let pids = match &ctx.filter {
-        ReaderFilter::All | ReaderFilter::Tag(_) => rj
-            .all_persistence_ids()
-            .await
-            .map_err(|e| format!("list pids: {e:?}"))?,
+        ReaderFilter::All | ReaderFilter::Tag(_) => {
+            rj.all_persistence_ids().await.map_err(|e| format!("list pids: {e:?}"))?
+        }
         ReaderFilter::PersistenceId(id) => vec![id.clone()],
         ReaderFilter::PersistenceIds(ids) => ids.clone(),
     };
@@ -513,19 +505,12 @@ async fn rebuild_one_projection<E: Send + Clone + 'static>(
                     continue;
                 }
             }
-            let decoded = codecs
-                .as_ref()
-                .and_then(|r| r.decode(&env.manifest, &env.payload))
-                .ok_or_else(|| {
-                    format!(
-                        "no decoder for manifest `{}` (configure EventCodecRegistry)",
-                        env.manifest
-                    )
+            let decoded =
+                codecs.as_ref().and_then(|r| r.decode(&env.manifest, &env.payload)).ok_or_else(|| {
+                    format!("no decoder for manifest `{}` (configure EventCodecRegistry)", env.manifest)
                 })?;
             let event = decoded?;
-            (ctx.apply)(event)
-                .await
-                .map_err(|e| format!("apply during rebuild: {e}"))?;
+            (ctx.apply)(event).await.map_err(|e| format!("apply during rebuild: {e}"))?;
             if env.sequence_nr > max_seq {
                 max_seq = env.sequence_nr;
             }
@@ -546,8 +531,7 @@ where
     rebuilds: HashMap<String, RebuildFn>,
 }
 
-type RebuildFn =
-    Arc<dyn Fn() -> BoxFuture<'static, Result<(), String>> + Send + Sync + 'static>;
+type RebuildFn = Arc<dyn Fn() -> BoxFuture<'static, Result<(), String>> + Send + Sync + 'static>;
 
 impl<A> CqrsHandles<A>
 where
@@ -566,11 +550,7 @@ where
     /// is configured (live-tail-only readers can't be rebuilt — they
     /// have no journal to scan).
     pub async fn rebuild_projection(&self, name: &str) -> Result<(), String> {
-        let f = self
-            .rebuilds
-            .get(name)
-            .ok_or_else(|| format!("no reader named `{name}`"))?
-            .clone();
+        let f = self.rebuilds.get(name).ok_or_else(|| format!("no reader named `{name}`"))?.clone();
         f().await
     }
 }
@@ -596,16 +576,10 @@ where
 {
     type Aggregate = A;
 
-    async fn send(
-        &self,
-        cmd: A::Command,
-    ) -> Result<Vec<A::Event>, PatternError<A::Error>> {
+    async fn send(&self, cmd: A::Command) -> Result<Vec<A::Event>, PatternError<A::Error>> {
         let id = cmd.aggregate_id();
         let idx = shard_index(&id, self.gateways.len());
-        match self.gateways[idx]
-            .ask_with(|reply| CommandEnvelope { cmd, reply }, self.timeout)
-            .await
-        {
+        match self.gateways[idx].ask_with(|reply| CommandEnvelope { cmd, reply }, self.timeout).await {
             Ok(inner) => inner,
             Err(ask) => Err(PatternError::Ask(ask)),
         }
@@ -698,13 +672,7 @@ impl<R: Reader> ReaderSpec<R> {
                 reader.apply(&mut *state, event).await.map_err(|e| e.to_string())
             })
         });
-        RebuildContext {
-            name: self.name.clone(),
-            state_reset,
-            apply,
-            filter: self.filter.clone(),
-            offset,
-        }
+        RebuildContext { name: self.name.clone(), state_reset, apply, filter: self.filter.clone(), offset }
     }
 }
 
@@ -734,10 +702,7 @@ async fn run_reader_poll<E: Send + Clone + 'static>(
 
         for pid in pids {
             let from = pid_offsets.get(&pid).copied().unwrap_or(0).saturating_add(1);
-            let events = match read_journal
-                .events_by_persistence_id(&pid, from, u64::MAX)
-                .await
-            {
+            let events = match read_journal.events_by_persistence_id(&pid, from, u64::MAX).await {
                 Ok(e) => e,
                 Err(e) => {
                     tracing::warn!(reader = %name, pid = %pid, error = ?e, "read failed");
@@ -831,9 +796,6 @@ async fn resolve_pids(
 
 fn rand_writer_id() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
+    let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
     format!("{nanos:x}")
 }

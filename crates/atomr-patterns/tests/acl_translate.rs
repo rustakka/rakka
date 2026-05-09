@@ -33,8 +33,7 @@ async fn even_inputs_pass_through_translated_odd_inputs_dropped() {
     drop(handles.input); // close so the task drains and exits
 
     let mut got = Vec::new();
-    while let Ok(Some(v)) = tokio::time::timeout(Duration::from_secs(1), handles.output.recv()).await
-    {
+    while let Ok(Some(v)) = tokio::time::timeout(Duration::from_secs(1), handles.output.recv()).await {
         got.push(v);
     }
 

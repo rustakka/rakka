@@ -70,12 +70,9 @@ impl Eventsourced for Acct {
 
     fn command_to_events(&self, state: &AcctState, cmd: AcctCmd) -> Result<Vec<AcctEvent>, AcctErr> {
         match cmd {
-            AcctCmd::Deposit { from, amount, transfer_id, account } => Ok(vec![AcctEvent::Deposited {
-                from,
-                to: account,
-                amount,
-                transfer_id,
-            }]),
+            AcctCmd::Deposit { from, amount, transfer_id, account } => {
+                Ok(vec![AcctEvent::Deposited { from, to: account, amount, transfer_id }])
+            }
             AcctCmd::Withdraw { to, amount, transfer_id, account } => {
                 if state.balance < amount {
                     return Err(AcctErr::Insufficient);
@@ -95,14 +92,12 @@ impl Eventsourced for Acct {
     fn encode_event(e: &AcctEvent) -> Result<Vec<u8>, String> {
         // Tagged manual encoding so events round-trip through the journal.
         match e {
-            AcctEvent::Deposited { from, to, amount, transfer_id } => Ok(format!(
-                "D|{from}|{to}|{amount}|{transfer_id}"
-            )
-            .into_bytes()),
-            AcctEvent::Withdrawn { from, to, amount, transfer_id } => Ok(format!(
-                "W|{from}|{to}|{amount}|{transfer_id}"
-            )
-            .into_bytes()),
+            AcctEvent::Deposited { from, to, amount, transfer_id } => {
+                Ok(format!("D|{from}|{to}|{amount}|{transfer_id}").into_bytes())
+            }
+            AcctEvent::Withdrawn { from, to, amount, transfer_id } => {
+                Ok(format!("W|{from}|{to}|{amount}|{transfer_id}").into_bytes())
+            }
         }
     }
 
@@ -161,9 +156,7 @@ impl Saga for TransferSaga {
         match event {
             AcctEvent::Withdrawn { from, to, amount, transfer_id } if !state.deposit_dispatched => {
                 state.deposit_dispatched = true;
-                Ok(vec![
-                    SagaAction::Send(AcctCmd::Deposit { account: to, from, amount, transfer_id }),
-                ])
+                Ok(vec![SagaAction::Send(AcctCmd::Deposit { account: to, from, amount, transfer_id })])
             }
             AcctEvent::Deposited { .. } => Ok(vec![SagaAction::Complete]),
             _ => Ok(vec![]),
@@ -224,22 +217,26 @@ async fn withdraw_triggers_deposit_via_saga() {
     // Wait for B to have balance 30.
     let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
     loop {
-        let r = repo.send(AcctCmd::Deposit {
-            account: "probe".into(),
-            from: "n/a".into(),
-            amount: 0,
-            transfer_id: "probe".into(),
-        }).await;
+        let r = repo
+            .send(AcctCmd::Deposit {
+                account: "probe".into(),
+                from: "n/a".into(),
+                amount: 0,
+                transfer_id: "probe".into(),
+            })
+            .await;
         // Use an out-of-band probe by reading B's balance via Withdraw of 0.
         let _ = r;
         // Actually simplest: keep trying to withdraw 30 from B; succeeds once
         // saga has deposited.
-        let result = repo.send(AcctCmd::Withdraw {
-            account: "B".into(),
-            to: "drain".into(),
-            amount: 30,
-            transfer_id: "drain".into(),
-        }).await;
+        let result = repo
+            .send(AcctCmd::Withdraw {
+                account: "B".into(),
+                to: "drain".into(),
+                amount: 30,
+                transfer_id: "drain".into(),
+            })
+            .await;
         if result.is_ok() {
             break;
         }

@@ -184,8 +184,7 @@ async fn aggregate_persists_and_projection_catches_up() {
 async fn missing_factory_errors_on_build() {
     let journal = Arc::new(InMemoryJournal::default());
     let rj = Arc::new(read_journal(journal.clone()));
-    let result: Result<_, PatternError<CounterErr>> = CqrsPattern::<Counter>::builder(journal)
-        .read_journal(rj)
-        .build();
+    let result: Result<_, PatternError<CounterErr>> =
+        CqrsPattern::<Counter>::builder(journal).read_journal(rj).build();
     assert!(matches!(result, Err(PatternError::NotConfigured("factory"))));
 }

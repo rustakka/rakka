@@ -19,9 +19,9 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use atomr_core::actor::ActorSystem;
 #[cfg(feature = "bus-cluster")]
 use atomr_core::actor::{Actor, Context, Props};
-use atomr_core::actor::ActorSystem;
 use parking_lot::RwLock;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
@@ -165,9 +165,7 @@ impl<E: Clone + Send + 'static> BusHandles<E> {
                 // (delivers to our internal BusRouter actor, which
                 // forwards to subscribers) AND forwards to peer nodes.
                 let encode = cfg.encode.clone();
-                cfg.cluster.publish_remote::<E, _>(&cfg.topic, event, &cfg.type_id, |e| {
-                    encode(e)
-                });
+                cfg.cluster.publish_remote::<E, _>(&cfg.topic, event, &cfg.type_id, |e| encode(e));
                 return;
             }
         }
@@ -186,7 +184,6 @@ impl<E: Clone + Send + 'static> BusHandles<E> {
         self.inner.subscribers.write().push(tx);
         rx
     }
-
 }
 
 /// Internal actor that bridges DistributedPubSub deliveries (typed
@@ -229,10 +226,7 @@ impl<E: Clone + Send + 'static> Topology for BusTopology<E> {
             let router_inner = inner.clone();
             let router_name = format!("bus-router-{}", self.name);
             let router_ref = system
-                .actor_of(
-                    Props::create(move || BusRouter::<E> { inner: router_inner.clone() }),
-                    &router_name,
-                )
+                .actor_of(Props::create(move || BusRouter::<E> { inner: router_inner.clone() }), &router_name)
                 .map_err(|e| PatternError::Invariant(format!("spawn bus router: {e}")))?;
 
             cfg.local.subscribe(cfg.topic.clone(), router_ref);
@@ -240,15 +234,11 @@ impl<E: Clone + Send + 'static> Topology for BusTopology<E> {
             let local_for_decoder = cfg.local.clone();
             let topic_for_decoder = cfg.topic.clone();
             let decode = cfg.decode.clone();
-            cfg.cluster.register_decoder(cfg.type_id.clone(), move |bytes| {
-                match decode(bytes) {
-                    Ok(event) => {
-                        local_for_decoder.publish_msg::<E>(&topic_for_decoder, event) > 0
-                    }
-                    Err(e) => {
-                        tracing::warn!(error = %e, "cluster bus decode failed");
-                        false
-                    }
+            cfg.cluster.register_decoder(cfg.type_id.clone(), move |bytes| match decode(bytes) {
+                Ok(event) => local_for_decoder.publish_msg::<E>(&topic_for_decoder, event) > 0,
+                Err(e) => {
+                    tracing::warn!(error = %e, "cluster bus decode failed");
+                    false
                 }
             });
         }

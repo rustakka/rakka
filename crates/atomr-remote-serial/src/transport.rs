@@ -57,13 +57,7 @@ impl SerialTransport {
     /// Open `device` on a `system_name`-tagged transport with the
     /// default baud rate (115200) and 4 MiB max frame size.
     pub fn new(system_name: impl Into<String>, device: impl Into<PathBuf>) -> Self {
-        Self::with_options(
-            system_name,
-            device,
-            DEFAULT_BAUD,
-            DEFAULT_MAX_FRAME,
-            ReconnectPolicy::default(),
-        )
+        Self::with_options(system_name, device, DEFAULT_BAUD, DEFAULT_MAX_FRAME, ReconnectPolicy::default())
     }
 
     /// Construct with explicit baud, max frame size, and reconnect
@@ -261,16 +255,12 @@ fn spawn_supervisor(
 }
 
 async fn open_device(device: &Path, baud: u32) -> Result<SerialStream, std::io::Error> {
-    tokio_serial::new(device.to_string_lossy(), baud)
-        .open_native_async()
-        .map_err(io_from_serial)
+    tokio_serial::new(device.to_string_lossy(), baud).open_native_async().map_err(io_from_serial)
 }
 
 fn io_from_serial(e: tokio_serial::Error) -> std::io::Error {
     match e.kind {
-        tokio_serial::ErrorKind::NoDevice => {
-            std::io::Error::new(std::io::ErrorKind::NotFound, e.description)
-        }
+        tokio_serial::ErrorKind::NoDevice => std::io::Error::new(std::io::ErrorKind::NotFound, e.description),
         tokio_serial::ErrorKind::InvalidInput => {
             std::io::Error::new(std::io::ErrorKind::InvalidInput, e.description)
         }

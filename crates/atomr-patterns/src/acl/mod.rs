@@ -51,10 +51,7 @@ impl<T: Translator> AclBuilder<T> {
     }
 
     pub fn build(self) -> AclTopology<T> {
-        AclTopology {
-            name: self.name.unwrap_or_else(|| "acl".into()),
-            translator: self.translator,
-        }
+        AclTopology { name: self.name.unwrap_or_else(|| "acl".into()), translator: self.translator }
     }
 }
 

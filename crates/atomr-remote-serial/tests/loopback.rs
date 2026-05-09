@@ -14,12 +14,7 @@ use atomr_remote_serial::SerialTransport;
 const MAX_FRAME: usize = 64 * 1024;
 
 fn associate_pdu(origin: Address, uid: u64) -> AkkaPdu {
-    AkkaPdu::Associate(AssociateInfo {
-        origin,
-        uid,
-        cookie: None,
-        protocol_version: PROTOCOL_VERSION,
-    })
+    AkkaPdu::Associate(AssociateInfo { origin, uid, cookie: None, protocol_version: PROTOCOL_VERSION })
 }
 
 #[tokio::test]

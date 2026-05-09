@@ -14,13 +14,8 @@ async fn supervisor_retries_missing_device_then_yields_to_shutdown() {
         max: Duration::from_millis(40),
         multiplier: 2.0,
     };
-    let transport = SerialTransport::with_options(
-        "A",
-        "/dev/no-such-tty-XXX",
-        115_200,
-        4 * 1024 * 1024,
-        policy,
-    );
+    let transport =
+        SerialTransport::with_options("A", "/dev/no-such-tty-XXX", 115_200, 4 * 1024 * 1024, policy);
     let _addr = transport.listen().await.unwrap();
 
     // Let the supervisor cycle a few attempts (each fails, schedules
