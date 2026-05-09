@@ -7,6 +7,7 @@ members = [
     "crates/atomr-macros",
     "crates/atomr-testkit",
     "crates/atomr-remote",
+    "crates/atomr-remote-serial",
     "crates/atomr-cluster",
     "crates/atomr-cluster-tools",
     "crates/atomr-cluster-sharding",
@@ -40,6 +41,7 @@ members = [
     "examples/cluster-pubsub-chat",
     "examples/sharded-keyvalue",
     "examples/dashboard-demo",
+    "examples/usb-cable-link",
     "benches/ping_throughput",
     "crates/atomr-profiler",
     "crates/py-bindings/pycore",
@@ -71,6 +73,8 @@ authors = ["atomr contributors"]
 # Async / runtime
 tokio = { version = "1.39", features = ["full"] }
 tokio-util = { version = "0.7", features = ["codec"] }
+tokio-serial = "5.4"
+nix = { version = "0.29", default-features = false, features = ["term", "fs"] }
 async-trait = "0.1"
 futures = "0.3"
 futures-util = "0.3"
@@ -150,6 +154,7 @@ atomr-config = { path = "crates/atomr-config", version = "0.8.0" }
 atomr-macros = { path = "crates/atomr-macros", version = "0.8.0" }
 atomr-testkit = { path = "crates/atomr-testkit", version = "0.8.0" }
 atomr-remote = { path = "crates/atomr-remote", version = "0.8.0" }
+atomr-remote-serial = { path = "crates/atomr-remote-serial", version = "0.8.0" }
 atomr-cluster = { path = "crates/atomr-cluster", version = "0.8.0" }
 atomr-cluster-tools = { path = "crates/atomr-cluster-tools", version = "0.8.0" }
 atomr-cluster-sharding = { path = "crates/atomr-cluster-sharding", version = "0.8.0" }
