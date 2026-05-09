@@ -155,6 +155,87 @@ let dropping = FailureInjectorTransport::new(throttled, InjectionMode::DropEvery
 let remote = RemoteSystem::start_with_transport(sys, dropping, RemoteSettings::default()).await?;
 ```
 
+## USB cable mode
+
+Two hosts physically connected by a USB cable can exchange actor
+messages without going over the network. There are two ways to do
+this; both avoid IP egress, both ship with `atomr` today.
+
+### Tier 1 — CDC-NCM gadget (zero new code)
+
+If at least one side is running Linux with USB gadget capability
+(typical: Raspberry Pi Zero W, BeagleBone, any board with USB OTG;
+also full PCs in DRP role), bring up a CDC-NCM gadget so the cable
+appears as a USB-Ethernet adapter on both sides:
+
+```bash
+# Linux gadget side. Use the `usb-gadget` crate or the kernel's
+# configfs interface to register a CDC-NCM function. Then bring up
+# the resulting `usb0` interface with a link-local IPv4:
+ip addr add 169.254.0.1/16 dev usb0
+ip link set usb0 up
+
+# Linux/macOS/Windows host side: kernel auto-detects the netif
+# (usb0 / enX0 / Ethernet 4). Assign a peer IP:
+ip addr add 169.254.0.2/16 dev usb0
+ip link set usb0 up
+```
+
+Now `RemoteSystem::start(sys, "169.254.0.1:2552".parse()?, settings)`
+on one side and `RemoteSystem::start(sys, "169.254.0.2:2552".parse()?, settings)`
+on the other. The existing `TcpTransport` works unchanged. Highest
+leverage if you can run a Linux kernel on at least one side.
+
+### Tier 2 — `SerialTransport`
+
+When TCP-over-USB-Ethernet isn't an option (no Linux on either side
+running gadget mode, or you want to skip the IP layer entirely),
+`atomr-remote-serial` provides a `Transport` over a USB CDC-ACM
+serial endpoint (`/dev/ttyACM0` on Linux/macOS hosts, `COMx` on
+Windows, `/dev/ttyGS0` on the Linux gadget side, or
+`/dev/cu.usbmodemXXXX` on macOS):
+
+```rust,ignore
+use std::sync::Arc;
+use atomr_remote::{RemoteSettings, RemoteSystem};
+use atomr_remote_serial::SerialTransport;
+
+let transport = Arc::new(SerialTransport::new("SystemA", "/dev/ttyACM0"));
+let remote = RemoteSystem::start_with_transport(sys, transport, RemoteSettings::default()).await?;
+```
+
+Each side configures its own local device path. The transport
+auto-reconnects on cable wiggles or gadget reboots via
+`ReconnectPolicy` (50ms→5s exponential backoff by default).
+
+`SerialTransport::with_streams(name, reader, writer, max_frame)` is
+the same transport over caller-supplied byte halves — useful for
+testing with `tokio::io::duplex`, or for layering the Akka protocol
+over a Unix socket, an SSH-tunneled stream, or any other byte pipe.
+
+A worked example with both sides ships in
+`examples/usb-cable-link/`. Run `cable-side-a /dev/ttyACM0` on one
+machine, then `cable-side-b /dev/ttyACM0 'akka.serial://A@/dev/ttyGS0:0'`
+on the other.
+
+### Choosing between Tier 1 and Tier 2
+
+| Concern                     | Tier 1 (CDC-NCM + TCP)    | Tier 2 (`SerialTransport`)        |
+|-----------------------------|---------------------------|-----------------------------------|
+| New code                    | None                      | One extra crate dep               |
+| OS support                  | Linux/macOS/Windows       | Linux/macOS/Windows               |
+| Requires gadget mode        | Yes (one side Linux)      | Yes (one side Linux for ACM)      |
+| IP routing / DHCP / MTU     | You configure             | None — bytes only                 |
+| Auto-reconnect              | Via `EndpointManager`     | Inside the transport (sub-second) |
+| Per-frame overhead          | TCP + framing + bincode   | bincode + 4-byte length prefix    |
+| Multiple peers per side     | Yes (one IP per peer)     | One peer per device path          |
+
+Pick Tier 1 when both sides already speak IP cleanly. Pick Tier 2
+when you want a smaller surface (no kernel-level netif setup, no
+`ip addr add` dance, no firewall implications) or when one side
+exposes only a serial endpoint (an embedded board, an
+`embassy-usb` device, etc.).
+
 ## Cluster integration
 
 `atomr-cluster` ships a `ClusterRemoteAdapter` that bootstraps a

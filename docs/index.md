@@ -52,7 +52,8 @@ A longer argument lives in
   shutdown, extensions.**
 - **Remoting** — TCP transport, framed PDU codec, ack'd delivery,
   endpoint state machine, watcher, throttle / failure-injector / test
-  transports.
+  transports. USB-cable mode via `atomr-remote-serial` (CDC-ACM /
+  CDC-NCM); see [USB cable mode](remoting.md#usb-cable-mode).
 - **Cluster** — gossip, membership, reachability, heartbeat,
   split-brain resolvers, cluster-tools (singleton, pub/sub, client),
   cluster-sharding (regions, rebalance, remember-entities), cluster

@@ -1,0 +1,36 @@
+[package]
+name = "atomr-remote-serial"
+description = "Serial / USB-attached transport for atomr-remoting. Wraps tokio-serial and reuses atomr-remote's framed PDU codec to ship actor messages over /dev/ttyACM0, /dev/ttyGS0, COMx without going over the network."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+documentation = "https://docs.rs/atomr-remote-serial"
+keywords = ["actor", "remote", "usb", "serial", "tokio"]
+categories = ["network-programming", "concurrency"]
+
+[dependencies]
+atomr-core = { workspace = true }
+atomr-remote = { workspace = true }
+tokio = { workspace = true }
+tokio-serial = { workspace = true }
+async-trait = { workspace = true }
+parking_lot = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+atomr-config = { workspace = true }
+nix = { workspace = true }
+serde = { workspace = true }
+async-trait = { workspace = true }
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
