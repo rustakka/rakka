@@ -1,5 +1,10 @@
 # Release pipeline
 
+> **See also:** [release-process.md](release-process.md) — the
+> operator-facing reference (how to ship, conventional-commit rules,
+> trampoline architecture, troubleshooting). This document focuses on
+> workflow internals: jobs, matrix entries, build commands.
+
 `/.github/workflows/release.yml` ships atomr to three places on every
 `v*` tag:
 

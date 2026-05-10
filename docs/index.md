@@ -123,7 +123,10 @@ python python/examples/ml_inference.py
   points.
 - [Profiler](profiler.md) — cross-runtime profiler with baseline
   numbers.
-- [Release pipeline](release-pipeline.md) — how artifacts ship.
+- [Release process](release-process.md) — operator-facing reference:
+  how to ship, the trampoline architecture, troubleshooting cookbook.
+- [Release pipeline](release-pipeline.md) — workflow internals: jobs,
+  matrix entries, build commands.
 - [Parity](parity.md) — feature surface and depth grades by crate.
 - [Depth program](full-port-plan.md) — long-form depth roadmap.
 - [Audit 2026-04](audit-2026-04.md) — empirical depth + anti-pattern
