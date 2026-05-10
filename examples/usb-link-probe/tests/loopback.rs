@@ -39,8 +39,10 @@ async fn chat_and_ping_roundtrip_over_duplex() -> Result<()> {
     let (a_reader, a_writer) = tokio::io::split(a_io);
     let (b_reader, b_writer) = tokio::io::split(b_io);
 
-    let transport_a: Arc<dyn Transport> = Arc::new(SerialTransport::with_streams("A", a_reader, a_writer, MAX_FRAME));
-    let transport_b: Arc<dyn Transport> = Arc::new(SerialTransport::with_streams("B", b_reader, b_writer, MAX_FRAME));
+    let transport_a: Arc<dyn Transport> =
+        Arc::new(SerialTransport::with_streams("A", a_reader, a_writer, MAX_FRAME));
+    let transport_b: Arc<dyn Transport> =
+        Arc::new(SerialTransport::with_streams("B", b_reader, b_writer, MAX_FRAME));
 
     let sys_a = ActorSystem::create("A", atomr_config::Config::reference()).await?;
     let sys_b = ActorSystem::create("B", atomr_config::Config::reference()).await?;

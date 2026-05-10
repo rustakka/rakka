@@ -27,7 +27,10 @@ You need a byte pipe between the two machines. The two common shapes:
   cabled together with a null-modem RS-232 cable. Slower (typical
   115200 baud) but works between two non-gadget machines.
 
-See `docs/remoting.md` § *USB cable mode* for the full setup matrix.
+See `docs/remoting.md` § *USB cable mode* for the design overview,
+and **[`SETUP.md`](SETUP.md) for per-platform plumbing** —
+required packages, user permissions, drivers, USB-gadget config,
+finding the right device path, and per-OS troubleshooting.
 
 ## Build
 
@@ -136,13 +139,13 @@ Durations accept `ms` / `s` / `m` units.
 
 ## Troubleshooting
 
-* **`listen` succeeds, `connect` errors with `permission denied`** —
-  on Linux you need to be in the `dialout` group: `sudo usermod -aG
-  dialout $USER` and log out / log back in. macOS rarely needs this;
-  Windows does not.
-* **`connect` errors with `Access is denied. (os error 5)` on
-  Windows** — another process owns the COM port. Close any open
-  PuTTY/TeraTerm sessions and try again.
+For OS-level issues (driver missing, `Permission denied`, `Access is
+denied`, ModemManager fighting you for the port, COM-port
+re-numbering, USB autosuspend) see **[`SETUP.md`](SETUP.md)** —
+each per-OS section ends with a troubleshooting table.
+
+Demo-specific symptoms:
+
 * **No traffic in either direction, but no errors either** — baud
   mismatch on USB-to-serial dongles. Force the same `--baud` on both
   sides. True USB-CDC ignores the baud setting, but most dongles
