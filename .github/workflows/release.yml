@@ -1,9 +1,14 @@
 name: Release
 
-# Releases are tagged from `main`. Push a tag matching `v*` (e.g.
-# `v0.2.0`, `v1.0.0-rc.1`) to fire this pipeline. The bump-and-tag
-# step is automated by `.github/workflows/version-bump.yml` (see the
-# "version-bump" Claude skill at ~/.claude/skills/version-bump/).
+# Releases are tagged from `main`. There are two ways to fire this
+# pipeline:
+#   1. Push a tag matching `v*` directly (e.g. `git push origin v0.2.0`).
+#   2. `workflow_dispatch` against a `v*` tag ref. This is how
+#      `version-bump.yml` triggers a publish — tag pushes authored by
+#      the default `GITHUB_TOKEN` do NOT fire `on: push: tags` workflows
+#      (a long-standing GitHub safety feature), so the bump job calls
+#      `gh workflow run release.yml --ref vX.Y.Z -f dry_run=false`
+#      after pushing the tag.
 #
 # This workflow:
 #   1. Runs the 1.0-rc gate (`cargo xtask verify`) so a tag never
@@ -226,7 +231,13 @@ jobs:
     name: GitHub Release
     needs: [verify, build-binaries, build-wheels, build-sdist]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    # Run for direct tag pushes AND for `workflow_dispatch` runs
+    # targeting a `v*` ref with `dry_run=false` (the trampoline
+    # path used by `version-bump.yml`).
+    if: |
+      startsWith(github.ref, 'refs/tags/v') &&
+      (github.event_name == 'push' ||
+       (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true'))
     permissions:
       contents: write
     steps:
@@ -273,7 +284,11 @@ jobs:
     name: Publish to crates.io
     needs: [verify, github-release]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && github.event.inputs.skip_crates != 'true'
+    if: |
+      startsWith(github.ref, 'refs/tags/v') &&
+      github.event.inputs.skip_crates != 'true' &&
+      (github.event_name == 'push' ||
+       (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true'))
     permissions:
       contents: read
     env:
@@ -324,20 +339,25 @@ jobs:
               return 1
             done
           }
-          # Strict dep-order — see audit at the bottom of this job
-          # for the graph. Adding a new crate? Slot it into the
+          # Strict dep-order. Adding a new crate? Slot it into the
           # earliest layer that has all its dependencies already
-          # published in earlier layers.
+          # published in earlier layers. The order below was derived
+          # by reading the [dependencies] section of each crate's
+          # Cargo.toml; if a crate fails to publish with a "version
+          # not found" error, its dep is being published too late.
           for crate in \
             atomr-config \
             atomr-core \
-            atomr-macros atomr-testkit atomr-remote \
+            atomr-serialization-hyperion \
+            atomr-macros atomr-testkit \
+            atomr-remote atomr-remote-serial \
             atomr-persistence atomr-streams \
             atomr-coordination atomr-discovery atomr-di \
             atomr-cluster \
             atomr-persistence-tck atomr-persistence-query \
             atomr-hosting \
-            atomr-distributed-data atomr-cluster-tools atomr-cluster-metrics \
+            atomr-distributed-data atomr-distributed-data-lmdb \
+            atomr-cluster-tools atomr-cluster-metrics \
             atomr-persistence-query-inmemory atomr-persistence-sql \
             atomr-persistence-redis atomr-persistence-mongodb \
             atomr-persistence-cassandra atomr-persistence-aws \
@@ -346,7 +366,8 @@ jobs:
             atomr-patterns \
             atomr-telemetry \
             atomr-dashboard \
-            atomr; do
+            atomr \
+            atomr-profiler; do
             publish_one "$crate"
           done
 
@@ -361,9 +382,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Dry-run publish (foundation crates)
         run: |
-          for c in atomr-config atomr-macros atomr-core atomr-testkit atomr-remote \
-                   atomr-distributed-data atomr-cluster atomr-persistence atomr-streams \
-                   atomr-cluster-sharding atomr-patterns atomr; do
+          for c in atomr-config atomr-macros atomr-core atomr-serialization-hyperion \
+                   atomr-testkit atomr-remote atomr-remote-serial \
+                   atomr-distributed-data atomr-distributed-data-lmdb \
+                   atomr-cluster atomr-persistence atomr-streams \
+                   atomr-cluster-sharding atomr-patterns atomr atomr-profiler; do
             echo "==> $c"
             cargo publish -p "$c" --dry-run --allow-dirty || true
           done
@@ -372,7 +395,11 @@ jobs:
     name: Publish wheels + sdist to PyPI
     needs: [verify, build-wheels, build-sdist, github-release]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && github.event.inputs.skip_python != 'true'
+    if: |
+      startsWith(github.ref, 'refs/tags/v') &&
+      github.event.inputs.skip_python != 'true' &&
+      (github.event_name == 'push' ||
+       (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true'))
     # Trusted publishing — configure on PyPI: pypi.org → manage project →
     # publishing → add GitHub publisher (owner / repo / workflow / env).
     environment:

@@ -11,13 +11,40 @@
 
 ## Triggering
 
-* **Tag push** (`git push origin vX.Y.Z`) — runs the full pipeline.
-  `version-bump.yml` does this automatically on every `main` push that
-  contains `feat:` / `fix:` / `BREAKING CHANGE` Conventional-Commit
-  subjects (or a `Release-As: x.y.z` trailer).
-* **Manual** (`workflow_dispatch`) — choose `dry_run=true` for a
+There are three paths into this pipeline; they all converge on the
+same publish jobs.
+
+* **Direct tag push** (`git push origin vX.Y.Z`) — fires
+  `on: push: tags`. Use this when a human is cutting a release
+  outside of the auto-bump flow.
+* **Auto-bump trampoline** — `version-bump.yml` runs on every push
+  to `main` and decides a SemVer bump from Conventional-Commit
+  subjects (`feat:` → minor, `fix:`/`perf:`/`revert:` → patch,
+  `!:`/`BREAKING CHANGE` → major; everything else — including
+  `build:`, `chore:`, `docs:`, `ci:`, `test:`, `refactor:`,
+  `style:` — is `skip`). When it decides to bump, it commits the
+  version change, tags it, pushes, **and then explicitly dispatches
+  `release.yml`** via `gh workflow run release.yml --ref vX.Y.Z
+  -f dry_run=false`. The explicit dispatch is required because tag
+  events authored by the default `GITHUB_TOKEN` do not fire downstream
+  workflows.
+* **Manual `workflow_dispatch`** — choose `dry_run=true` for a
   rehearsal that publishes to TestPyPI and runs `cargo publish --dry-run`.
   Toggle `skip_python` / `skip_crates` to ship to only one registry.
+  A manual dispatch with `dry_run=false` against a `v*` tag ref also
+  performs a real publish (this is the same path the trampoline takes).
+
+### What gets published when
+
+| Trigger | verify | binaries | wheels | GitHub Release | crates.io | PyPI |
+|---|---|---|---|---|---|---|
+| `push` on `v*` tag | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `workflow_dispatch` ref=`v*` `dry_run=false` | ✓ | ✓ | ✓ | ✓ | ✓ (unless `skip_crates`) | ✓ (unless `skip_python`) |
+| `workflow_dispatch` `dry_run=true` | ✓ | ✓ | ✓ | — | dry-run only | TestPyPI |
+
+The publish jobs guard on `startsWith(github.ref, 'refs/tags/v')`, so
+a `workflow_dispatch` against a branch ref will only run the verify
+gate and (optionally) dry-run jobs — never a real publish.
 
 ## What gets built
 
@@ -88,12 +115,56 @@ with:
   skip-existing: true
 ```
 
+## Crates published
+
+The `publish-crates` job walks every publishable crate in dependency
+order. Adding a new crate? Slot it into the earliest layer whose
+prerequisites have already been published, and pin its intra-workspace
+deps with `{ workspace = true }` (NOT a hand-written `version = "..."`
+literal) so the next bump doesn't leave a stale pin behind.
+
+Current order (top to bottom):
+
+1. `atomr-config`
+2. `atomr-core`
+3. `atomr-serialization-hyperion`
+4. `atomr-macros`, `atomr-testkit`
+5. `atomr-remote`, `atomr-remote-serial`
+6. `atomr-persistence`, `atomr-streams`
+7. `atomr-coordination`, `atomr-discovery`, `atomr-di`
+8. `atomr-cluster`
+9. `atomr-persistence-tck`, `atomr-persistence-query`
+10. `atomr-hosting`
+11. `atomr-distributed-data`, `atomr-distributed-data-lmdb`
+12. `atomr-cluster-tools`, `atomr-cluster-metrics`
+13. `atomr-persistence-query-inmemory`, `atomr-persistence-sql`
+14. `atomr-persistence-redis`, `atomr-persistence-mongodb`
+15. `atomr-persistence-cassandra`, `atomr-persistence-aws`
+16. `atomr-persistence-azure`
+17. `atomr-cluster-sharding`
+18. `atomr-patterns`
+19. `atomr-telemetry`
+20. `atomr-dashboard`
+21. `atomr` (umbrella)
+22. `atomr-profiler` (binary + lib; published last so its `atomr` dep is already on the index)
+
+Workspace members deliberately excluded: `xtask`, `examples/*`,
+`benches/*` (all carry `publish = false`), and the `crates/py-bindings/*`
+crates (they ship as a single `atomr` PyPI wheel via `maturin`, not
+individual crates.io publishes).
+
 ## Cross-publishing constraints
 
 * **crates.io publishes are sequential** — every dependent crate
   must wait for its dependencies to be visible. The `publish-crates`
   job orders them deliberately; if you add a new crate, slot it into
   the matching layer of that block.
+* **`already uploaded` is treated as success** — re-tagging the same
+  version (after fixing one mid-pipeline crate) is cheap; previously-
+  uploaded crates skip in <1s.
+* **Rate limiting** — each successful publish sleeps 30s; `429 Too
+  Many Requests` triggers exponential backoff up to 6 attempts. With
+  ~22 crates this caps the publish-crates job around 15 min.
 * **Wheel ABI tags** are baked in by maturin from the build container,
   so each matrix entry produces a different wheel tag. If you need
   more (e.g. PyPy), add another matrix line.
