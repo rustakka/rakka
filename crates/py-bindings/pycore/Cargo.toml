@@ -20,6 +20,8 @@ atomr-core = { workspace = true }
 atomr-config = { workspace = true }
 atomr-testkit = { workspace = true }
 atomr-remote = { workspace = true }
+atomr-remote-serial = { workspace = true }
+tokio-serial = { workspace = true }
 atomr-pyremote = { workspace = true }
 atomr-cluster = { workspace = true }
 atomr-cluster-tools = { workspace = true }

@@ -32,7 +32,7 @@ and **[`SETUP.md`](SETUP.md) for per-platform plumbing** —
 required packages, user permissions, drivers, USB-gadget config,
 finding the right device path, and per-OS troubleshooting.
 
-## Build
+## Build (Rust path)
 
 ```
 cargo build --release -p example-usb-link-probe
@@ -40,6 +40,38 @@ cargo build --release -p example-usb-link-probe
 
 The binary is `target/release/usb-link-probe(.exe)`. Copy it to both
 machines.
+
+## Python flavor
+
+The same demo is available as a Python script at `python/probe.py`.
+It uses the PyO3 bindings in `atomr.remote_serial` (`SerialTransport`,
+`RemoteSystem`, `RemoteActorRef`) on top of the same Rust transport
++ `RemoteSystem` the binary uses, so the underlying byte path is
+identical — only the chat / ping / stats logic moves from Rust to
+Python.
+
+Setup (once per machine):
+
+```
+pip install atomr        # production
+# OR, from a checkout:
+maturin develop --release
+```
+
+Then on each side:
+
+```
+python examples/usb-link-probe/python/probe.py list-devices
+python examples/usb-link-probe/python/probe.py listen  --device /dev/ttyACM0
+python examples/usb-link-probe/python/probe.py connect --device COM3 \
+    --peer akka.serial://A@/dev/ttyACM0:0
+```
+
+Wire format: JSON dicts under the `LinkMsg` manifest (the demo's
+`encode_json`/`decode_json` helpers handle this). **The Python demo
+is not wire-compatible with the Rust binary**, which uses bincode —
+both sides of a given session must run the same flavor. The
+`atomr-remote-serial` transport itself is identical either way.
 
 ## Discover your serial device
 

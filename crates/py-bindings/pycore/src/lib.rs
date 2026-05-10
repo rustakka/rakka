@@ -47,6 +47,7 @@ mod ext_hosting;
 mod ext_pattern;
 mod ext_persistence;
 mod ext_remote;
+mod ext_remote_serial;
 mod ext_routing;
 mod ext_streams;
 mod ext_telemetry;
@@ -79,6 +80,7 @@ fn _native(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     ext_ddata_lmdb::register(py, m)?;
     ext_persistence::register(py, m)?;
     ext_remote::register(py, m)?;
+    ext_remote_serial::register(py, m)?;
     ext_streams::register(py, m)?;
     ext_coordination::register(py, m)?;
     ext_discovery::register(py, m)?;

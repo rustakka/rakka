@@ -307,6 +307,25 @@ example binaries.
 
 ---
 
+## Python flavor — extra setup
+
+The Python script at `python/probe.py` needs the `atomr` package. Two
+options on each machine:
+
+* **From PyPI:** `pip install atomr` (cross-platform; ships
+  pre-built wheels for Linux x86_64/aarch64 glibc+musl, macOS
+  universal2, and Windows x86_64 — Python 3.10+).
+* **From a checkout:** `maturin develop --release` from the workspace
+  root, inside an active virtualenv. Requires the same OS-level
+  build deps already documented above (notably `libudev-dev` on
+  Linux for serial enumeration).
+
+No new OS-level prerequisites beyond what the Rust path needs — the
+Python script binds to the same `tokio-serial`-backed `SerialTransport`
+and inherits the same driver / permissions / device-discovery
+requirements. If the Rust binary works on a given machine, the Python
+script will too.
+
 ## Quick verification before running the demo
 
 Once setup is done on both sides, sanity-check the link with a

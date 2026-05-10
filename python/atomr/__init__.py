@@ -25,6 +25,7 @@ from . import supervision
 from .supervision import SupervisorStrategy, Directive, Terminated
 
 from . import testkit
+from . import remote_serial
 from . import cluster
 from . import cluster_metrics
 from . import cluster_tools
@@ -69,6 +70,7 @@ __all__ = [
     "Terminated",
     "supervision",
     "testkit",
+    "remote_serial",
     "cluster",
     "cluster_metrics",
     "cluster_tools",
