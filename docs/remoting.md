@@ -218,6 +218,11 @@ A worked example with both sides ships in
 machine, then `cable-side-b /dev/ttyACM0 'akka.serial://A@/dev/ttyGS0:0'`
 on the other.
 
+For a richer cross-OS diagnostic — clap CLI, `list-devices`
+discovery, bidirectional chat, and a rolling sent / loss% / RTT
+overlay — see `examples/usb-link-probe/` (its README walks through a
+Linux ↔ Windows session end to end).
+
 ### Choosing between Tier 1 and Tier 2
 
 | Concern                     | Tier 1 (CDC-NCM + TCP)    | Tier 2 (`SerialTransport`)        |

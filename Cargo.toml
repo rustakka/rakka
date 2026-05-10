@@ -42,6 +42,7 @@ members = [
     "examples/sharded-keyvalue",
     "examples/dashboard-demo",
     "examples/usb-cable-link",
+    "examples/usb-link-probe",
     "benches/ping_throughput",
     "crates/atomr-profiler",
     "crates/py-bindings/pycore",

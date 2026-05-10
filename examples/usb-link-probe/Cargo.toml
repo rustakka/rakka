@@ -1,0 +1,27 @@
+[package]
+name = "example-usb-link-probe"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[[bin]]
+name = "usb-link-probe"
+path = "src/main.rs"
+
+[dependencies]
+atomr-core = { workspace = true }
+atomr-config = { workspace = true }
+atomr-remote = { workspace = true }
+atomr-remote-serial = { workspace = true }
+tokio = { workspace = true }
+tokio-serial = { workspace = true }
+async-trait = { workspace = true }
+anyhow = { workspace = true }
+clap = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+serde = { workspace = true }
+parking_lot = { workspace = true }
+
+[lints]
+workspace = true
